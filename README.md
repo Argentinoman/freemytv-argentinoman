@@ -38,11 +38,15 @@ Open source. Built with Claude Code. One button to undo.
 - **No ads.** No sponsored rows, banners or autoplaying promos. Not one.
 - **Your apps, front and center.** The streaming apps you actually use, on a glass shelf. Pick them and their order right on the TV.
 - **Trending, not sponsored.** Three fresh picks every hour from what's trending this week and the latest releases, only from apps you already have. Movies and Shows get their own tabs.
-- **Weather and markets, one press away.** The hour-by-hour forecast, sunrise and sunset, and live crypto prices.
+- **"Continuar viendo" for every app.** Focus an app on the shelf and an island shows the last three things to resume (Disney+, Netflix), what played on this TV (YouTube), Spotify's Top 3 Argentina, or the app's featured titles (Prime Video). It can be turned off.
+- **Football, live first.** Games being played come first, stacked up to three; otherwise the next ones take turns. Every Argentine professional cup, CONMEBOL and UEFA competitions and the World Cup, on the home screen, in the drawer and in the screensaver.
+- **Weather, one press away.** The hour-by-hour forecast, the week, sunrise and sunset. (On LG and Samsung, live crypto prices too; on Google TV this fork shows football in their place.)
+- **Now playing.** What Spotify (or any music app) plays, with previous, play/pause, next, stop, shuffle and repeat.
 - **Light by day, dark by night.** It follows your city's real sunset, the way your phone does.
-- **A screensaver to match.** Full-screen photos of the picks with a big glass clock.
-- **Fast.** 60 fps, every frame in 16.6 ms, on the TV's own chip. The home screen uses 96 MB of memory instead of 242 MB (−60%).<br><sub>Measured on a 98″ TCL Google TV running Android 14.</sub>
-- **Set up on the TV.** Language, your city, temperature, theme, the weather and prices cards, which coins, and the apps on the shelf, in Free My TV's own settings.
+- **A screensaver to match.** Full-screen photos from Wikimedia Commons (landscapes, art, abstract art, animals, your favourites) or a big clock, with the weather, the music and the games in the corners. The same pictures can be the home screen's background.
+- **The TCL remote's buttons work.** Netflix, YouTube, Prime Video, the browser, TV (straight to the antenna's channels), TCL Home and the gear (a quick settings panel).
+- **Fast.** 60 fps, every frame in 16.6 ms, on the TV's own chip. The home screen uses 96 MB of memory instead of 242 MB (−60%).<br><sub>Measured on a 98″ TCL Google TV running Android 14. On a 2 GB TCL (Android 11): 0.9% janky frames while moving along the shelf, back to Home in 0.3 s.</sub>
+- **Set up on the TV.** Language, your city, temperature, theme, the weather and football cards, the backgrounds, "Continuar viendo", and the apps on the shelf, in Free My TV's own settings.
 - **Safe.** No root. Nothing is uninstalled. One button brings back the factory home screen.
 
 ## Install
@@ -76,7 +80,9 @@ About ten minutes. You need a Google TV or Android TV (Android 8 or newer) and a
    ```bash
    adb connect 192.168.1.50:5555
    adb install -r FreeMyTV.apk
+   adb shell cmd package compile -m speed -f io.freemytv
    ```
+   The last line compiles it right away: a fresh install runs uncompiled, and its first start is slow on a TV.
    On TCL TVs, also let it run in the background (TCL blocks it by default, and the switch never starts):
    ```bash
    adb shell "appops set io.freemytv AUTO_START allow || appops set io.freemytv APP_AUTO_START allow"
@@ -131,8 +137,8 @@ The first values come from `config.properties`, created by the first build (Goog
 | `city` | The name on the weather card | `Weather` |
 | `hide_animation` | Leave cartoons and anime out of the picks | `false` |
 | `language` | `auto` (follows the TV), or a language with a [translation](#translations) (`en`, `pt`, `es`, `de`, `ru`, `fr`, `ja`…) on Google TV; `en`, `es`, `pt`, `ru` or `de` on LG and Samsung | `auto` |
-| `show_crypto` | Show Binance crypto prices on home and screensaver | `true` |
-| `currency` | Crypto prices in `USD`, `EUR`, `BRL`… | `USD` |
+| `show_crypto` | LG and Samsung only: Binance crypto prices on home and screensaver (Google TV shows football instead) | `true` |
+| `currency` | LG and Samsung only: crypto prices in `USD`, `EUR`, `BRL`… | `USD` |
 | `temperature` | `C`, `F` or `auto` | `auto` |
 | `disable_assistant` | Also turn off Google Assistant | `false` |
 | `hide_services` | Streaming services to leave out of the picks even when their app is on the TV (`netflix`, `prime`, `disney`…), comma separated; for apps the TV ships that you don't subscribe to. Google TV only | empty |
@@ -158,13 +164,13 @@ To remove it for good, switch to *Original* first, then uninstall *Free My TV* (
 - It becomes the home screen and the screensaver.
 - It turns off, without uninstalling:
   - the stock home screen and screensaver;
-  - Google TV's recovery home, Play Games and YouTube Music;
+  - Google TV's recovery home and Play Games (YouTube Music stays on);
   - on TCL TVs, the TCL Channel, messages, store demo, hotel menu, manuals, mirroring and logging apps;
   - on Philco TVs, AI PONT (promo channels and app downloads) and the manual;
   - on Multilaser TVs, Anoki's screen-content recognition (ACR), the store demo and the manual;
   - on KTC-made TVs (NextStar), Anoki's screen-content recognition (ACR), the store demo and the manual;
   - Google Assistant, only with `disable_assistant=true`.
-- On TCL TVs, the remote's Netflix, YouTube and Prime buttons keep working through a small accessibility service that only reads those buttons. Pick what each one opens in *Free My TV* → *Remote Buttons*; *Original* turns the service off. On Vestel-made TVs (F&U and other store brands) and Xiaomi (Formovie) projectors the same goes for the Netflix button, and on KTC-made TVs (NextStar) for the Tabii button. On Sony TVs, the BRAVIA CORE, Netflix, Disney+, Prime Video, YouTube and Crunchyroll buttons (and Google Play, on remotes that have it) can each open the app you pick, or keep Sony's default.
+- On TCL TVs, the remote's Netflix, YouTube and Prime buttons keep working, and the browser, TV, TCL Home and gear buttons (which did nothing without TCL's launcher) open BrowseHere, the antenna's channels, an app you pick and the quick settings panel, through a small accessibility service that only reads those buttons. The codes are listed in [`Prefs.java`](app/src/io/freemytv/Prefs.java). Pick what each one opens in *Free My TV* → *Remote Buttons*; *Original* turns the service off. On Vestel-made TVs (F&U and other store brands) and Xiaomi (Formovie) projectors the same goes for the Netflix button, and on KTC-made TVs (NextStar) for the Tabii button. On Sony TVs, the BRAVIA CORE, Netflix, Disney+, Prime Video, YouTube and Crunchyroll buttons (and Google Play, on remotes that have it) can each open the app you pick, or keep Sony's default.
 - Picture, sound, inputs, remote pairing, Google services and the Play Store are on a protected list, checked before every change, and so are Android's own pieces and factory menus. Before anything goes off, the TV is asked whether its inputs or its remote's Input key depend on it; those stay on.
 - On Google TV, the setup app goes off before the stock home screen and comes back after it, so its recovery screen never takes over the Home button in between.
 - Apps that saved a Wi-Fi network are never turned off, since Android would erase the network. If the TV's first setup saved yours, the switch asks you to forget the network and connect again in Settings first (saved networks out of range don't show there; Claude Code can remove them).
@@ -200,7 +206,7 @@ It's your code, and Claude Code finds its way around it. Try:
 - **Drawn by hand on one Canvas**, with Android 13 shaders for the frosted glass and the sky (plain fills on Android 8 to 12, with lighter shadows and no GPU layers on 8 to 11 for their older GPUs).
 - **A safety net.** A watchdog in a separate process brings back the stock home screen after three crashes in five minutes, and a boot check keeps your choice after TV updates.
 - **On LG and Samsung, the same design in plain HTML, CSS and JavaScript** ([`web/`](web)), written for the Chromium of older TVs, with no frameworks. [`webos/build.py`](webos/build.py) packs it with `config.properties` into an `.ipk` without LG's tools, and [`webos/install.py`](webos/install.py) installs it through Developer Mode; on LG it lists and opens apps through the TV's own service bus (Luna), as LG's launcher does. [`tizen/build.py`](tizen/build.py) packs the same app into a Samsung `.wgt`, which uses Tizen's web APIs for the apps and the inputs. To preview it on a computer: `python3 webos/build.py --preview`, then open `out/webos/index.html` (a stand-in lists sample apps).
-- **Data** from TMDB (trending titles, new releases and which app streams what in your country), Open-Meteo (forecast, sunrise and sunset), and optionally Binance (24-hour prices when `show_crypto=true`).
+- **Data** from TMDB (trending titles, new releases and which app streams what in your country), Open-Meteo (forecast, sunrise and sunset), ESPN's public scoreboard (football), Wikimedia Commons (backgrounds), Spotify's public pages (the Top 3 Argentina), and the TV itself: the TV Provider (what apps publish to resume or feature) and the media sessions (what plays). On LG and Samsung, optionally Binance (24-hour prices when `show_crypto=true`).
 
 | File | What it is |
 |---|---|
@@ -208,12 +214,19 @@ It's your code, and Claude Code finds its way around it. Try:
 | [`HomeMode.java`](app/src/io/freemytv/HomeMode.java) | Switching between Free My TV and Original |
 | [`Adb.java`](app/src/io/freemytv/Adb.java) | The TV's own ADB, from inside the TV |
 | [`Recs.java`](app/src/io/freemytv/Recs.java) | The picks (TMDB) |
-| [`HomeData.java`](app/src/io/freemytv/HomeData.java) | Weather and prices |
+| [`HomeData.java`](app/src/io/freemytv/HomeData.java) | Weather and football (prices on LG and Samsung) |
+| [`Futbol.java`](app/src/io/freemytv/Futbol.java) | The games (ESPN) |
+| [`WatchNext.java`](app/src/io/freemytv/WatchNext.java), [`MediaHistory.java`](app/src/io/freemytv/MediaHistory.java) | "Continuar viendo": the TV Provider, and what played in YouTube and Spotify |
+| [`NowPlaying.java`](app/src/io/freemytv/NowPlaying.java) | The now-playing widget |
+| [`Gallery.java`](app/src/io/freemytv/Gallery.java) | The Wikimedia backgrounds |
+| [`QuickSettingsActivity.java`](app/src/io/freemytv/QuickSettingsActivity.java) | The quick settings panel |
+| [`PowerOff.java`](app/src/io/freemytv/PowerOff.java) | The power-off animation |
+| [`LocalApps.java`](app/src/io/freemytv/LocalApps.java) | This TV's own app names and pictures (git-ignored file) |
 | [`HomeApps.java`](app/src/io/freemytv/HomeApps.java) | The shelf, inputs and All Apps |
 | [`DreamView.java`](app/src/io/freemytv/DreamView.java) | The screensaver |
 | [`SettingsActivity.java`](app/src/io/freemytv/SettingsActivity.java) | The settings screen (the app's icon) |
 | [`Prefs.java`](app/src/io/freemytv/Prefs.java) | Settings changed on the TV |
-| [`RemoteKeys.java`](app/src/io/freemytv/RemoteKeys.java) | The TCL remote's app buttons |
+| [`RemoteKeys.java`](app/src/io/freemytv/RemoteKeys.java) | The remote's app buttons (TCL, Vestel, KTC, Sony, Formovie) |
 | [`Watchdog.java`](app/src/io/freemytv/Watchdog.java) | The safety net |
 | [`web/home.js`](web/home.js) | The home screen on LG TVs |
 | [`web/tv.js`](web/tv.js) | The TV's apps and inputs, on LG and Samsung |
@@ -247,7 +260,7 @@ reference (fix them by hand); the others were machine-made, and corrections from
 
 ## Privacy
 
-No accounts, no analytics, no tracking. The app talks to TMDB, Open-Meteo (with the coordinates you set, or your time zone's main city), and Binance only when `show_crypto=true`, and Watchmode only when you set a `watchmode_key`. Your settings stay on your computer and your TV.
+No accounts, no analytics, no tracking. The app talks to TMDB, Open-Meteo (with the coordinates you set, or your time zone's main city), ESPN's scoreboard, Wikimedia Commons and Spotify's public pages (no account), Binance only when `show_crypto=true` (LG and Samsung), and Watchmode only when you set a `watchmode_key`. What played in YouTube and Spotify is kept on the TV, for "Continuar viendo", and never leaves it. Your settings stay on your computer and your TV.
 
 ## Credits
 
@@ -256,7 +269,7 @@ No accounts, no analytics, no tracking. The app talks to TMDB, Open-Meteo (with 
 - On Samsung TVs it installs with [TizenBrew Installer](https://github.com/reisxd/TizenBrewInstaller) by [@reisxd](https://github.com/reisxd).
 - This product uses the TMDB API but is not endorsed or certified by [TMDB](https://www.themoviedb.org/).
 - Links to the titles in the streaming apps by [Watchmode](https://api.watchmode.com/).
-- Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0). Prices from the [Binance](https://www.binance.com/) public API.
+- Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0). Prices from the [Binance](https://www.binance.com/) public API. Football from ESPN's public scoreboard. Backgrounds: [Wikimedia Commons](https://commons.wikimedia.org/) featured pictures and public-domain paintings (each picture's author shows with it).
 - Icons: [Material Symbols](https://fonts.google.com/icons) (Apache 2.0). Font: [Inter](https://rsms.me/inter/) (SIL OFL 1.1). Coin logos: [cryptocurrency-icons](https://github.com/spothq/cryptocurrency-icons) (CC0). Samsung app logos: [Simple Icons](https://simpleicons.org) (CC0).
 - Not affiliated with Google, TCL, LG, Samsung or any streaming service. App names and logos belong to their owners.
 
