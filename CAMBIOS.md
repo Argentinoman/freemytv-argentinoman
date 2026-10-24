@@ -3,6 +3,17 @@
 Todo lo que se agregó o cambió sobre [Free My TV](https://github.com/simbasjungles/free-my-tv), pensado para una
 **TCL Google TV de 2 GB** (Android 11, GPU Mali-G31) en Argentina. Lo probado, en esa tele.
 
+| | |
+|---|---|
+| ![Netflix seleccionado: la isla "Continuar viendo" con Shrek 2 y Te conozco](screenshots/continuar-viendo-netflix.jpg) | ![Spotify seleccionado: el Top 3 de Argentina con las portadas](screenshots/top3-spotify.jpg) |
+| "Continuar viendo" en Netflix | Top 3 Argentina en Spotify |
+| ![Prime Video seleccionado: destacados, sobre un fondo de paisaje de Wikimedia](screenshots/destacados-prime-fondo-paisaje.jpg) | ![Dos partidos en vivo debajo del reloj y una canción sonando](screenshots/partidos-en-vivo-y-musica.jpg) |
+| Destacados de Prime Video, con fondo de paisaje | Dos partidos en vivo y el reproductor |
+| ![El cajón: entradas, accesos directos con Navegador, el clima y los próximos partidos](screenshots/cajon-navegador-y-partidos.jpg) | |
+| El cajón, con "Navegador" y los partidos | |
+
+<sub>Capturas sacadas en la tele (con el brillo del inicio bajado).</sub>
+
 ## Pantalla de inicio
 
 - **Isla "Continuar viendo"** (a la derecha, entre los botones de arriba y el estante): muestra el contenido de la app

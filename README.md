@@ -32,6 +32,13 @@ Open source. Built with Claude Code. One button to undo.
 >   `app/assets/local/apps.properties`: see `LocalApps.java`.
 >
 > The UI text added here is in Spanish. **Every change in detail (in Spanish): [CAMBIOS.md](CAMBIOS.md).**
+>
+> <img src="screenshots/continuar-viendo-netflix.jpg" width="430" alt="Home screen with Netflix focused: the Continuar viendo island shows Shrek 2 with 57 minutes left and Te conozco, season 1 episode 4">
+> <img src="screenshots/partidos-en-vivo-y-musica.jpg" width="430" alt="Home screen with two live football games stacked under the clock and a song playing at the top right">
+> <img src="screenshots/top3-spotify.jpg" width="430" alt="Home screen with Spotify focused: the island shows Spotify's Top 3 Argentina with album covers">
+> <img src="screenshots/cajon-navegador-y-partidos.jpg" width="430" alt="The drawer: inputs, shortcuts with the Navegador button, the weather and the next football games">
+>
+> <sub>Taken on the TV itself (the home screen's brightness was turned down).</sub>
 
 ## What you get
 
