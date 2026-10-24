@@ -56,7 +56,7 @@ final class HomeMode {
      * your brand's, see the README). The TV's own home screen and screensaver are added at switch time.
      */
     static final String[] DEBLOAT = {
-        "com.google.android.play.games", "com.google.android.youtube.tvmusic",        // Play Games, YouTube Music
+        "com.google.android.play.games",                                              // Play Games (YouTube Music stays: used)
         // TCL
         "com.tcl.magiconnectfree", "com.tcl.miracast",                                // screen mirroring apps
         "com.tcl.waterfall.overseas", "com.tcl.channelplus",                          // TCL Channel and its Live TV
