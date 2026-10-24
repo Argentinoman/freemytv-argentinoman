@@ -79,7 +79,8 @@ final class NowPlaying implements MediaSessionManager.OnActiveSessionsChangedLis
 
     /**
      * Shuffle and repeat: MediaSessionCompat's ACTION_SET_SHUFFLE_MODE (1 << 21) and ACTION_SET_REPEAT_MODE (1 << 18),
-     * sent as its custom actions. Spotify offers neither to other apps; the buttons show only where they work.
+     * sent as its custom actions. Spotify takes both while a playlist or album plays (not a single song); the buttons
+     * show only while the app offers them.
      */
     boolean canShuffle() { return (actions & (1L << 21)) != 0; }
     boolean canRepeat() { return (actions & (1L << 18)) != 0; }
