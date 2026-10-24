@@ -112,6 +112,21 @@ lista de canales de la entrada de antena, así abre en los canales. Detalles en 
 - **YouTube Music queda activada:** el modo ya no la apaga, y la revisión del modo sigue solo la lista actual de apps a
   apagar (antes volvía a apagar lo que había apagado al principio).
 
+## Cada cuánto cambia cada cosa
+
+| Qué | Cada cuánto | Se cambia en |
+|---|---|---|
+| Fondo del inicio | **6 horas** (o 1 h, 12 h, 1 día, 1 semana) | *Ajustes de inicio → Fondos → Cambiar fondo cada*; *Cambiar fondo ahora* ahí o en el panel rápido |
+| Fotos del protector de pantalla | **30 segundos** (o 15 s, 1 min, 5 min) | *Ajustes de inicio → Fondos → Cambiar foto cada*; → en el protector pasa a la siguiente |
+| Listas de fotos de Wikimedia | Se renuevan **cada semana** (las imágenes se bajan al mostrarse; se guardan las últimas 40) | — |
+| Clima | Cada **30 minutos** | — |
+| Partidos | Cada **5 minutos**; **cada minuto** mientras hay uno en vivo o que ya empezó; la semana completa cada **3 horas** | — |
+| Partidos debajo del reloj | Se turnan cada **12 segundos** (en el protector, cada minuto) | — |
+| Isla "Continuar viendo" | Aparece **0,2 s** después de quedarte en una app; lo de Netflix y Disney+ se actualiza apenas la app lo publica | *Ajustes de inicio → Continuar viendo* |
+| Top 3 Argentina (Spotify) | Cada **4 horas** | — |
+| Historial de YouTube y Spotify | Guarda lo que suena más de **10 segundos**; hasta 20 por app | — |
+| Reproductor en pausa | Queda a la vista **20 minutos**, después se va (o al tocar Detener) | — |
+
 ## Rendimiento
 
 Medido en la tele, pasando por el estante con la isla a la vista:
