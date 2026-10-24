@@ -46,6 +46,8 @@ final class WatchNext {
 
     static final class Entry {
         String pkg, title = "", sub = "", image, uri;
+        /** From the app's watchlist ("Mi lista"), not something to resume: only fills the island's free places. */
+        boolean listed;
         long position, duration, at;
         /** Set on the UI thread once the picture is loaded at the size it's drawn. */
         Bitmap bitmap;
@@ -196,19 +198,28 @@ final class WatchNext {
 
     private Map<String, List<Entry>> readWatchNext() {
         Map<String, List<Entry>> out = new HashMap<>();
+        Map<String, int[]> counts = new java.util.TreeMap<>();   // per app: rows, to resume, watchlist, finished
         try (Cursor c = context.getContentResolver().query(TvContract.WatchNextPrograms.CONTENT_URI, null, null, null, null)) {
             if (c == null) return out;
             while (c.moveToNext()) {
                 String pkg = str(c, "package_name");
                 if (pkg == null || IGNORED.contains(pkg)) continue;
-                if (num(c, "watch_next_type") == TvContract.WatchNextPrograms.WATCH_NEXT_TYPE_WATCHLIST) continue;
+                int[] n = counts.get(pkg);
+                if (n == null) counts.put(pkg, n = new int[4]);
+                n[0]++;
                 Entry e = new Entry();
                 e.pkg = pkg;
+                e.listed = num(c, "watch_next_type") == TvContract.WatchNextPrograms.WATCH_NEXT_TYPE_WATCHLIST;
                 e.title = nonNull(str(c, "title"));
                 e.position = num(c, "last_playback_position_millis");
                 e.duration = num(c, "duration_millis");
                 e.at = num(c, "last_engagement_time_utc_millis");
-                if (e.title.isEmpty() || (e.duration > 0 && e.position > DONE * e.duration)) continue;
+                if (e.title.isEmpty()) continue;
+                if (!e.listed && e.duration > 0 && e.position > DONE * e.duration) {
+                    n[3]++;
+                    continue;
+                }
+                n[e.listed ? 2 : 1]++;
                 String season = str(c, "season_display_number"), episode = str(c, "episode_display_number");
                 String name = nonNull(str(c, "episode_title"));
                 StringBuilder sub = new StringBuilder();
@@ -226,7 +237,14 @@ final class WatchNext {
         } catch (RuntimeException e) {
             AppLog.w("watch next: " + e.getMessage());   // no permission: the widget stays hidden
         }
-        for (List<Entry> l : out.values()) Collections.sort(l, (a, b) -> Long.compare(b.at, a.at));
+        for (Map.Entry<String, int[]> e : counts.entrySet()) {
+            int[] n = e.getValue();
+            AppLog.w("watch next: " + e.getKey() + " " + n[0] + " rows: " + n[1] + " to resume, " + n[2] + " watchlist, " + n[3] + " finished");
+        }
+        // What to resume first, newest first; then the watchlist.
+        for (List<Entry> l : out.values()) {
+            Collections.sort(l, (a, b) -> a.listed != b.listed ? (a.listed ? 1 : -1) : Long.compare(b.at, a.at));
+        }
         return out;
     }
 
@@ -289,10 +307,14 @@ final class WatchNext {
         Content c = new Content();
         c.pkg = pkg;
         List<Entry> wn = watchNext.get(pkg);
-        if (wn != null && !wn.isEmpty()) {   // the latest three to resume
+        if (wn != null && !wn.isEmpty()) {   // the latest three to resume, the watchlist filling free places
             c.variant = ROW_WIDE;
-            c.header = "CONTINUAR VIENDO";
-            for (int i = 0; i < Math.min(3, wn.size()); i++) c.items.add(wn.get(i));
+            boolean listed = false;
+            for (int i = 0; i < Math.min(3, wn.size()); i++) {
+                c.items.add(wn.get(i));
+                listed |= wn.get(i).listed;
+            }
+            c.header = !listed ? "CONTINUAR VIENDO" : wn.get(0).listed ? "MI LISTA" : "CONTINUAR VIENDO · MI LISTA";
             return c;
         }
         if (pkg.equals(SPOTIFY)) {   // always the top three in Argentina

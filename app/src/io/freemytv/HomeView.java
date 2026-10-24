@@ -4071,6 +4071,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     /** How much of each card's title was seen (0: no bar), in the app's colour. */
     private final float[] watchProgress = new float[3];
     private int watchColor;
+    /** How far the cards sit from the island's left padding (centred when fewer than three), and the heading's x. */
+    private float watchShift, watchHeadX;
     private TextPaint watchHead, watchTitle, watchSub;
     private Paint watchRim;
     private boolean watchDirty;
@@ -4206,8 +4208,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         watchCard.set(right - w, WATCH_CY * k - h / 2, right, WATCH_CY * k + h / 2);
         int brand = HomeApps.brandColor(c.pkg);
         watchColor = brand != 0 ? brand : 0xFFFFFFFF;
-        for (int i = 0; i < Math.min(3, c.items.size()); i++) {
-            float x = watchCard.left + pad + i * (col + gap), top = watchCard.top + WATCH_TOP * k;
+        // Fewer than three cards (Netflix shares two): centred in the island, the heading over the first one.
+        int n = Math.min(3, c.items.size());
+        watchShift = (w - 2 * pad - (n * col + (n - 1) * gap)) / 2;
+        watchHeadX = Math.min(watchCard.left + pad + watchShift, watchCard.right - pad - watchHead.measureText(c.header));
+        for (int i = 0; i < n; i++) {
+            float x = watchCard.left + pad + watchShift + i * (col + gap), top = watchCard.top + WATCH_TOP * k;
             if (c.variant == WatchNext.ROW_WIDE) watchRects[i].set(x, top, x + col, top + t);
             else watchRects[i].set(x + (col - t) / 2, top, x + (col + t) / 2, top + t);   // centred, its text too
             WatchNext.Entry e = c.items.get(i);
@@ -4231,7 +4237,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         c.save();
         drawerGlass(c, watchCard, 30 * k, 0.72f, 0x1A000000, 10 * k, 1);
         watchHead.setColor(Ui.alpha(tone(L_DIM, 0xB3FFFFFF), a));
-        c.drawText(wc.header, watchCard.left + WATCH_PAD * k, watchCard.top + WATCH_HEADER * k, watchHead);
+        c.drawText(wc.header, watchHeadX, watchCard.top + WATCH_HEADER * k, watchHead);
         int ink = tone(L_INK, 0xFFFFFFFF), dim = tone(L_DIM, 0xADFFFFFF);
         boolean round = wc.variant == WatchNext.ROW_ROUND;
         for (int i = 0; i < Math.min(3, wc.items.size()); i++) {
@@ -4261,7 +4267,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 float h = 1.5f * k;
                 c.drawRoundRect(cell.left + h, cell.top + h, cell.right - h, cell.bottom - h, rad - h, rad - h, watchRim);
             }
-            float tx = watchCard.left + WATCH_PAD * k + i * (WATCH_COL + WATCH_COL_GAP) * k;
+            float tx = watchCard.left + WATCH_PAD * k + watchShift + i * (WATCH_COL + WATCH_COL_GAP) * k;
             Paint.Align align = Paint.Align.LEFT;
             if (wc.variant != WatchNext.ROW_WIDE) {   // square covers sit centred: their text centres under them
                 tx += WATCH_COL * k / 2;
