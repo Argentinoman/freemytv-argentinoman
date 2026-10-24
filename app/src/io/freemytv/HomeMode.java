@@ -560,7 +560,9 @@ final class HomeMode {
                     wait.add(GOOGLE_SETUP);
                     if (homePkg != null) wait.add(homePkg);
                 }
-                Set<String> wanted = new HashSet<>(stringList(s, "disabled"));
+                // Only today's list: an app taken off it (YouTube Music) and turned on by hand stays on, though the
+                // switch once turned it off (the saved "disabled" list kept turning it off again).
+                Set<String> wanted = new HashSet<>();
                 String dream = originalDream(s);
                 // In the switch's order (Google TV's setup app before its home screen), then the rest.
                 List<String> order = new ArrayList<>();
@@ -572,6 +574,8 @@ final class HomeMode {
                 }
                 for (String pkg : sorted(wanted)) if (!order.contains(pkg)) order.add(pkg);
                 Set<String> disabled = new HashSet<>(stringList(s, "disabled"));
+                // Off the list and on again: no longer ours to keep off (Original still turns on what it finds off).
+                for (String pkg : new ArrayList<>(disabled)) if (!wanted.contains(pkg) && !disabledNow.contains(pkg)) disabled.remove(pkg);
                 // Off before Free My TV: turned off again if a TV update brings one back, but never handed to
                 // Original to turn on.
                 List<String> keptOff = stringList(s, "keptOff");
