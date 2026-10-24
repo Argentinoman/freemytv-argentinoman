@@ -131,14 +131,6 @@
 
         <!-- The switches, as background jobs in the main process. -->
         <!-- Quick settings (Wi-Fi, Bluetooth, notifications, screensaver...): the gear's panel, over any app. -->
-        <!-- Diagnostics for the continue-watching widget, opened over ADB only:
-             adb shell am start -n io.freemytv/.DiagActivity -->
-        <activity
-            android:name=".DiagActivity"
-            android:exported="true"
-            android:excludeFromRecents="true"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
-
         <!-- With the home screen (:home), like the notification listener it reads: the main process can then go. -->
         <activity
             android:name=".QuickSettingsActivity"

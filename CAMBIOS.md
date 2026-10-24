@@ -146,8 +146,6 @@ Medido en la tele, pasando por el estante con la isla a la vista:
 
 - **`app/assets/local/apps.properties`** (ignorado por git): un nombre o una imagen de tarjeta propios para alguna app, o
   marcarla como app de video. Ver `LocalApps.java`.
-- `DiagActivity` (`adb shell am start -n io.freemytv/.DiagActivity`): lista lo que cada app publica en el TV Provider y
-  en sus sesiones de medios.
 
 ## Notas sobre la TCL
 
