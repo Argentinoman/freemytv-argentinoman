@@ -47,7 +47,7 @@ Open source. Built with Claude Code. One button to undo.
 - **Trending, not sponsored.** Three fresh picks every hour from what's trending this week and the latest releases, only from apps you already have. Movies and Shows get their own tabs.
 - **"Continuar viendo" for every app.** Focus an app on the shelf and an island shows the last three things to resume (Disney+, Netflix), what played on this TV (YouTube), Spotify's Top 3 Argentina, or the app's featured titles (Prime Video). It can be turned off.
 - **Football, live first.** Games being played come first, stacked up to three; otherwise the next ones take turns. Every Argentine professional cup, CONMEBOL and UEFA competitions and the World Cup, on the home screen, in the drawer and in the screensaver.
-- **Weather, one press away.** The hour-by-hour forecast, the week, sunrise and sunset. (On LG and Samsung, live crypto prices too; on Google TV this fork shows football in their place.)
+- **Weather, one press away.** Today's weather under the clock (now, high and low); in the drawer, the hour-by-hour forecast, sunrise and sunset, and **the extended 7-day forecast**, a page away on the same card (OK on it, then ← →). (On LG and Samsung, live crypto prices too; on Google TV this fork shows football in their place.)
 - **Now playing.** What Spotify (or any music app) plays, with previous, play/pause, next, stop, shuffle and repeat.
 - **Light by day, dark by night.** It follows your city's real sunset, the way your phone does.
 - **A screensaver to match.** Full-screen photos from Wikimedia Commons (landscapes, art, abstract art, animals, your favourites) or a big clock, with the weather, the music and the games in the corners. The same pictures can be the home screen's background.

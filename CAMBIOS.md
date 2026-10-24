@@ -37,6 +37,9 @@ Todo lo que se agregó o cambió sobre [Free My TV](https://github.com/simbasjun
   Klee, Mondrian, Malevich, Delaunay, Kupka, Hilma af Klint, Jawlensky, Franz Marc, Popova), **Animales** (mamíferos,
   aves, reptiles, animales en vuelo) y Favoritas. Se eligen en *Ajustes de inicio → Fondos* y cambian solos cada tanto.
 - **Brillo del inicio** desde el panel rápido, con el atenuado del propio sistema (no le cuesta nada a la placa de video).
+- **Pronóstico extendido de 7 días:** la tarjeta del clima del cajón tiene dos páginas, las próximas horas (con
+  amanecer y atardecer) y la semana, con la máxima y la mínima de cada día. OK en la tarjeta y ← → para pasar de página;
+  los puntitos de página se ven solo con la tarjeta seleccionada. Lo mismo para la tarjeta de partidos.
 - Sin efectos de clima en el fondo (consumían demasiado).
 
 ## Reproductor ("Reproduciendo ahora")
