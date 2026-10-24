@@ -15,6 +15,24 @@ Open source. Built with Claude Code. One button to undo.
 
 </div>
 
+> **This fork** is [simbasjungles/free-my-tv](https://github.com/simbasjungles/free-my-tv) tuned for one TV: a 2 GB TCL
+> Google TV (Android 11, Mali-G31) in Argentina. On top of the original:
+>
+> - A **"Continuar viendo" island** for the focused shelf app: Watch Next (Disney+, Netflix), what played on this TV in
+>   YouTube, Spotify's Top 3 Argentina, and each app's featured row (Prime Video, YouTube trending) when there's nothing
+>   to resume.
+> - **Football**: live games first, every Argentine professional cup, CONMEBOL and UEFA competitions and the World Cup,
+>   also in the screensaver.
+> - **TCL remote**: the browser, TV (straight to the antenna's channels), TCL Home and gear buttons work in Free My TV
+>   mode; the codes and what each opens are documented in `Prefs.java`, the tuner in `HomeApps.liveTv`.
+> - A now-playing widget with stop, shuffle and repeat; a quick settings panel; Wikimedia backgrounds and screensaver
+>   (landscapes, art, abstract art, animals); a Samsung-style power-off animation; a "Navegador" drawer shortcut.
+> - Speed work for a weak GPU and 2 GB of RAM (see `CLAUDE.md`: compile the app after installing it).
+> - **Per-TV app touches** (a name or a card picture for a particular app) go in a git-ignored
+>   `app/assets/local/apps.properties`: see `LocalApps.java`.
+>
+> The UI text added here is in Spanish.
+
 ## What you get
 
 - **No ads.** No sponsored rows, banners or autoplaying promos. Not one.
