@@ -1,5 +1,8 @@
 # Your settings and signing key stay on your machine
 config.properties
+# This TV's own app names and pictures (LocalApps), and a profile photo
+app/assets/local/
+app/assets/profile.jpg
 *.keystore
 *.idsig
 

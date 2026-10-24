@@ -4,7 +4,14 @@
     android:versionCode="1"
     android:versionName="1.0">
 
+    <!-- App options > Uninstall: the system's own uninstall dialog. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <!-- Quick settings: whether Bluetooth is on (a normal permission). -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Continue watching: the apps' Watch Next rows in the TV Provider. Granted over ADB:
+         pm grant io.freemytv android.permission.READ_TV_LISTINGS -->
+    <uses-permission android:name="android.permission.READ_TV_LISTINGS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- After the TV boots (and after a TV update), checks that Free My TV mode is still as you left it. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -85,7 +92,6 @@
             android:taskAffinity=""
             android:stateNotNeeded="true"
             android:clearTaskOnLaunch="true"
-            android:resumeWhilePausing="true"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
@@ -124,6 +130,38 @@
         </service>
 
         <!-- The switches, as background jobs in the main process. -->
+        <!-- Quick settings (Wi-Fi, Bluetooth, notifications, screensaver...): the gear's panel, over any app. -->
+        <!-- Diagnostics for the continue-watching widget, opened over ADB only:
+             adb shell am start -n io.freemytv/.DiagActivity -->
+        <activity
+            android:name=".DiagActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
+
+        <!-- With the home screen (:home), like the notification listener it reads: the main process can then go. -->
+        <activity
+            android:name=".QuickSettingsActivity"
+            android:process=":home"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+
+        <!-- Only so the home screen may see what is playing (media sessions); it reads no notifications. -->
+        <!-- In :home: the main process (12 MB) isn't kept alive just for it, and Home, bound to it, is closed less often. -->
+        <service
+            android:name=".NowPlayingListener"
+            android:process=":home"
+            android:exported="true"
+            android:label="Free My TV"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <service
             android:name=".ModeJob"
             android:exported="false"

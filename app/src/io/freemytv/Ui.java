@@ -60,6 +60,26 @@ final class Ui {
         regular = font(a, 14, 400);
         medium = font(a, 14, 500);
         semibold = font(a, 14, 600);
+        // Google TV's own typeface, read from the system (never bundled: it isn't ours to ship). This TV has the 400
+        // and 500 weights; the giant clock keeps Inter's thin and light cuts, which Google Sans lacks here.
+        Typeface g400 = systemFont(400), g500 = systemFont(500);
+        if (g400 != null && g500 != null) {
+            regular = g400;
+            medium = g500;
+            semibold = g500;
+            displayMedium = g500;
+            displaySemibold = g500;
+        }
+    }
+
+    private static Typeface systemFont(int weight) {
+        java.io.File f = new java.io.File("/system/fonts/Google_Sans-" + weight + "-100_0-0_0.ttf");
+        if (!f.canRead()) return null;
+        try {
+            return Typeface.createFromFile(f);
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     /** Inter at an optical size (14 = text, 32 = display) and weight; the system font if the file is missing. */

@@ -15,6 +15,19 @@ import android.widget.TextView;
  * back to the TV's original one.
  */
 public class HomeActivity extends Activity {
+    /** Home is on screen (started): the quick panel, in this process, offers "change background" only over it. */
+    static volatile boolean shown;
+
+    @Override protected void onStart() {
+        super.onStart();
+        shown = true;
+    }
+
+    @Override protected void onStop() {
+        shown = false;
+        super.onStop();
+    }
+
     private HomeView home;
     private int prefsVersion = Prefs.version;   // settings changed while we were away: start over
 
@@ -69,6 +82,9 @@ public class HomeActivity extends Activity {
     @Override public void onTrimMemory(int level) {
         super.onTrimMemory(level);
         if (level >= TRIM_MEMORY_COMPLETE) Recs.get(this).trim();
+        // Short of memory while another app is in front: let go of what can be made again, so the TV has less reason
+        // to close the whole home screen (which is what makes coming back slow).
+        if (level >= TRIM_MEMORY_BACKGROUND && home != null) home.trimImages();
     }
 
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
