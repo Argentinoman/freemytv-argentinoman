@@ -37,6 +37,8 @@ Open source. Built with Claude Code. One button to undo.
 > <img src="screenshots/partidos-en-vivo-y-musica.jpg" width="430" alt="Home screen with two live football games stacked under the clock and a song playing at the top right">
 > <img src="screenshots/top3-spotify.jpg" width="430" alt="Home screen with Spotify focused: the island shows Spotify's Top 3 Argentina with album covers">
 > <img src="screenshots/cajon-navegador-y-partidos.jpg" width="430" alt="The drawer: inputs, shortcuts with the Navegador button, the weather and the next football games">
+> <img src="screenshots/pronostico-7-dias.webp" width="430" alt="The drawer's weather card on its second page: the extended 7-day forecast with each day's high and low">
+> <img src="screenshots/panel-rapido.webp" width="430" alt="The quick settings panel over the home screen: clock and weather, Wi-Fi, Bluetooth, screensaver, picture and sound, inputs, settings, home brightness and home settings">
 >
 > <sub>Taken on the TV itself (the home screen's brightness was turned down).</sub>
 

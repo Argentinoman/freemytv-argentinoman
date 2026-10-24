@@ -9,8 +9,10 @@ Todo lo que se agregó o cambió sobre [Free My TV](https://github.com/simbasjun
 | "Continuar viendo" en Netflix | Top 3 Argentina en Spotify |
 | ![Prime Video seleccionado: destacados, sobre un fondo de paisaje de Wikimedia](screenshots/destacados-prime-fondo-paisaje.jpg) | ![Dos partidos en vivo debajo del reloj y una canción sonando](screenshots/partidos-en-vivo-y-musica.jpg) |
 | Destacados de Prime Video, con fondo de paisaje | Dos partidos en vivo y el reproductor |
-| ![El cajón: entradas, accesos directos con Navegador, el clima y los próximos partidos](screenshots/cajon-navegador-y-partidos.jpg) | |
-| El cajón, con "Navegador" y los partidos | |
+| ![El cajón: entradas, accesos directos con Navegador, el clima y los próximos partidos](screenshots/cajon-navegador-y-partidos.jpg) | ![La tarjeta del clima en su segunda página: el pronóstico de 7 días con máxima y mínima](screenshots/pronostico-7-dias.webp) |
+| El cajón, con "Navegador" y los partidos | El pronóstico extendido de 7 días |
+| ![El panel rápido sobre el inicio, con el fondo de una pintura](screenshots/panel-rapido.webp) | |
+| El panel rápido | |
 
 <sub>Capturas sacadas en la tele (con el brillo del inicio bajado).</sub>
 
