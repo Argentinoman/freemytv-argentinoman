@@ -47,10 +47,8 @@ final class NowPlaying implements MediaSessionManager.OnActiveSessionsChangedLis
     float speed;
     boolean playing;
     long pausedAt;
-    /** The session's PlaybackState actions: what this app lets others do (shuffle and repeat are optional). */
+    /** The session's PlaybackState actions: what this app lets others do. */
     long actions;
-    boolean shuffleOn;
-    int repeatMode;   // 0 off, 1 one, 2 all (as MediaSessionCompat)
     /** Bumped on every change: the screen re-measures its text only then. */
     int version;
 
@@ -77,34 +75,7 @@ final class NowPlaying implements MediaSessionManager.OnActiveSessionsChangedLis
         watch(null);
     }
 
-    /**
-     * Shuffle and repeat: MediaSessionCompat's ACTION_SET_SHUFFLE_MODE (1 << 21) and ACTION_SET_REPEAT_MODE (1 << 18),
-     * sent as its custom actions. Spotify offers neither to other apps; the buttons show only where they work.
-     */
-    boolean canShuffle() { return (actions & (1L << 21)) != 0; }
-    boolean canRepeat() { return (actions & (1L << 18)) != 0; }
-
-    void shuffle() {
-        shuffleOn = !shuffleOn;
-        custom("SET_SHUFFLE_MODE", "ARGUMENT_SHUFFLE_MODE", shuffleOn ? 1 : 0);
-    }
-
-    void repeat() {
-        repeatMode = repeatMode == 0 ? 2 : repeatMode == 2 ? 1 : 0;   // off -> all -> one -> off
-        custom("SET_REPEAT_MODE", "ARGUMENT_REPEAT_MODE", repeatMode);
-    }
-
-    private void custom(String action, String argument, int value) {
-        MediaController c = controller;
-        if (c == null) return;
-        android.os.Bundle b = new android.os.Bundle();
-        b.putInt("android.support.v4.media.session.action." + argument, value);
-        try {
-            c.getTransportControls().sendCustomAction("android.support.v4.media.session.action." + action, b);
-        } catch (RuntimeException ignored) {
-        }
-        listener.onNowPlaying();
-    }
+    // No shuffle or repeat: sent as MediaSessionCompat's custom actions, Spotify (on a TCL, 2026) ignored both.
 
     void previous() {
         MediaController c = controller;

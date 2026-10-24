@@ -115,11 +115,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final Spring[] futbolFocus = {new Spring(0.26f, 0.85f, 0)};
     private int cardPage;
     private long cardManualAt;
-    /** The now-playing controls under the widget: previous, play/pause, next. */
-    private final Spring[] ctrlFocus = new Spring[6];
-    /** The controls shown: shuffle and repeat only when the playing app supports them. */
-    private static final int C_SHUFFLE = 4, C_PREV = 0, C_PLAY = 1, C_NEXT = 2, C_REPEAT = 5, C_STOP = 6;
-    private int[] ctrlKinds = {C_PREV, C_PLAY, C_NEXT};
+    /** The now-playing controls under the widget: previous, play/pause, next, stop. */
+    private final Spring[] ctrlFocus = new Spring[4];
+    /** No shuffle or repeat: Spotify ignored both from other apps (see NowPlaying). */
+    private static final int C_PREV = 0, C_PLAY = 1, C_NEXT = 2, C_STOP = 6;
+    private final int[] ctrlKinds = {C_PREV, C_PLAY, C_NEXT, C_STOP};
     private final Spring[] ctrlShow = {new Spring(0.28f, 0.8f, 0)};
     private final RectF ctrlRect = new RectF();
     private int ctrlIndex = 1;
@@ -683,7 +683,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
         playerFocus[0] = new Spring(0.26f, 0.85f, 0);
         avatarFocus[0] = new Spring(0.26f, 0.85f, 0);
-        for (int i = 0; i < 6; i++) ctrlFocus[i] = new Spring(0.26f, 0.85f, 0);
+        for (int i = 0; i < ctrlFocus.length; i++) ctrlFocus[i] = new Spring(0.26f, 0.85f, 0);
         makeLightButtons();
         recs.setLight(true);
         checkNight(false);
@@ -3234,12 +3234,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         } else if (zone == Z_PLAYER_CTRL) {
             if (nowPlaying != null && ctrlIndex < ctrlKinds.length) {
                 switch (ctrlKinds[ctrlIndex]) {
-                    case C_SHUFFLE: nowPlaying.shuffle(); break;
                     case C_PREV: nowPlaying.previous(); break;
                     case C_PLAY: nowPlaying.toggle(); break;
                     case C_NEXT: nowPlaying.next(); break;
-                    case C_STOP: nowPlaying.stopPlayback(); break;
-                    default: nowPlaying.repeat(); break;
+                    default: nowPlaying.stopPlayback(); break;
                 }
             }
             click.open();
@@ -4428,7 +4426,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         float show = Ui.clamp(ctrlShow[0].value);
         NowPlaying np = nowPlaying;
         if (show <= 0.01f || np == null || !np.visible()) return;
-        updateCtrlKinds(np);
         int n = ctrlKinds.length;
         // Anchored where the open capsule's centre is (it shrinks to the right as it collapses: following it dragged the
         // buttons sideways); they rise into it as they shrink and fade, the outer ones a little ahead of the middle one.
@@ -4458,26 +4455,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             fill.setShader(null);
             fill.setColor(Ui.alpha(blend(tone(L_INK, 0xEBFFFFFF), L_INK, f), show));
             int kind = ctrlKinds[i];
-            boolean active = (kind == C_SHUFFLE && np.shuffleOn) || (kind == C_REPEAT && np.repeatMode != 0);
-            if (active && f < 0.5f) fill.setColor(Ui.alpha(0xFF30D158, show));   // on: green, like the apps do
             drawControlGlyph(c, kind == C_PLAY ? (np.playing ? 3 : 1) : kind, x, cy, rad * 0.36f);
             show = showWas;
         }
-    }
-
-    private void updateCtrlKinds(NowPlaying np) {
-        int n = 4 + (np.canShuffle() ? 1 : 0) + (np.canRepeat() ? 1 : 0);
-        if (n == ctrlKinds.length) return;
-        int[] k2 = new int[n];
-        int i = 0;
-        if (np.canShuffle()) k2[i++] = C_SHUFFLE;
-        k2[i++] = C_PREV;
-        k2[i++] = C_PLAY;
-        k2[i++] = C_NEXT;
-        k2[i++] = C_STOP;
-        if (np.canRepeat()) k2[i] = C_REPEAT;
-        ctrlKinds = k2;
-        ctrlIndex = Math.min(ctrlIndex, n - 1);
     }
 
     private int indexOfKind(int kind) {
@@ -4485,49 +4465,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         return 0;
     }
 
-    private Paint ctrlStroke;
-
-    /**
-     * 0 previous, 1 play, 2 next, 3 pause (filled), 4 shuffle, 5 repeat (stroked): centred on (x, y), `u` about half
-     * their height, in `fill`'s colour.
-     */
+    /** 0 previous, 1 play, 2 next, 3 pause, 6 stop (filled): centred on (x, y), `u` about half their height, in `fill`'s colour. */
     private void drawControlGlyph(Canvas c, int which, float x, float y, float u) {
         glyphPath.reset();
         if (which == C_STOP) {   // stop: a rounded square
             tmp.set(x - u * 0.72f, y - u * 0.72f, x + u * 0.72f, y + u * 0.72f);
             c.drawRoundRect(tmp, u * 0.18f, u * 0.18f, fill);
-            return;
-        }
-        if (which == C_SHUFFLE || which == C_REPEAT) {
-            if (ctrlStroke == null) {
-                ctrlStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
-                ctrlStroke.setStyle(Paint.Style.STROKE);
-                ctrlStroke.setStrokeCap(Paint.Cap.ROUND);
-                ctrlStroke.setStrokeJoin(Paint.Join.ROUND);
-            }
-            ctrlStroke.setStrokeWidth(u * 0.24f);
-            ctrlStroke.setColor(fill.getColor());
-            if (which == C_SHUFFLE) {
-                // Two crossing arrows.
-                glyphPath.moveTo(x - u, y - u * 0.6f);
-                glyphPath.cubicTo(x - u * 0.2f, y - u * 0.6f, x + u * 0.1f, y + u * 0.6f, x + u, y + u * 0.6f);
-                glyphPath.moveTo(x - u, y + u * 0.6f);
-                glyphPath.cubicTo(x - u * 0.2f, y + u * 0.6f, x + u * 0.1f, y - u * 0.6f, x + u, y - u * 0.6f);
-                glyphPath.moveTo(x + u * 0.65f, y - u * 0.95f);
-                glyphPath.lineTo(x + u, y - u * 0.6f);
-                glyphPath.lineTo(x + u * 0.65f, y - u * 0.25f);
-                glyphPath.moveTo(x + u * 0.65f, y + u * 0.25f);
-                glyphPath.lineTo(x + u, y + u * 0.6f);
-                glyphPath.lineTo(x + u * 0.65f, y + u * 0.95f);
-            } else {
-                // A loop with an arrow head.
-                tmp.set(x - u, y - u * 0.6f, x + u, y + u * 0.6f);
-                glyphPath.addRoundRect(tmp, u * 0.5f, u * 0.5f, Path.Direction.CW);
-                glyphPath.moveTo(x + u * 0.05f, y - u * 0.95f);
-                glyphPath.lineTo(x + u * 0.4f, y - u * 0.6f);
-                glyphPath.lineTo(x + u * 0.05f, y - u * 0.25f);
-            }
-            c.drawPath(glyphPath, ctrlStroke);
             return;
         }
         switch (which) {
