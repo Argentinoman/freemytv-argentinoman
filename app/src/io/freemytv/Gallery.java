@@ -28,7 +28,27 @@ import java.util.List;
 final class Gallery {
     private Gallery() {}
 
-    static final String LANDSCAPES = "landscapes", ART = "art", FAVORITES = "favorites";
+    static final String LANDSCAPES = "landscapes", ART = "art", ANIMALS = "animals", ABSTRACT = "abstract", FAVORITES = "favorites";
+
+    /** Every kind of photos, in the order they're offered. */
+    static final String[] KINDS = {LANDSCAPES, ART, ABSTRACT, ANIMALS, FAVORITES};
+
+    /** A kind of photos (not "black" or "clock"). */
+    static boolean photos(String kind) {
+        for (String k : KINDS) if (k.equals(kind)) return true;
+        return false;
+    }
+
+    /** Its name in the settings and menus. */
+    static String name(String kind) {
+        switch (kind) {
+            case ART: return "Arte";
+            case ABSTRACT: return "Arte abstracto";
+            case ANIMALS: return "Animales";
+            case FAVORITES: return "Favoritas";
+            default: return "Paisajes";
+        }
+    }
 
     static final class Item {
         String url = "", title = "", author = "";
@@ -47,6 +67,17 @@ final class Gallery {
         "Featured pictures of paintings from Spain", "Featured pictures of paintings from Italy",
         "Featured pictures of paintings from the United States", "Featured pictures of paintings from Russia"};
 
+    /**
+     * Animals and abstract art come from Commons' search, which walks subcategories (the featured categories of
+     * animals hold almost nothing directly: their pictures sit in a category per family). Abstract art: abstract
+     * paintings by its public-domain founders (the whole category also holds graffiti and climate charts).
+     */
+    private static final String[] ANIMAL_SEARCHES = {"deepcat:\"Featured pictures of mammals\"",
+        "deepcat:\"Featured pictures of birds\"", "deepcat:\"Featured pictures of reptiles\"",
+        "deepcat:\"Featured pictures of animals in flight\""};
+    private static final String[] ABSTRACT_SEARCHES = {"deepcat:\"Abstract paintings\" Kandinsky OR Klee OR Mondrian"
+        + " OR Malevich OR Delaunay OR Kupka OR \"af Klint\" OR Jawlensky OR \"Franz Marc\" OR Popova"};
+
     /** The list (saved, or fetched when older than a week), shuffled once per fetch so every TV sees its own order. */
     static List<Item> list(Context c, String kind) {
         if (kind.equals(FAVORITES)) return favorites(c);
@@ -54,7 +85,9 @@ final class Gallery {
         List<Item> saved = read(f);
         if (!saved.isEmpty() && System.currentTimeMillis() - f.lastModified() < LIST_EVERY) return saved;
         try {
-            List<Item> fresh = fetch(kind.equals(ART) ? ART_CATEGORIES : LANDSCAPE_CATEGORIES, 1.3f);
+            List<Item> fresh = kind.equals(ANIMALS) ? search(ANIMAL_SEARCHES, 1.3f, 4)
+                    : kind.equals(ABSTRACT) ? search(ABSTRACT_SEARCHES, 1.15f, 10)   // a painting crops well enough
+                    : fetch(kind.equals(ART) ? ART_CATEGORIES : LANDSCAPE_CATEGORIES, 1.3f);
             if (!fresh.isEmpty()) {
                 Collections.shuffle(fresh);
                 write(f, fresh);
@@ -91,9 +124,15 @@ final class Gallery {
         return f;
     }
 
-    /** "PAISAJE" or "ARTE": the screensaver's label over the title. */
+    /** "PAISAJE", "ARTE"...: the screensaver's label over the title. */
     static String label(String kind) {
-        return kind.equals(ART) ? "ARTE" : kind.equals(FAVORITES) ? "FAVORITA" : "PAISAJE";
+        switch (kind) {
+            case ART: return "ARTE";
+            case ABSTRACT: return "ARTE ABSTRACTO";
+            case ANIMALS: return "ANIMAL";
+            case FAVORITES: return "FAVORITA";
+            default: return "PAISAJE";
+        }
     }
 
     // MARK: - Favourites: the pictures the person marked, to see them again and again
@@ -176,37 +215,65 @@ final class Gallery {
                     + "&gcmtitle=" + URLEncoder.encode("Category:" + cat, "UTF-8")
                     + "&prop=imageinfo&iiprop=url%7Csize%7Cextmetadata&iiurlwidth=" + width
                     + "&iiextmetadatafilter=Artist%7CObjectName";
-            JSONObject pages = new JSONObject(get(q)).optJSONObject("query");
+            JSONObject query = new JSONObject(get(q)).optJSONObject("query");
             Thread.sleep(400);   // one category at a time, gently (Wikimedia limits bursts)
-            pages = pages == null ? null : pages.optJSONObject("pages");
-            if (pages == null) continue;
-            for (Iterator<String> keys = pages.keys(); keys.hasNext(); ) {
-                JSONObject page = pages.getJSONObject(keys.next());
-                JSONArray infos = page.optJSONArray("imageinfo");
-                if (infos == null || infos.length() == 0) continue;
-                JSONObject info = infos.getJSONObject(0);
-                int w = info.optInt("width"), h = info.optInt("height");
-                // Wide ones only (a 16:9 screen crops the rest badly), big enough for the screen.
-                if (h <= 0 || w < 1600 || w / (float) h < minRatio || w / (float) h > 2.4f) continue;
-                String url = info.optString("thumburl", "");
-                if (url.isEmpty()) continue;
-                JSONObject meta = info.optJSONObject("extmetadata");
-                Item it = new Item();
-                it.url = url;
-                it.title = clean(field(meta, "ObjectName"));
-                if (it.title.isEmpty()) it.title = fileTitle(page.optString("title"));
-                it.author = clean(field(meta, "Artist"));
-                if (UNSUITABLE.matcher(it.title + " " + page.optString("title")).find()) continue;
-                if (it.author.length() > 60) it.author = it.author.substring(0, 59) + "…";
-                out.add(it);
+            add(query, minRatio, out);
+        }
+        return out;
+    }
+
+    /** Commons' search for files (it walks subcategories with deepcat:), 50 a page, up to `pages` pages per query. */
+    private static List<Item> search(String[] queries, float minRatio, int pages) throws Exception {
+        List<Item> out = new ArrayList<>();
+        for (String s : queries) {
+            String offset = null;
+            for (int p = 0; p < pages; p++) {
+                String q = API + "?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=50"
+                        + "&gsrsearch=" + URLEncoder.encode(s, "UTF-8") + (offset != null ? "&gsroffset=" + offset : "")
+                        + "&prop=imageinfo&iiprop=url%7Csize%7Cextmetadata&iiurlwidth=2560"
+                        + "&iiextmetadatafilter=Artist%7CObjectName";
+                JSONObject answer = new JSONObject(get(q));
+                Thread.sleep(1500);   // searches cost Wikimedia more: slower than the category lists
+                add(answer.optJSONObject("query"), minRatio, out);
+                JSONObject more = answer.optJSONObject("continue");
+                if (more == null) break;
+                offset = more.optString("gsroffset", null);
+                if (offset == null) break;
             }
         }
         return out;
     }
 
-    /** Grim scenes stay out of a living room (by their titles, in the usual languages): executions, martyrdoms. */
+    /** The usable pictures of an answer: wide (a 16:9 screen crops the rest badly), big enough, nothing grim. */
+    private static void add(JSONObject query, float minRatio, List<Item> out) throws org.json.JSONException {
+        JSONObject pages = query == null ? null : query.optJSONObject("pages");
+        if (pages == null) return;
+        for (Iterator<String> keys = pages.keys(); keys.hasNext(); ) {
+            JSONObject page = pages.getJSONObject(keys.next());
+            JSONArray infos = page.optJSONArray("imageinfo");
+            if (infos == null || infos.length() == 0) continue;
+            JSONObject info = infos.getJSONObject(0);
+            int w = info.optInt("width"), h = info.optInt("height");
+            if (h <= 0 || w < 1600 || w / (float) h < minRatio || w / (float) h > 2.4f) continue;
+            String url = info.optString("thumburl", "");
+            if (url.isEmpty()) continue;
+            JSONObject meta = info.optJSONObject("extmetadata");
+            Item it = new Item();
+            it.url = url;
+            it.title = clean(field(meta, "ObjectName"));
+            if (it.title.isEmpty()) it.title = fileTitle(page.optString("title"));
+            it.author = clean(field(meta, "Artist"));
+            if (UNSUITABLE.matcher(it.title + " " + page.optString("title")).find()) continue;
+            if (it.author.length() > 60) it.author = it.author.substring(0, 59) + "…";
+            for (Item seen : out) if (seen.url.equals(url)) { url = null; break; }   // a picture in two categories
+            if (url != null) out.add(it);
+        }
+    }
+
+    /** Grim scenes stay out of a living room (by their titles, in the usual languages): executions, martyrdoms, prey. */
     private static final java.util.regex.Pattern UNSUITABLE = java.util.regex.Pattern.compile(
-            "(?i)martyr|mártir|martir|execution|ejecución|exécution|massacre|masacre|beheading|decapita|holofernes");
+            "(?i)martyr|mártir|martir|execution|ejecución|exécution|massacre|masacre|beheading|decapita|holofernes"
+            + "|carcass|cadáver|with prey|eating a|feeding on|killed");
 
     private static String field(JSONObject meta, String name) {
         JSONObject o = meta == null ? null : meta.optJSONObject(name);

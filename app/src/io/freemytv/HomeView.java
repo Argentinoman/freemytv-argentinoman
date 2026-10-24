@@ -839,7 +839,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private void updateWallpaper() {
         final Context ctx = getContext().getApplicationContext();
         final String kind = Prefs.homeBackground(ctx);
-        boolean wanted = kind.equals(Gallery.LANDSCAPES) || kind.equals(Gallery.ART) || kind.equals(Gallery.FAVORITES);
+        boolean wanted = Gallery.photos(kind);
         if (wanted != wallpaperWanted) {
             wallpaperWanted = wanted;
             checkNight(false);   // a picture is coming: the dark look at once, not after it loads

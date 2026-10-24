@@ -239,8 +239,8 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
     // MARK: - The remote over the photos: ↑ favourite, ↓ which pictures, → the next one
 
     private static final int MENU_NONE = 0, MENU_FAVORITE = 1, MENU_SOURCE = 2;
-    private static final String[] SOURCES = {Gallery.FAVORITES, Gallery.ART, Gallery.LANDSCAPES};
-    private static final String[] SOURCE_NAMES = {"Favoritas", "Arte", "Paisajes"};
+    private static final String[] SOURCES = {Gallery.FAVORITES, Gallery.ART, Gallery.ABSTRACT, Gallery.ANIMALS, Gallery.LANDSCAPES};
+    private static final String[] SOURCE_NAMES = {"Favoritas", "Arte", "Abstracto", "Animales", "Paisajes"};
     private int menu = MENU_NONE, menuIndex, consumed = -1;
     private float hush;   // 1 while a menu, a hint or a notice shows: the corners fade out
     private long menuUntil, hintUntil;
@@ -519,7 +519,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
     private void prepareNext() {
         if (!running || decoding || prepared != null) return;
         if (source.equals("clock")) return;
-        if (source.equals(Gallery.LANDSCAPES) || source.equals(Gallery.ART) || source.equals(Gallery.FAVORITES)) {
+        if (Gallery.photos(source)) {
             prepareGallery();
             return;
         }
@@ -1130,7 +1130,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
     }
 
     private boolean gallerySource() {
-        return source.equals(Gallery.LANDSCAPES) || source.equals(Gallery.ART) || source.equals(Gallery.FAVORITES);
+        return Gallery.photos(source);
     }
 
     private TextPaint ambientClock, ambientTemp, ambientDate;

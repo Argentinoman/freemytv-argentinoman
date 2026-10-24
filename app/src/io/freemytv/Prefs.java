@@ -91,7 +91,7 @@ final class Prefs {
         writeInt(c, "launcher-dim.txt", percent);
     }
 
-    /** The home screen's background: "black", Gallery.LANDSCAPES or Gallery.ART (a file: the screensaver reads it too). */
+    /** The home screen's background: "black" or one of Gallery.KINDS (a file: the screensaver reads it too). */
     static String homeBackground(Context c) {
         String v = readString(c, "home-background.txt", "black");
         return v.equals("modern") ? Gallery.ART : v;   // modern art was an option for a while
@@ -128,7 +128,7 @@ final class Prefs {
         writeInt(c, "screensaver-seconds.txt", seconds);
     }
 
-    /** The screensaver: Gallery.LANDSCAPES or Gallery.ART passing by, or "clock" (the big clock, no photos). */
+    /** The screensaver: one of Gallery.KINDS passing by, or "clock" (the big clock, no photos). */
     static String screensaver(Context c) {
         String v = readString(c, "screensaver.txt", Gallery.LANDSCAPES);
         return v.equals("modern") ? Gallery.ART : v;

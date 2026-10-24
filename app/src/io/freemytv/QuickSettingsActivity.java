@@ -178,8 +178,8 @@ public class QuickSettingsActivity extends Activity {
                 bg.sub = kindName(Prefs.homeBackground(c));   // the kind of picture (hold OK to change it)
                 bg.stay = () -> Prefs.skipHomeBackground(c);
                 bg.hold = () -> {
-                    List<String> kinds = new ArrayList<>(java.util.Arrays.asList(Gallery.LANDSCAPES, Gallery.ART));
-                    if (!Gallery.favorites(c).isEmpty()) kinds.add(Gallery.FAVORITES);
+                    List<String> kinds = new ArrayList<>(java.util.Arrays.asList(Gallery.KINDS));
+                    if (Gallery.favorites(c).isEmpty()) kinds.remove(Gallery.FAVORITES);
                     int at = kinds.indexOf(Prefs.homeBackground(c));
                     String next = kinds.get((at + 1) % kinds.size());
                     Prefs.setHomeBackground(c, next);
@@ -195,7 +195,7 @@ public class QuickSettingsActivity extends Activity {
          * TV's), with no screen in between. Where it's missing, Free My TV's own preview.
          */
         private String kindName(String kind) {
-            return kind.equals(Gallery.ART) ? "Arte" : kind.equals(Gallery.FAVORITES) ? "Favoritas" : "Paisajes";
+            return Gallery.name(kind);
         }
 
         private String dimText(int percent) {

@@ -558,8 +558,10 @@ public class SettingsActivity extends Activity {
         private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
         /** Home Settings: language, temperature, theme, sounds, weather, city, football, favourite club and team. */
         private static final int CITY_ROW = 5, FUTBOL_ROW = 6, CLUB_ROW = 7, NATION_ROW = 8, WATCH_ROW = 9;
-        private static final String[] HOME_PICTURES = {"black", Gallery.LANDSCAPES, Gallery.ART, Gallery.FAVORITES};
-        private static final String[] SCREENSAVERS = {Gallery.LANDSCAPES, Gallery.ART, Gallery.FAVORITES, "clock"};
+        private static final String[] HOME_PICTURES = {"black", Gallery.LANDSCAPES, Gallery.ART, Gallery.ABSTRACT,
+                Gallery.ANIMALS, Gallery.FAVORITES};
+        private static final String[] SCREENSAVERS = {Gallery.LANDSCAPES, Gallery.ART, Gallery.ABSTRACT, Gallery.ANIMALS,
+                Gallery.FAVORITES, "clock"};
         /** Backgrounds: how often the home one changes (minutes) and how long each screensaver photo stays (seconds). */
         private static final int[] HOME_MINUTES = {60, 360, 720, 1440, 10080};
         private static final String[] HOME_MINUTES_NAMES = {"1 hora", "6 horas", "12 horas", "1 día", "1 semana"};
@@ -626,9 +628,7 @@ public class SettingsActivity extends Activity {
         }
 
         private static String pictureName(String v) {
-            return v.equals(Gallery.LANDSCAPES) ? "Paisajes" : v.equals(Gallery.ART) ? "Arte"
-                    : v.equals(Gallery.FAVORITES) ? "Favoritas"
-                    : v.equals("clock") ? "Reloj" : "Negro";
+            return Gallery.photos(v) ? Gallery.name(v) : v.equals("clock") ? "Reloj" : "Negro";
         }
 
         /** The Liga Profesional's clubs and South America's national teams, as ESPN ids. */
