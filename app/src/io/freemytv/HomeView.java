@@ -4072,7 +4072,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final float[] watchProgress = new float[3];
     private int watchColor;
     /** How far the cards sit from the island's left padding (centred when fewer than three), and the heading's x. */
-    private float watchShift, watchHeadX;
+    private float watchShift, watchHeadX, watchGap;
     private TextPaint watchHead, watchTitle, watchSub;
     private Paint watchRim;
     private boolean watchDirty;
@@ -4210,10 +4210,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         watchColor = brand != 0 ? brand : 0xFFFFFFFF;
         // Fewer than three cards (Netflix shares two): centred in the island, the heading over the first one.
         int n = Math.min(3, c.items.size());
-        watchShift = (w - 2 * pad - (n * col + (n - 1) * gap)) / 2;
+        watchGap = n < 3 ? gap * 2.5f : gap;   // two cards: a little more air between them
+        watchShift = (w - 2 * pad - (n * col + (n - 1) * watchGap)) / 2;
         watchHeadX = Math.min(watchCard.left + pad + watchShift, watchCard.right - pad - watchHead.measureText(c.header));
         for (int i = 0; i < n; i++) {
-            float x = watchCard.left + pad + watchShift + i * (col + gap), top = watchCard.top + WATCH_TOP * k;
+            float x = watchCard.left + pad + watchShift + i * (col + watchGap), top = watchCard.top + WATCH_TOP * k;
             if (c.variant == WatchNext.ROW_WIDE) watchRects[i].set(x, top, x + col, top + t);
             else watchRects[i].set(x + (col - t) / 2, top, x + (col + t) / 2, top + t);   // centred, its text too
             WatchNext.Entry e = c.items.get(i);
@@ -4267,7 +4268,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 float h = 1.5f * k;
                 c.drawRoundRect(cell.left + h, cell.top + h, cell.right - h, cell.bottom - h, rad - h, rad - h, watchRim);
             }
-            float tx = watchCard.left + WATCH_PAD * k + watchShift + i * (WATCH_COL + WATCH_COL_GAP) * k;
+            float tx = watchCard.left + WATCH_PAD * k + watchShift + i * (WATCH_COL * k + watchGap);
             Paint.Align align = Paint.Align.LEFT;
             if (wc.variant != WatchNext.ROW_WIDE) {   // square covers sit centred: their text centres under them
                 tx += WATCH_COL * k / 2;
