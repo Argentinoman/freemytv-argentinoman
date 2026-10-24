@@ -31,7 +31,7 @@ Open source. Built with Claude Code. One button to undo.
 > - **Per-TV app touches** (a name or a card picture for a particular app) go in a git-ignored
 >   `app/assets/local/apps.properties`: see `LocalApps.java`.
 >
-> The UI text added here is in Spanish.
+> The UI text added here is in Spanish. **Every change in detail (in Spanish): [CAMBIOS.md](CAMBIOS.md).**
 
 ## What you get
 
