@@ -35,7 +35,7 @@ Todo lo que se agregó o cambió sobre [Free My TV](https://github.com/simbasjun
   arriba; cualquier otra flecha u OK selecciona el estante.
 - **Botón "Navegador"** en el cajón de abajo (junto a *Todas las apps* y *Ajustes del TV*): abre BrowseHere, que ya no
   aparece en *Todas las apps*.
-- **Fondos de Wikimedia Commons** (imágenes destacadas, licencia libre): Paisajes, Arte, **Arte abstracto** (Kandinsky,
+- **Fondos de Wikimedia Commons** (imágenes destacadas, licencia libre; las 20 más nítidas de cada categoría, guardadas al tamaño de la pantalla): Paisajes, Arte, **Arte abstracto** (Kandinsky,
   Klee, Mondrian, Malevich, Delaunay, Kupka, Hilma af Klint, Jawlensky, Franz Marc, Popova), **Animales** (mamíferos,
   aves, reptiles, animales en vuelo) y Favoritas. Se eligen en *Ajustes de inicio → Fondos* y cambian solos cada tanto.
 - **Temas de temporada** (*Ajustes de inicio → Fondos → Tema de temporada*), para activar en fechas puntuales:
@@ -151,6 +151,10 @@ Medido en la tele, pasando por el estante con la isla a la vista:
 
 - **`app/assets/local/apps.properties`** (ignorado por git): un nombre o una imagen de tarjeta propios para alguna app, o
   marcarla como app de video. Ver `LocalApps.java`.
+- **`app/assets/local/temas/<tema>/`** (ignorado por git; carpetas `halloween`, `navidad`, `anio-nuevo`, `carnaval`,
+  `pascuas`, `cumpleanos`): imágenes propias para un tema de temporada, por ejemplo fondos de películas, que no se pueden
+  subir al repo. Se mezclan con las de Commons, una cada tres. Con nombres de archivo cortos (Windows limita el largo de
+  las rutas) y el título lindo en un `titulos.properties` al lado: `jack.jpg=El extraño mundo de Jack`.
 
 ## Notas sobre la TCL
 

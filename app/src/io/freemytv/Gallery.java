@@ -150,12 +150,19 @@ final class Gallery {
         } catch (IOException ignored) {
         }
         if (files == null || files.length == 0) return list;
+        // Titles may sit in titulos.properties beside them (file name = title, in UTF-8): short file names keep
+        // the build's paths short, and a title can have accents and ñ.
+        java.util.Properties titles = new java.util.Properties();
+        try (InputStream in = c.getAssets().open(folder + "/titulos.properties")) {
+            titles.load(new java.io.InputStreamReader(in, StandardCharsets.UTF_8));
+        } catch (IOException ignored) {
+        }
         List<Item> local = new ArrayList<>();
         for (String name : files) {
             if (!name.toLowerCase(java.util.Locale.ROOT).matches(".*\\.(jpe?g|png|webp)$")) continue;
             Item it = new Item();
             it.url = "asset:" + folder + "/" + name;
-            it.title = name.replaceFirst("\\.[^.]+$", "").replace('_', ' ').replace('-', ' ');
+            it.title = titles.getProperty(name, name.replaceFirst("\\.[^.]+$", "").replace('_', ' ').replace('-', ' '));
             local.add(it);
         }
         if (local.isEmpty()) return list;
