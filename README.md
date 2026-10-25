@@ -39,6 +39,7 @@ Open source. Built with Claude Code. One button to undo.
 > <img src="screenshots/cajon-navegador-y-partidos.jpg" width="430" alt="The drawer: inputs, shortcuts with the Navegador button, the weather and the next football games">
 > <img src="screenshots/pronostico-7-dias.webp" width="430" alt="The drawer's weather card on its second page: the extended 7-day forecast with each day's high and low">
 > <img src="screenshots/panel-rapido.webp" width="430" alt="The quick settings panel over the home screen: clock and weather, Wi-Fi, Bluetooth, screensaver, picture and sound, inputs, settings, home brightness and home settings">
+> <img src="screenshots/protector-de-pantalla.jpg" width="430" alt="The screensaver: a snowy landscape from Wikimedia Commons, with the song playing and the next football game at the top right, and the weather and the time at the bottom right">
 >
 > <sub>Taken on the TV itself (the home screen's brightness was turned down).</sub>
 
@@ -52,7 +53,7 @@ Open source. Built with Claude Code. One button to undo.
 - **Weather, one press away.** Today's weather under the clock (now, high and low); in the drawer, the hour-by-hour forecast, sunrise and sunset, and **the extended 7-day forecast**, a page away on the same card (OK on it, then ← →). (On LG and Samsung, live crypto prices too; on Google TV this fork shows football in their place.)
 - **Now playing.** What Spotify (or any music app) plays, with previous, play/pause, next, stop, shuffle and repeat.
 - **Light by day, dark by night.** It follows your city's real sunset, the way your phone does.
-- **A screensaver to match.** Full-screen photos from Wikimedia Commons (landscapes, art, abstract art, animals, your favourites) or a big clock, with the weather, the music and the games in the corners. The same pictures can be the home screen's background. The background changes every 6 hours and the screensaver's photo every 30 seconds, both adjustable (1 hour to a week; 15 seconds to 5 minutes), and the lists of pictures are renewed every week.
+- **A screensaver to match.** Full-screen photos from Wikimedia Commons (landscapes, art, abstract art, animals, your favourites) or a big clock, with the weather, the music and the games in the corners. The same pictures can be the home screen's background. The background changes every 6 hours and the screensaver's photo every 30 seconds, both adjustable (1 hour to a week; 15 seconds to 5 minutes), and the lists of pictures are renewed every week. For a few days a year, a **seasonal theme** (Halloween, Christmas, New Year, Carnival, Easter, a birthday) takes over both until it's turned off.
 - **The TCL remote's buttons work.** Netflix, YouTube, Prime Video, the browser, TV (straight to the antenna's channels), TCL Home and the gear (a quick settings panel).
 - **Fast.** 60 fps, every frame in 16.6 ms, on the TV's own chip. The home screen uses 96 MB of memory instead of 242 MB (−60%).<br><sub>Measured on a 98″ TCL Google TV running Android 14. On a 2 GB TCL (Android 11): 0.9% janky frames while moving along the shelf, back to Home in 0.3 s.</sub>
 - **Set up on the TV.** Language, your city, temperature, theme, the weather and football cards, the backgrounds, "Continuar viendo", and the apps on the shelf, in Free My TV's own settings.

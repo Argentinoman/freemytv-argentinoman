@@ -101,6 +101,27 @@ final class Prefs {
         writeString(c, "home-background.txt", v);
     }
 
+    /** The seasonal theme (Gallery.THEMES), or "off". A file: the screensaver reads it too. */
+    static String seasonalTheme(Context c) {
+        return readString(c, "seasonal-theme.txt", "off");
+    }
+
+    static void setSeasonalTheme(Context c, String v) {
+        writeString(c, "seasonal-theme.txt", v);
+    }
+
+    /** What the home screen shows: the seasonal theme while one is on, else the background picked. */
+    static String homeBackgroundShown(Context c) {
+        String theme = seasonalTheme(c);
+        return Gallery.photos(theme) ? theme : homeBackground(c);
+    }
+
+    /** What the screensaver shows: the seasonal theme while one is on (the big clock stays a clock). */
+    static String screensaverShown(Context c) {
+        String theme = seasonalTheme(c), picked = screensaver(c);
+        return Gallery.photos(theme) && !picked.equals("clock") ? theme : picked;
+    }
+
     /** How long each home background stays, in minutes (360: six hours). */
     static int homeBackgroundMinutes(Context c) {
         return Math.max(1, readInt(c, "home-background-minutes.txt", 360));

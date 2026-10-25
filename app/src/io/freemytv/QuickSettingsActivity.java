@@ -173,11 +173,12 @@ public class QuickSettingsActivity extends Activity {
             tiles.add(home);
             // Over Home with a picture behind it: the next picture, seen changing behind the panel.
             // Held: the next kind of picture (landscapes, art, favourites).
-            if (HomeActivity.shown && !Prefs.homeBackground(c).equals("black")) {
+            if (HomeActivity.shown && !Prefs.homeBackgroundShown(c).equals("black")) {
                 final Tile bg = new Tile("Cambiar fondo", "sync", null);
-                bg.sub = kindName(Prefs.homeBackground(c));   // the kind of picture (hold OK to change it)
+                bg.sub = kindName(Prefs.homeBackgroundShown(c));   // the kind of picture (hold OK to change it)
                 bg.stay = () -> Prefs.skipHomeBackground(c);
-                bg.hold = () -> {
+                // While a seasonal theme is on, the pictures are the theme's: no other kind to turn to.
+                if (!Gallery.photos(Prefs.seasonalTheme(c))) bg.hold = () -> {
                     List<String> kinds = new ArrayList<>(java.util.Arrays.asList(Gallery.KINDS));
                     if (Gallery.favorites(c).isEmpty()) kinds.remove(Gallery.FAVORITES);
                     int at = kinds.indexOf(Prefs.homeBackground(c));

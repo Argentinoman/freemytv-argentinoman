@@ -838,7 +838,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private void updateWallpaper() {
         final Context ctx = getContext().getApplicationContext();
-        final String kind = Prefs.homeBackground(ctx);
+        final String kind = Prefs.homeBackgroundShown(ctx);
         boolean wanted = Gallery.photos(kind);
         if (wanted != wallpaperWanted) {
             wallpaperWanted = wanted;
@@ -893,7 +893,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             final Bitmap ready = b;
             handler.post(() -> {
                 wallpaperLoading = false;
-                if (ready == null || !kind.equals(Prefs.homeBackground(ctx))) return;
+                if (ready == null || !kind.equals(Prefs.homeBackgroundShown(ctx))) return;
                 wallpaperBefore = wallpaper;   // a new picture fades in over the old one (not over black)
                 wallpaper = ready;
                 wallpaperKey = key;

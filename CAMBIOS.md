@@ -11,8 +11,8 @@ Todo lo que se agregó o cambió sobre [Free My TV](https://github.com/simbasjun
 | Destacados de Prime Video, con fondo de paisaje | Dos partidos en vivo y el reproductor |
 | ![El cajón: entradas, accesos directos con Navegador, el clima y los próximos partidos](screenshots/cajon-navegador-y-partidos.jpg) | ![La tarjeta del clima en su segunda página: el pronóstico de 7 días con máxima y mínima](screenshots/pronostico-7-dias.webp) |
 | El cajón, con "Navegador" y los partidos | El pronóstico extendido de 7 días |
-| ![El panel rápido sobre el inicio, con el fondo de una pintura](screenshots/panel-rapido.webp) | |
-| El panel rápido | |
+| ![El panel rápido sobre el inicio, con el fondo de una pintura](screenshots/panel-rapido.webp) | ![El protector de pantalla: un paisaje nevado con la canción, el próximo partido, el clima y la hora](screenshots/protector-de-pantalla.jpg) |
+| El panel rápido | El protector de pantalla |
 
 <sub>Capturas sacadas en la tele (con el brillo del inicio bajado).</sub>
 
@@ -38,6 +38,11 @@ Todo lo que se agregó o cambió sobre [Free My TV](https://github.com/simbasjun
 - **Fondos de Wikimedia Commons** (imágenes destacadas, licencia libre): Paisajes, Arte, **Arte abstracto** (Kandinsky,
   Klee, Mondrian, Malevich, Delaunay, Kupka, Hilma af Klint, Jawlensky, Franz Marc, Popova), **Animales** (mamíferos,
   aves, reptiles, animales en vuelo) y Favoritas. Se eligen en *Ajustes de inicio → Fondos* y cambian solos cada tanto.
+- **Temas de temporada** (*Ajustes de inicio → Fondos → Tema de temporada*), para activar en fechas puntuales:
+  **Halloween** (decoraciones), **Navidad** (decoraciones navideñas), **Año Nuevo** (fuegos artificiales), **Carnaval**
+  (Venecia y máscaras), **Pascuas** (huevos y decoraciones) y **Cumpleaños** (tortas). Mientras uno está activo, el fondo
+  del inicio y las fotos del protector salen de ese tema (aunque el fondo esté en negro; el reloj del protector se
+  respeta). Al volver a *Desactivado*, vuelve lo que tenías elegido.
 - **Brillo del inicio** desde el panel rápido, con el atenuado del propio sistema (no le cuesta nada a la placa de video).
 - **Pronóstico extendido de 7 días:** la tarjeta del clima del cajón tiene dos páginas, las próximas horas (con
   amanecer y atardecer) y la semana, con la máxima y la mínima de cada día. OK en la tarjeta y ← → para pasar de página;

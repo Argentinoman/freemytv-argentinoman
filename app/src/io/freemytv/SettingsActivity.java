@@ -568,6 +568,8 @@ public class SettingsActivity extends Activity {
         private static final int[] PHOTO_SECONDS = {15, 30, 60, 300};
         private static final String[] PHOTO_SECONDS_NAMES = {"15 segundos", "30 segundos", "1 minuto", "5 minutos"};
         private static final int CHANGE_NOW_ROW = 2, FAVORITE_ROW = 3;
+        private static final String[] THEME_CHOICES = {"off", Gallery.HALLOWEEN, Gallery.CHRISTMAS, Gallery.NEW_YEAR,
+                Gallery.CARNIVAL, Gallery.EASTER, Gallery.BIRTHDAY};
 
         private static int indexOf(int[] values, int v) {
             for (int i = 0; i < values.length; i++) if (values[i] == v) return i;
@@ -576,7 +578,7 @@ public class SettingsActivity extends Activity {
 
         private String[] backgroundLabels() {
             return new String[] {"Fondo del inicio", "Cambiar fondo cada", "Cambiar fondo ahora", "Fondo actual",
-                    "Protector de pantalla", "Cambiar foto cada"};
+                    "Protector de pantalla", "Cambiar foto cada", "Tema de temporada"};
         }
 
         private String[] backgroundValues() {
@@ -584,12 +586,13 @@ public class SettingsActivity extends Activity {
             return new String[] {pictureName(Prefs.homeBackground(c)),
                     HOME_MINUTES_NAMES[indexOf(HOME_MINUTES, Prefs.homeBackgroundMinutes(c))],
                     "OK", currentFavoriteText(c), pictureName(Prefs.screensaver(c)),
-                    PHOTO_SECONDS_NAMES[indexOf(PHOTO_SECONDS, Prefs.screensaverSeconds(c))]};
+                    PHOTO_SECONDS_NAMES[indexOf(PHOTO_SECONDS, Prefs.screensaverSeconds(c))],
+                    Gallery.photos(Prefs.seasonalTheme(c)) ? Gallery.name(Prefs.seasonalTheme(c)) : "Desactivado"};
         }
 
         private String currentFavoriteText(Context c) {
             Gallery.Item it = Gallery.current(c);
-            if (it == null || Prefs.homeBackground(c).equals("black")) return "—";
+            if (it == null || Prefs.homeBackgroundShown(c).equals("black")) return "—";
             return Gallery.isFavorite(c, it.url) ? "♥ Favorita" : "Guardar en favoritas";
         }
 
@@ -611,7 +614,7 @@ public class SettingsActivity extends Activity {
                     break;
                 case FAVORITE_ROW: {
                     Gallery.Item it = Gallery.current(c);
-                    if (it != null && !Prefs.homeBackground(c).equals("black")) Gallery.toggleFavorite(c, it);
+                    if (it != null && !Prefs.homeBackgroundShown(c).equals("black")) Gallery.toggleFavorite(c, it);
                     break;
                 }
                 case 4: {
@@ -619,9 +622,14 @@ public class SettingsActivity extends Activity {
                     Prefs.setScreensaver(c, SCREENSAVERS[(Math.max(0, at) + dir + SCREENSAVERS.length) % SCREENSAVERS.length]);
                     break;
                 }
-                default: {
+                case 5: {
                     int at = indexOf(PHOTO_SECONDS, Prefs.screensaverSeconds(c));
                     Prefs.setScreensaverSeconds(c, PHOTO_SECONDS[(at + dir + PHOTO_SECONDS.length) % PHOTO_SECONDS.length]);
+                    break;
+                }
+                default: {   // the seasonal theme: off, then each theme
+                    int at = java.util.Arrays.asList(THEME_CHOICES).indexOf(Prefs.seasonalTheme(c));
+                    Prefs.setSeasonalTheme(c, THEME_CHOICES[(Math.max(0, at) + dir + THEME_CHOICES.length) % THEME_CHOICES.length]);
                     break;
                 }
             }

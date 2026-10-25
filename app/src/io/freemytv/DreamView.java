@@ -178,7 +178,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         startedAt = clock();
         lastFrame = 0;
         failed.clear();
-        source = Prefs.screensaver(getContext());
+        source = Prefs.screensaverShown(getContext());
         hintUntil = 0;   // the keys' hint shows once per screensaver, on the first ← or →
         hinted = false;
         showMs = Prefs.screensaverSeconds(getContext()) * 1000L;

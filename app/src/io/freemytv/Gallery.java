@@ -33,9 +33,18 @@ final class Gallery {
     /** Every kind of photos, in the order they're offered. */
     static final String[] KINDS = {LANDSCAPES, ART, ABSTRACT, ANIMALS, FAVORITES};
 
-    /** A kind of photos (not "black" or "clock"). */
+    /**
+     * Seasonal themes (Home Settings > Backgrounds > Seasonal theme): while one is on, the home screen's background and
+     * the screensaver's photos come from it, whatever was picked for them. For a few days a year, not every day.
+     */
+    static final String HALLOWEEN = "halloween", CHRISTMAS = "christmas", NEW_YEAR = "newyear", CARNIVAL = "carnival",
+            EASTER = "easter", BIRTHDAY = "birthday";
+    static final String[] THEMES = {HALLOWEEN, CHRISTMAS, NEW_YEAR, CARNIVAL, EASTER, BIRTHDAY};
+
+    /** A kind of photos (not "black" or "clock"), a seasonal theme included. */
     static boolean photos(String kind) {
         for (String k : KINDS) if (k.equals(kind)) return true;
+        for (String k : THEMES) if (k.equals(kind)) return true;
         return false;
     }
 
@@ -46,6 +55,12 @@ final class Gallery {
             case ABSTRACT: return "Arte abstracto";
             case ANIMALS: return "Animales";
             case FAVORITES: return "Favoritas";
+            case HALLOWEEN: return "Halloween";
+            case CHRISTMAS: return "Navidad";
+            case NEW_YEAR: return "Año Nuevo";
+            case CARNIVAL: return "Carnaval";
+            case EASTER: return "Pascuas";
+            case BIRTHDAY: return "Cumpleaños";
             default: return "Paisajes";
         }
     }
@@ -75,6 +90,19 @@ final class Gallery {
     private static final String[] ANIMAL_SEARCHES = {"deepcat:\"Featured pictures of mammals\"",
         "deepcat:\"Featured pictures of birds\"", "deepcat:\"Featured pictures of reptiles\"",
         "deepcat:\"Featured pictures of animals in flight\""};
+    /** The themes' pictures: decorations, fireworks, masks and cakes (Commons' quality images where there are enough). */
+    private static String[] themeSearches(String kind) {
+        switch (kind) {
+            case HALLOWEEN: return new String[] {"deepcat:\"Halloween decorations\""};
+            case CHRISTMAS: return new String[] {"deepcat:\"Christmas decorations\" incategory:\"Quality images\""};
+            case NEW_YEAR: return new String[] {"deepcat:\"New Year fireworks\""};
+            case CARNIVAL: return new String[] {"deepcat:\"Carnival in Venice\"", "deepcat:\"Carnival masks\""};
+            case EASTER: return new String[] {"deepcat:\"Easter decorations\""};
+            case BIRTHDAY: return new String[] {"deepcat:\"Birthday cakes\""};
+            default: return null;
+        }
+    }
+
     private static final String[] ABSTRACT_SEARCHES = {"deepcat:\"Abstract paintings\" Kandinsky OR Klee OR Mondrian"
         + " OR Malevich OR Delaunay OR Kupka OR \"af Klint\" OR Jawlensky OR \"Franz Marc\" OR Popova"};
 
@@ -85,7 +113,9 @@ final class Gallery {
         List<Item> saved = read(f);
         if (!saved.isEmpty() && System.currentTimeMillis() - f.lastModified() < LIST_EVERY) return saved;
         try {
-            List<Item> fresh = kind.equals(ANIMALS) ? search(ANIMAL_SEARCHES, 1.3f, 4)
+            String[] theme = themeSearches(kind);
+            List<Item> fresh = theme != null ? search(theme, 1.3f, 4)
+                    : kind.equals(ANIMALS) ? search(ANIMAL_SEARCHES, 1.3f, 4)
                     : kind.equals(ABSTRACT) ? search(ABSTRACT_SEARCHES, 1.15f, 10)   // a painting crops well enough
                     : fetch(kind.equals(ART) ? ART_CATEGORIES : LANDSCAPE_CATEGORIES, 1.3f);
             if (!fresh.isEmpty()) {
@@ -131,6 +161,8 @@ final class Gallery {
             case ABSTRACT: return "ARTE ABSTRACTO";
             case ANIMALS: return "ANIMAL";
             case FAVORITES: return "FAVORITA";
+            case HALLOWEEN: case CHRISTMAS: case NEW_YEAR: case CARNIVAL: case EASTER: case BIRTHDAY:
+                return name(kind).toUpperCase(java.util.Locale.getDefault());
             default: return "PAISAJE";
         }
     }
@@ -257,6 +289,7 @@ final class Gallery {
             if (h <= 0 || w < 1600 || w / (float) h < minRatio || w / (float) h > 2.4f) continue;
             String url = info.optString("thumburl", "");
             if (url.isEmpty()) continue;
+            if (page.optString("title").toLowerCase(java.util.Locale.ROOT).matches(".*\\.(webm|ogv|mp4|pdf|djvu)$")) continue;   // videos, documents
             JSONObject meta = info.optJSONObject("extmetadata");
             Item it = new Item();
             it.url = url;
