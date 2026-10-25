@@ -83,12 +83,15 @@ final class RemoteKeys {
         // The gear and the profile keys: fixed, the stock home screen's own jobs.
         if ((TCL && keyCode == KEY_TCL_SETTINGS) || keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH) {
             if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
-                Intent intent = keyCode == KEY_TCL_SETTINGS ? quickPanel(c) : accounts(c);
-                try {
-                    c.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                } catch (RuntimeException ex) {
-                    AppLog.w("remote key " + keyCode + ": " + ex.getMessage());
-                }
+                final Intent intent = keyCode == KEY_TCL_SETTINGS ? quickPanel(c) : accounts(c);
+                final int code = keyCode;
+                afterScreensaver(c, () -> {
+                    try {
+                        c.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    } catch (RuntimeException ex) {
+                        AppLog.w("remote key " + code + ": " + ex.getMessage());
+                    }
+                });
             }
             return true;
         }
@@ -105,10 +108,27 @@ final class RemoteKeys {
             AppLog.w("remote key " + e.getKeyCode() + " -> " + pkg + (intent == null ? " (not installed)" : ""));
             // The same quick fade through black as from Home: what's on screen fades out, the app (and its grey
             // loading window) fades in, instead of the grey cutting in.
-            if (intent != null) c.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    android.app.ActivityOptions.makeCustomAnimation(c, live ? R.anim.tv_in : R.anim.app_in, R.anim.app_out).toBundle());
+            if (intent != null) {
+                afterScreensaver(c, () -> c.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        android.app.ActivityOptions.makeCustomAnimation(c, live ? R.anim.tv_in : R.anim.app_in, R.anim.app_out).toBundle()));
+            }
         }
         return true;
+    }
+
+    private static final android.os.Handler MAIN = new android.os.Handler(android.os.Looper.getMainLooper());
+
+    /**
+     * Opens an app over the screensaver too: this service takes the key before the screensaver sees it, so the
+     * screensaver is told to end first (it stayed over the app otherwise), and the app opens once it has gone.
+     */
+    private static void afterScreensaver(Context c, Runnable open) {
+        if (!Screensaver.dreamingFlag(c).exists()) {
+            open.run();
+            return;
+        }
+        c.sendBroadcast(new Intent(Screensaver.END).setPackage(c.getPackageName()));
+        MAIN.postDelayed(open, 250);
     }
 
     /** The app's TV launcher, or its plain one (kept here, not in HomeApps, so the key process stays small). */
