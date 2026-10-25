@@ -115,7 +115,7 @@ final class Gallery {
 
     /** The list (saved, or fetched when older than a week), shuffled once per fetch so every TV sees its own order. */
     static List<Item> list(Context c, String kind) {
-        if (kind.equals(FAVORITES)) return favorites(c);
+        if (kind.equals(FAVORITES)) return read(favoritesFile(c, "off"));   // the everyday ones, never a theme's
         File f = new File(c.getFilesDir(), "gallery2-" + kind + ".json");
         List<Item> saved = read(f);
         if (!saved.isEmpty() && System.currentTimeMillis() - f.lastModified() < LIST_EVERY) return withLocal(c, kind, saved);
@@ -139,14 +139,29 @@ final class Gallery {
     }
 
     /**
-     * This TV's own pictures for a seasonal theme, in the git-ignored app/assets/local/temas/<theme>/ (a film's
-     * wallpaper, say: kept out of the repository), one every third picture.
+     * A seasonal theme's pictures: this TV's own (the git-ignored app/assets/local/temas/<theme>/: a film's wallpaper,
+     * say, kept out of the repository) one every third picture, then the theme's favourites one every other.
      */
     private static List<Item> withLocal(Context c, String kind, List<Item> list) {
+        if (localFolder(kind) == null) return list;
+        List<Item> out = withOwn(c, kind, list);
+        List<Item> favs = read(favoritesFile(c, kind));
+        if (favs.isEmpty()) return out;
+        List<Item> mixed = new ArrayList<>();
+        int f = 0;
+        for (Item it : out) {
+            if (mixed.size() % 2 == 0) mixed.add(favs.get(f++ % favs.size()));
+            mixed.add(it);
+        }
+        if (mixed.isEmpty()) mixed.addAll(favs);
+        return mixed;
+    }
+
+    private static List<Item> withOwn(Context c, String kind, List<Item> list) {
         String folder = localFolder(kind);
         String[] files = null;
         try {
-            if (folder != null) files = c.getAssets().list(folder);
+            files = c.getAssets().list(folder);
         } catch (IOException ignored) {
         }
         if (files == null || files.length == 0) return list;
@@ -234,10 +249,19 @@ final class Gallery {
 
     // MARK: - Favourites: the pictures the person marked, to see them again and again
 
-    private static File favoritesFile(Context c) {
-        return new File(c.getFilesDir(), "gallery-favorites.json");
+    /**
+     * The favourites: everyday ones, and each seasonal theme's own. While a theme is on, marking a picture saves it to
+     * that theme's favourites (shown often within the theme), so Halloween never turns up among the everyday ones.
+     */
+    private static File favoritesFile(Context c, String theme) {
+        return new File(c.getFilesDir(), photos(theme) ? "gallery-favorites-" + theme + ".json" : "gallery-favorites.json");
     }
 
+    private static File favoritesFile(Context c) {
+        return favoritesFile(c, Prefs.seasonalTheme(c));
+    }
+
+    /** The favourites in use now: the seasonal theme's while one is on, else the everyday ones. */
     static synchronized List<Item> favorites(Context c) {
         return read(favoritesFile(c));
     }

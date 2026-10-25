@@ -43,6 +43,9 @@ Todo lo que se agregó o cambió sobre [Free My TV](https://github.com/simbasjun
   (Venecia y máscaras), **Pascuas** (huevos y decoraciones) y **Cumpleaños** (tortas). Mientras uno está activo, el fondo
   del inicio y las fotos del protector salen de ese tema (aunque el fondo esté en negro; el reloj del protector se
   respeta). Al volver a *Desactivado*, vuelve lo que tenías elegido.
+  **Favoritas por tema:** con un tema activo, marcar una foto como favorita la guarda en las favoritas de ese tema, que
+  aparecen una de cada dos fotos mientras el tema está activo. Las *Favoritas* de todos los días nunca se mezclan con las
+  de un tema.
 - **Brillo del inicio** desde el panel rápido, con el atenuado del propio sistema (no le cuesta nada a la placa de video).
 - **Pronóstico extendido de 7 días:** la tarjeta del clima del cajón tiene dos páginas, las próximas horas (con
   amanecer y atardecer) y la semana, con la máxima y la mínima de cada día. OK en la tarjeta y ← → para pasar de página;
