@@ -168,6 +168,11 @@ final class NowPlaying implements MediaSessionManager.OnActiveSessionsChangedLis
         }
     }
 
+    /** In the screensaver: only a song that plays (a paused one there is old news). */
+    boolean playingVisible() {
+        return playing && visible();
+    }
+
     boolean visible() {
         if (title.isEmpty() || dismissed) return false;
         return playing || SystemClock.elapsedRealtime() - pausedAt < PAUSED_SHOWN;
@@ -232,7 +237,11 @@ final class NowPlaying implements MediaSessionManager.OnActiveSessionsChangedLis
         boolean wasPlaying = playing;
         playing = s != null && playingState(s.getState());
         if (wasPlaying && !playing) pausedAt = SystemClock.elapsedRealtime();
-        if (!playing && pausedAt == 0) pausedAt = SystemClock.elapsedRealtime();
+        // First seen paused (a new process, the screensaver): when it paused, from the state, not now.
+        if (!playing && pausedAt == 0) {
+            long at = s == null ? 0 : s.getLastPositionUpdateTime();
+            pausedAt = at > 0 && at <= SystemClock.elapsedRealtime() ? at : SystemClock.elapsedRealtime();
+        }
         if (s != null && playingState(s.getState())) {   // playing again: back on screen, everywhere
             dismissed = false;
             if (stoppedFile().exists()) stoppedFile().delete();

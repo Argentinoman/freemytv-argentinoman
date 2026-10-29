@@ -1152,7 +1152,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         }
         float right = RIGHT * k, base = META_BASE * k;
         NowPlaying np = nowPlaying;
-        boolean music = np != null && np.visible();
+        boolean music = np != null && np.playingVisible();
         float dateBase = base, clockBase = dateBase - 36 * k;
 
         c.drawText(clock, right, clockBase, ambientClock);
@@ -1177,7 +1177,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
      */
     private void drawCenteredMusic(Canvas c, float cx, float base) {
         NowPlaying np = nowPlaying;
-        if (np == null || !np.visible() || captionTitle == null) return;
+        if (np == null || !np.playingVisible() || captionTitle == null) return;
         float art = 62 * k, gap = 18 * k, max = 520 * k;
         String t = TextUtils.ellipsize(np.title, captionTitle, max, TextUtils.TruncateAt.END).toString();
         String a = TextUtils.ellipsize(np.artist, captionAuthor, max, TextUtils.TruncateAt.END).toString();
@@ -1234,7 +1234,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
      */
     private void drawMusicCorner(Canvas c) {
         NowPlaying np = nowPlaying;
-        if (np == null || !np.visible() || captionTitle == null) return;
+        if (np == null || !np.playingVisible() || captionTitle == null) return;
         float right = RIGHT * k, base = META_BASE * k, art = 84 * k, max = 520 * k;
         android.graphics.RectF cover = new android.graphics.RectF(right - art, base - art + 4 * k, right, base + 4 * k);
         if (np.art != null) {
@@ -1267,7 +1267,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
      */
     private void drawMusic(Canvas c, float x, float top, int align) {
         NowPlaying np = nowPlaying;
-        if (np == null || !np.visible()) return;
+        if (np == null || !np.playingVisible()) return;
         if (musicTitle == null) {
             musicTitle = new android.text.TextPaint(Ui.text(Ui.displaySemibold, 24 * k, 0xF2FFFFFF));
             musicArtist = new android.text.TextPaint(Ui.text(Ui.regular, 19 * k, 0x99FFFFFF));
