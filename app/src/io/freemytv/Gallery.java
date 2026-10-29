@@ -208,6 +208,12 @@ final class Gallery {
         }
     }
 
+    /** Shown without the internet: downloaded before, or one of the app's own. */
+    static boolean saved(Context c, Item it) {
+        return it.url.startsWith("asset:")
+                || new File(new File(c.getCacheDir(), "gallery"), Integer.toHexString(it.url.hashCode()) + SMALL).exists();
+    }
+
     /** The image on disk, downloaded first if needed (background thread). */
     static File image(Context c, Item it) throws IOException {
         File dir = new File(c.getCacheDir(), "gallery");

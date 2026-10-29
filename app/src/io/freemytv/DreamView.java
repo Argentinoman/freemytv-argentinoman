@@ -591,6 +591,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         final Context ctx = getContext().getApplicationContext();
         final String kind = source;
         final int gen = generation, turn = galleryTurn;
+        final String showing = current != null ? current.pick.backdrop : null;
         decoding = true;
         worker.execute(() -> {
             Bitmap[] images = null;
@@ -606,6 +607,19 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
                     images[0] = Backdrop.gpu(withScrims(images[0], light[0], light[1]));
                 } catch (Exception | OutOfMemoryError e) {
                     AppLog.w("screensaver: " + item.title + ": " + e.getMessage());
+                    images = null;
+                }
+            }
+            // Nothing downloads (offline, or Wikimedia limiting us): the next one already on the TV, not the same
+            // photo on and on.
+            for (int i = 0; i < list.size() && images == null; i++) {
+                Gallery.Item next = list.get(galleryNext++ % list.size());
+                if (next.url.equals(showing) || !Gallery.saved(ctx, next)) continue;
+                try {
+                    images = Backdrop.photo(Gallery.image(ctx, next), PW, PH, light);
+                    images[0] = Backdrop.gpu(withScrims(images[0], light[0], light[1]));
+                    item = next;
+                } catch (Exception | OutOfMemoryError e) {
                     images = null;
                 }
             }
