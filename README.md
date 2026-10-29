@@ -18,8 +18,8 @@ Open source. Built with Claude Code. One button to undo.
 > **This fork** is [simbasjungles/free-my-tv](https://github.com/simbasjungles/free-my-tv) tuned for one TV: a 2 GB TCL
 > Google TV (Android 11, Mali-G31) in Argentina. On top of the original:
 >
-> - A **"Continuar viendo" island** for the focused shelf app: Watch Next (Disney+, Netflix), what played on this TV in
->   YouTube, Spotify's Top 3 Argentina, and each app's featured row (Prime Video, YouTube trending) when there's nothing
+> - A **"Continuar viendo" island** for the focused shelf app: Watch Next (Disney+, Netflix), what was watched on this TV in
+>   YouTube ("Vistos recientemente"), Spotify's Top 3 Argentina, and each app's featured row (Prime Video, YouTube trending) when there's nothing
 >   to resume.
 > - **Football**: live games first, every Argentine professional cup, CONMEBOL and UEFA competitions and the World Cup,
 >   also in the screensaver.
@@ -33,6 +33,7 @@ Open source. Built with Claude Code. One button to undo.
 >
 > The UI text added here is in Spanish. **Every change in detail (in Spanish): [CAMBIOS.md](CAMBIOS.md).**
 >
+> <img src="screenshots/vistos-recientemente-youtube.jpg" width="430" alt="Home screen with YouTube focused, over the Halloween theme: the Vistos recientemente island shows the last three videos watched on this TV">
 > <img src="screenshots/continuar-viendo-netflix.jpg" width="430" alt="Home screen with Netflix focused: the Continuar viendo island shows Shrek 2 with 57 minutes left and Te conozco, season 1 episode 4">
 > <img src="screenshots/partidos-en-vivo-y-musica.jpg" width="430" alt="Home screen with two live football games stacked under the clock and a song playing at the top right">
 > <img src="screenshots/top3-spotify.jpg" width="430" alt="Home screen with Spotify focused: the island shows Spotify's Top 3 Argentina with album covers">
@@ -48,7 +49,7 @@ Open source. Built with Claude Code. One button to undo.
 - **No ads.** No sponsored rows, banners or autoplaying promos. Not one.
 - **Your apps, front and center.** The streaming apps you actually use, on a glass shelf. Pick them and their order right on the TV.
 - **Trending, not sponsored.** Three fresh picks every hour from what's trending this week and the latest releases, only from apps you already have. Movies and Shows get their own tabs.
-- **"Continuar viendo" for every app.** Focus an app on the shelf and an island shows the last three things to resume (Disney+, Netflix), what played on this TV (YouTube), Spotify's Top 3 Argentina, or the app's featured titles (Prime Video). It can be turned off.
+- **"Continuar viendo" for every app.** Focus an app on the shelf and an island shows the last three things to resume (Disney+, Netflix), "Vistos recientemente", the last videos watched on this TV (YouTube), Spotify's Top 3 Argentina, or the app's featured titles (Prime Video). It can be turned off.
 - **Football, live first.** Games being played come first, stacked up to three; otherwise the next ones take turns. Every Argentine professional cup, CONMEBOL and UEFA competitions and the World Cup, on the home screen, in the drawer and in the screensaver.
 - **Weather, one press away.** Today's weather under the clock (now, high and low); in the drawer, the hour-by-hour forecast, sunrise and sunset, and **the extended 7-day forecast**, a page away on the same card (OK on it, then ← →). (On LG and Samsung, live crypto prices too; on Google TV this fork shows football in their place.)
 - **Now playing.** What Spotify (or any music app) plays, with previous, play/pause, next, stop, shuffle and repeat.
