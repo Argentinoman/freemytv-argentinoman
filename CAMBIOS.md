@@ -40,6 +40,8 @@ Todo lo que se agregó o cambió sobre [Free My TV](https://github.com/simbasjun
 - **Fondos de Wikimedia Commons** (imágenes destacadas, licencia libre; las 20 más nítidas de cada categoría, guardadas al tamaño de la pantalla): Paisajes, Arte, **Arte abstracto** (Kandinsky,
   Klee, Mondrian, Malevich, Delaunay, Kupka, Hilma af Klint, Jawlensky, Franz Marc, Popova), **Animales** (mamíferos,
   aves, reptiles, animales en vuelo) y Favoritas. Se eligen en *Ajustes de inicio → Fondos* y cambian solos cada tanto.
+  Quedan afuera las escenas crudas y lo que no es una foto (plantillas para tallar, hojas de instrucciones, pósters,
+  diagramas), también de las listas ya guardadas.
 - **Temas de temporada** (*Ajustes de inicio → Fondos → Tema de temporada*), para activar en fechas puntuales:
   **Halloween** (decoraciones), **Navidad** (decoraciones navideñas), **Año Nuevo** (fuegos artificiales), **Carnaval**
   (Venecia y máscaras), **Pascuas** (huevos y decoraciones) y **Cumpleaños** (tortas). Mientras uno está activo, el fondo
@@ -159,7 +161,8 @@ Medido en la tele, pasando por el estante con la isla a la vista:
 - **`app/assets/local/temas/<tema>/`** (ignorado por git; carpetas `halloween`, `navidad`, `anio-nuevo`, `carnaval`,
   `pascuas`, `cumpleanos`): imágenes propias para un tema de temporada, por ejemplo fondos de películas, que no se pueden
   subir al repo. Se mezclan con las de Commons, una cada tres. Con nombres de archivo cortos (Windows limita el largo de
-  las rutas) y el título lindo en un `titulos.properties` al lado: `jack.jpg=El extraño mundo de Jack`.
+  las rutas) y el título lindo en un `titulos.properties` al lado: `jack.jpg=El extraño mundo de Jack`. El autor, si la
+  licencia pide nombrarlo, en `<archivo>.autor=` (por ejemplo `caras.jpg.autor=William Warby`).
 
 ## Notas sobre la TCL
 

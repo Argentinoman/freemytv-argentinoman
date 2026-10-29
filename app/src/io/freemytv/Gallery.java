@@ -117,8 +117,11 @@ final class Gallery {
     static List<Item> list(Context c, String kind) {
         if (kind.equals(FAVORITES)) return read(favoritesFile(c, "off"));   // the everyday ones, never a theme's
         File f = new File(c.getFilesDir(), "gallery2-" + kind + ".json");
-        List<Item> saved = read(f);
-        if (!saved.isEmpty() && System.currentTimeMillis() - f.lastModified() < LIST_EVERY) return withLocal(c, kind, saved);
+        List<Item> all = read(f), saved = suitable(all);
+        if (!saved.isEmpty() && System.currentTimeMillis() - f.lastModified() < LIST_EVERY
+                && saved.size() == all.size()) {   // a list saved before the filter caught something is fetched again
+            return withLocal(c, kind, saved);
+        }
         try {
             String[] theme = themeSearches(kind);
             List<Item> fresh = theme != null ? search(theme, 1.3f, 4)
@@ -165,8 +168,8 @@ final class Gallery {
         } catch (IOException ignored) {
         }
         if (files == null || files.length == 0) return list;
-        // Titles may sit in titulos.properties beside them (file name = title, in UTF-8): short file names keep
-        // the build's paths short, and a title can have accents and ñ.
+        // Titles may sit in titulos.properties beside them (file name = title, in UTF-8; "<file>.autor" = author):
+        // short file names keep the build's paths short, and a title can have accents and ñ.
         java.util.Properties titles = new java.util.Properties();
         try (InputStream in = c.getAssets().open(folder + "/titulos.properties")) {
             titles.load(new java.io.InputStreamReader(in, StandardCharsets.UTF_8));
@@ -178,6 +181,7 @@ final class Gallery {
             Item it = new Item();
             it.url = "asset:" + folder + "/" + name;
             it.title = titles.getProperty(name, name.replaceFirst("\\.[^.]+$", "").replace('_', ' ').replace('-', ' '));
+            it.author = titles.getProperty(name + ".autor", "");   // a CC BY photo is credited
             local.add(it);
         }
         if (local.isEmpty()) return list;
@@ -393,10 +397,19 @@ final class Gallery {
         }
     }
 
+    /** A saved list without what the filter now leaves out (it may have been saved before the filter had it). */
+    private static List<Item> suitable(List<Item> list) {
+        List<Item> out = new ArrayList<>();
+        for (Item it : list) if (!UNSUITABLE.matcher(it.title).find()) out.add(it);
+        return out;
+    }
+
     /** Grim scenes stay out of a living room (by their titles, in the usual languages): executions, martyrdoms, prey. */
     private static final java.util.regex.Pattern UNSUITABLE = java.util.regex.Pattern.compile(
             "(?i)martyr|mártir|martir|execution|ejecución|exécution|massacre|masacre|beheading|decapita|holofernes"
-            + "|carcass|cadáver|with prey|eating a|feeding on|killed");
+            + "|carcass|cadáver|with prey|eating a|feeding on|killed"
+            // Not photos: carving stencils, templates, instruction sheets, posters, diagrams.
+            + "|stencil|template|plantilla|instructions|instrucciones|diagram|infographic|poster|flyer|clip ?art");
 
     private static String field(JSONObject meta, String name) {
         JSONObject o = meta == null ? null : meta.optJSONObject(name);
