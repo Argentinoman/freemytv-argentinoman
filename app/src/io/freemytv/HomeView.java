@@ -941,16 +941,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         apps.addAction(android.content.Intent.ACTION_PACKAGE_CHANGED);   // turned on or off in the TV's settings
         apps.addDataScheme("package");
         getContext().registerReceiver(appsChanged, apps);
-        android.content.IntentFilter bt = new android.content.IntentFilter();
-        bt.addAction("android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED");
-        bt.addAction(android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED);
-        getContext().registerReceiver(appsChanged, bt);   // the speaker button lights up or dims with it
         android.content.IntentFilter usb = new android.content.IntentFilter(android.content.Intent.ACTION_MEDIA_MOUNTED);
         usb.addAction(android.content.Intent.ACTION_MEDIA_UNMOUNTED);
         usb.addAction(android.content.Intent.ACTION_MEDIA_EJECT);
         usb.addAction(android.content.Intent.ACTION_MEDIA_REMOVED);
         usb.addDataScheme("file");
-        getContext().registerReceiver(appsChanged, usb);   // and the USB button with a pen drive
+        getContext().registerReceiver(appsChanged, usb);   // the USB button lights up or dims with a pen drive
         handler.postDelayed(tick, 15_000);
         checkNotices();
         reload();
@@ -1020,8 +1016,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     /** The corner buttons, with their names in the current language. */
     private void makeLightButtons() {
         lightButtons.clear();
-        if (HomeApps.projection(getContext().getPackageManager()) != null)   // a projector has no live TV: its keystone instead
-            lightButtons.add(HomeApps.action(HomeApps.PROJECTION, "projection", "Proyección", "keystone"));
         lightButtons.add(HomeApps.action(HomeApps.INPUTS, "inputs", Ui.tr("HDMI Inputs"), "hdmi"));
         lightButtons.add(HomeApps.action(HomeApps.QUICK_SETTINGS, "settings", Ui.tr("light|Settings"), "settings"));
     }
@@ -2065,7 +2059,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         return list;
     }
 
-    /** "Entradas", on the left: the inputs, the files and the speaker. */
+    /** "Entradas", on the left: the input, the pen drive and the files. */
     private static boolean leftGroup(int kind) {
         return kind == HomeApps.INPUT || kind == HomeApps.LIVE_TV || kind == HomeApps.FILES || kind == HomeApps.USB || kind == HomeApps.SPEAKER;
     }

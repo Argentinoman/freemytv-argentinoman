@@ -58,6 +58,7 @@ final class Symbols {
         if (name.equals("folder")) return folder();
         if (name.equals("keystone")) return keystone();
         if (name.equals("usb")) return usb();
+        if (name.equals("store")) return store();
         boolean picture = name.equals("picture");
         boolean tv = picture || name.equals("live_tv") || name.equals("tv"), hdmi = name.equals("hdmi");
         if (!tv && !hdmi) return null;
@@ -175,6 +176,29 @@ final class Symbols {
         p.setStyle(Paint.Style.FILL);
         c.drawRect(new RectF(30, 20, 38, 30), p);
         c.drawRect(new RectF(w - 38, 20, w - 30, 30), p);
+        b.setHasMipMap(true);
+        return b;
+    }
+
+    /** The Play Store: a shopping bag, its handle, and a play triangle inside. */
+    private static Bitmap store() {
+        float sw = 13f, h2 = sw / 2, w = 136, h = 140;
+        Bitmap b = Bitmap.createBitmap((int) w, (int) h, Bitmap.Config.ALPHA_8);
+        Canvas c = new Canvas(b);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(sw);
+        p.setStrokeCap(Paint.Cap.ROUND);
+        p.setStrokeJoin(Paint.Join.ROUND);
+        c.drawRoundRect(new RectF(h2, 38, w - h2, h - h2), 16, 16, p);
+        c.drawArc(new RectF(40, h2, w - 40, 70), 180, 180, false, p);
+        p.setStyle(Paint.Style.FILL);
+        android.graphics.Path t = new android.graphics.Path();
+        t.moveTo(54, 66);
+        t.lineTo(92, 89);
+        t.lineTo(54, 112);
+        t.close();
+        c.drawPath(t, p);
         b.setHasMipMap(true);
         return b;
     }

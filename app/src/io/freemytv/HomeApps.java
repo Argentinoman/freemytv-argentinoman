@@ -56,7 +56,7 @@ final class HomeApps {
     static final int APP = 0, LIVE_TV = 1, INPUT = 2, ALL_APPS = 3, SETTINGS = 4, ANDROID_SETTINGS = 5, QUICK_SETTINGS = 6;
     /** The "HDMI Inputs" button: opens the bottom drawer on the inputs (the home screen handles it). */
     static final int INPUTS = 7;
-    /** The drawer's speaker button: opens the Bluetooth devices, dimmed while no speaker is connected. */
+    /** Opens the Bluetooth devices (no longer in the drawer; kept so old ids still mean the same). */
     static final int SPEAKER = 8;
     /** The drawer's file explorer: the projector's file manager, or the Play Store's when it has none. */
     static final int FILES = 9;
@@ -228,36 +228,32 @@ final class HomeApps {
     static List<Item> drawerShortcuts(Context c) {
         List<Item> items = new ArrayList<>();
         items.add(shortcut(ALL_APPS, "all", Ui.tr("All Apps"), "apps"));
-        items.add(shortcut(ANDROID_SETTINGS, "tv-settings", Ui.tr("TV Settings"), "settings"));
-        if (projection(c.getPackageManager()) != null) items.add(shortcut(PROJECTION, "projection", "Proyección", "keystone"));
+        items.add(shortcut(ANDROID_SETTINGS, "tv-settings", Ui.tr("Settings"), "settings"));
         if (launchIntent(c.getPackageManager(), BROWSER) != null) {   // hidden from All Apps, reached from here
             Item browser = shortcut(APP, BROWSER, "Navegador", "globe");
             browser.pkg = BROWSER;
             items.add(browser);
         }
         if (launchIntent(c.getPackageManager(), STORE) != null) {   // hidden from All Apps too
-            Item store = shortcut(APP, STORE, "Play Store", "play");
+            Item store = shortcut(APP, STORE, "Play Store", "store");
             store.pkg = STORE;
             items.add(store);
         }
         return items;
     }
 
-    /** After the HDMI inputs, in the drawer's left-hand group: the files and the Bluetooth speaker. */
+    /** After the HDMI input, in the drawer's left-hand group: the pen drive, then the files. */
     static List<Item> drawerDevices(Context c) {
         List<Item> items = new ArrayList<>();
-        Item files = shortcut(FILES, "files", "Explorador de archivos", "folder");
-        files.pkg = fileManager(c.getPackageManager());
-        items.add(files);
+        String files = fileManager(c.getPackageManager());
         Item usb = shortcut(USB, "usb", "USB", "usb");
-        usb.pkg = files.pkg;
+        usb.pkg = files;
         usb.uri = usbPath(c);
         usb.connected = usb.uri != null;
         items.add(usb);
-        String speaker = Prefs.speaker(c);
-        Item sp = shortcut(SPEAKER, "speaker", speaker.isEmpty() ? "Parlante" : speaker, "speaker");
-        sp.connected = speakerConnected();
-        items.add(sp);
+        Item explorer = shortcut(FILES, "files", "Explorador de archivos", "folder");
+        explorer.pkg = files;
+        items.add(explorer);
         return items;
     }
 
@@ -314,22 +310,6 @@ final class HomeApps {
     /** TCL's browser (BrowseHere): a shortcut in the drawer when it's installed. */
     static final String BROWSER = "com.tcl.browser";
     static final String STORE = "com.android.vending";
-
-    /**
-     * Whether a Bluetooth speaker (or any audio sink) is connected now. Without the permission to ask (Android 12+
-     * before the switch grants it), it says yes: a button dimmed for no reason would be worse.
-     */
-    @SuppressWarnings("deprecation")
-    static boolean speakerConnected() {
-        try {
-            android.bluetooth.BluetoothAdapter bt = android.bluetooth.BluetoothAdapter.getDefaultAdapter();
-            if (bt == null || !bt.isEnabled()) return false;
-            return bt.getProfileConnectionState(android.bluetooth.BluetoothProfile.A2DP)
-                    == android.bluetooth.BluetoothProfile.STATE_CONNECTED;
-        } catch (SecurityException e) {
-            return true;
-        }
-    }
 
     /** Android TV has no BLUETOOTH_SETTINGS screen: its "Remote & accessories" page holds the switch and the devices. */
     static Intent bluetoothSettings(Context c) {

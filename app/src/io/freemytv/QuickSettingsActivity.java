@@ -141,6 +141,12 @@ public class QuickSettingsActivity extends Activity {
             Tile picture = new Tile("Imagen y sonido", "picture", () -> open(RemoteKeys.quickSettings(c)));
             picture.sub = "Brillo y modos";
             tiles.add(picture);
+            final Intent projection = HomeApps.projection(c.getPackageManager());
+            if (projection != null) {   // the projector's keystone, zoom and projection mode
+                Tile keystone = new Tile("Proyección", "keystone", () -> open(projection));
+                keystone.sub = "Trapezoide y zoom";
+                tiles.add(keystone);
+            }
             if (installed("com.tcl.suspension")) {
                 Tile inputs = new Tile("Entradas", "hdmi", () -> {
                     finish();

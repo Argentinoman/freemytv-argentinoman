@@ -146,15 +146,6 @@ final class Prefs {
         writeString(c, "screensaver.txt", v);
     }
 
-    /** The favourite Bluetooth speaker's name, the drawer button's label ("" = none picked). A file: Home reads it. */
-    static String speaker(Context c) {
-        return readString(c, "speaker.txt", "");
-    }
-
-    static void setSpeaker(Context c, String name) {
-        writeString(c, "speaker.txt", name);
-    }
-
     private static String readString(Context c, String file, String fallback) {
         try {
             String s = new String(java.nio.file.Files.readAllBytes(new File(c.getFilesDir(), file).toPath()), "UTF-8").trim();

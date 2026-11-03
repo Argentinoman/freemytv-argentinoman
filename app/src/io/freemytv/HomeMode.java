@@ -311,8 +311,6 @@ final class HomeMode {
             check(adb.shell("cmd package set-home-activity " + HOME_ACTIVITY), "Success",
                     Ui.tr("Android didn't accept the new home screen"));
             adb.shell("settings put secure screensaver_components " + DREAM);
-            // The drawer's speaker button asks whether it's connected: Android 12+ wants a permission a TV can't ask for.
-            if (Build.VERSION.SDK_INT >= 31) adb.shell("pm grant " + c.getPackageName() + " android.permission.BLUETOOTH_CONNECT");
             JSONObject started = state(c);
             started.put("mode", FREE).put("homeReverted", false).put("setupHome", setupHome);
             save(c, started);
