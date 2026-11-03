@@ -600,7 +600,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             if ((plugged && before != null && before != state) || unplugged) {
                 for (HomeApps.Item d : drawerItems) {
                     if (d.kind != HomeApps.INPUT || !inputId.equals(d.inputId)) continue;
-                    showToast(plugged ? "Se detectó un equipo en " + d.label : "Se desconectó el equipo de " + d.label, 2000);
+                    boolean named = !d.label.startsWith("HDMI");   // the name the device gave over HDMI-CEC
+                    showToast(plugged ? (named ? "Se conectó " + d.label : "Se detectó un equipo en " + d.label)
+                            : (named ? "Se desconectó " + d.label : "Se desconectó el equipo de " + d.label), 2000);
                 }
             }
             reloadSoon();
