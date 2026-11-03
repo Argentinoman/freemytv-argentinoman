@@ -1042,7 +1042,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     /** The corner buttons, with their names in the current language. */
     private void makeLightButtons() {
         lightButtons.clear();
-        lightButtons.add(HomeApps.action(HomeApps.INPUTS, "inputs", Ui.tr("HDMI Inputs"), "hdmi"));
+        lightButtons.add(HomeApps.action(HomeApps.INPUTS, "inputs", "Entradas", "hdmi"));
         lightButtons.add(HomeApps.action(HomeApps.QUICK_SETTINGS, "settings", Ui.tr("light|Settings"), "settings"));
     }
 
@@ -3015,11 +3015,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             return;
         }
         if (it.kind == HomeApps.INPUTS) {
-            // One HDMI port (a projector): straight to it, no drawer to pick from.
+            // One HDMI port (a projector) with a device on it: straight to it. Nothing on it: the drawer, to pick.
             HomeApps.Item only = null;
             int count = 0;
             for (HomeApps.Item d : drawerItems) if (d.kind == HomeApps.INPUT) { only = d; count++; }
-            if (count == 1) {
+            if (count == 1 && only.connected) {
                 dimInHome();
                 if (!HomeApps.open(activity, only, this, Math.round(r.left), Math.round(r.top), Math.round(r.width()), Math.round(r.height())))
                     showToast(Ui.trf("Couldn't open {app}.", "app", only.label));
