@@ -133,6 +133,8 @@ public class HdmiActivity extends Activity {
         protected void onDraw(Canvas c) {
             float w = getWidth(), h = getHeight();
             if (message != null) {
+                // Opaque: the board's input service draws its own blue "No Signal" under it, which this covers.
+                c.drawColor(0xFF0E0E10);
                 Symbols.draw(getContext(), c, "hdmi", w / 2, h / 2 - 90 * k, 60 * k, 0x99FFFFFF);
                 c.drawText(message, w / 2, h / 2 + 10 * k, big);
                 c.drawText(message.equals("Sin señal") ? "Revisá que el equipo esté prendido y el cable bien enchufado."
