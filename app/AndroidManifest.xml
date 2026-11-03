@@ -147,6 +147,15 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
 
+        <!-- The HDMI input full screen (a TvView), in place of the board's live TV app. -->
+        <activity
+            android:name=".HdmiActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
         <!-- The HY300's picture (keystone, zoom, projection mode): a panel over what's on screen, like the quick settings. -->
         <activity
             android:name=".ProjectionActivity"

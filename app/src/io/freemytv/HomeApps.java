@@ -549,7 +549,10 @@ final class HomeApps {
                 intent = liveTv(a);
                 break;
             case INPUT:
-                intent = new Intent(Intent.ACTION_VIEW, TvContract.buildChannelUriForPassthroughInput(it.inputId));
+                // Our own full-screen view of the input; the board's live TV app only as the fallback.
+                intent = new Intent(a, HdmiActivity.class).putExtra(HdmiActivity.EXTRA_INPUT, it.inputId)
+                        .putExtra(HdmiActivity.EXTRA_LABEL, it.label);
+                plain = new Intent(Intent.ACTION_VIEW, TvContract.buildChannelUriForPassthroughInput(it.inputId));
                 break;
             case SETTINGS:
                 intent = new Intent().setComponent(new ComponentName(a, SettingsActivity.class));
