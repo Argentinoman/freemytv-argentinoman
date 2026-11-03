@@ -96,7 +96,8 @@ Internet*), o Android borra la red.
   e instala lo que haya en `/data/preinstall` que no esté anotado en `/data/local/tmp/preinstalled`.
 - **Firewall del ADB:** `tools/proyector/agent.sh` va en `/data/local/agent.sh` (root, 755, fin de línea LF): el
   firmware lo corre como root al arrancar y deja el puerto 5555 solo para el propio proyector (el cambio de modo usa
-  127.0.0.1). Para trabajar desde una computadora: panel rápido → **ADB por red** (muestra la IP); se vuelve a cerrar
+  127.0.0.1), y adentro solo para Free My TV, root y shell: cualquier otra app podía conectarse a 127.0.0.1:5555 y
+  tener root (así trabajaba el instalador remoto). Para trabajar desde una computadora: panel rápido → **ADB por red** (muestra la IP); se vuelve a cerrar
   con el mismo botón o al reiniciar. Se puso con:
 
   ```bash
@@ -108,3 +109,9 @@ Internet*), o Android borra la red.
 - **El firmware bloquea otros launchers:** cuando el inicio predeterminado no es el suyo, el sistema pide la categoría
   `android.intent.category.HOME.JM` en vez de `HOME`, y solo le contestaba `FallbackHome` de los ajustes (una pantalla
   vacía: quedaba el logo del proyector). `HomeActivity` declara `HOME.JM` también.
+- **Proyección propia** (`Projector`, `ProjectionActivity`): en el panel rápido. Trapecio automático con el
+  acelerómetro (mide lo mismo que la app original: 26° → casi las mismas esquinas), ángulos manuales, tamaño y modo de
+  proyección (escribe `/sys/class/aml_lcd/lcd0/paneL_filp`, 0 a 3). Se reaplica al volver al inicio.
+  `com.softwinner.tcorrection` queda desactivada: mandaba datos a `txy.jiumaoos.com/netflix/dataSave` y su servicio
+  disparaba los scripts root del firmware (`vendor.jm.usb.upgrade`: al enchufar un pendrive con carpeta `jm`, instala
+  sus APK y corre `jm/jm.sh` como root; `vendor.jm.apk.install`).
