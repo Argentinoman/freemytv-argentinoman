@@ -66,3 +66,17 @@ Desactivadas con `pm disable-user` (se vuelven con `pm enable`): `com.android.mg
 `com.android.gallery3d`, `com.android.printspooler`, `com.google.android.syncadapters.calendar` y `.contacts`,
 `com.google.android.tvrecommendations`, `com.google.android.backuptransport`, `com.google.android.partnersetup`,
 `com.waxrain.airplayer2` y `com.droidlogic.miracast` (duplicación de pantalla).
+
+También desactivadas, por sospechosas:
+
+- `com.define.shellservice`: un servicio abierto a cualquier app que corre comandos como sistema (una puerta trasera).
+- `com.fb` ("JMFactory"): menú de fábrica con `FixService`/`SuperService` siempre prendidos, un descargador y
+  funciones para instalar apps en silencio desde `aliyun.v9ying.cn`.
+- `com.master.accessibility` ("NetflixMouse"): arranca con el equipo y también puede instalar en silencio.
+- `com.koushikdutta.superuser`: el administrador de root (el `su` sigue en `/system/xbin`).
+
+Quedan para el cambio de modo (`HomeMode.DEBLOAT`, así *Original* los devuelve): el launcher
+`com.htc.htclauncherhighenglishd08` (habla con `txy.jiumaoos.com` y manda errores a Umeng), `com.jm.jmlauncher`,
+`com.master.apps` y la capa de ajustes `com.htc.htcsettings`. **Ojo:** la red Wi-Fi la guardó `com.htc.htcsettings`;
+antes de apagarla hay que olvidar la red y volver a conectarla desde los ajustes de Android (*Ajustes → Redes e
+Internet*), o Android borra la red.
