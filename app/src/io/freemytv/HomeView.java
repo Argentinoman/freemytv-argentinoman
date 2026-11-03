@@ -100,8 +100,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static int tabsGeneration = -1;
     private static final String[] TAB_KIND = {null, "movie", "tv"};
     private static final int Z_TOP = 4, Z_CARDS = 5;
-    /** "Seguir en…" (the recent apps, without TMDB picks) and the now-playing widget. */
-    private static final int Z_RECENT = 6, Z_PLAYER = 7, Z_AVATAR = 8, Z_PLAYER_CTRL = 9, Z_WEATHER = 11;
+    /** "Seguir en…" (the recent apps, without TMDB picks). */
+    private static final int Z_RECENT = 6, Z_AVATAR = 8, Z_WEATHER = 11;
     /** Nothing focused (up from the top row, or Back on the shelf): any arrow brings the focus back where it was. */
     private static final int Z_IDLE = 12;
     private int idleFrom = Z_SHELF;
@@ -111,17 +111,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final Spring[] weatherFocus = {new Spring(0.26f, 0.85f, 0)};
     private int weatherPage;
     private final String[] dayText = new String[7], dayMaxText = new String[7], dayMinText = new String[7];
-    /** The drawer's football card: focused, ←/→ turn its pages by hand (and it stops turning on its own for a while). */
-    /** The now-playing controls under the widget: previous, play/pause, next. */
-    private final Spring[] ctrlFocus = new Spring[6];
-    /** The controls shown: shuffle and repeat only when the playing app supports them. */
-    private static final int C_SHUFFLE = 4, C_PREV = 0, C_PLAY = 1, C_NEXT = 2, C_REPEAT = 5, C_STOP = 6;
-    private int[] ctrlKinds = {C_PREV, C_PLAY, C_NEXT};
-    private final Spring[] ctrlShow = {new Spring(0.28f, 0.8f, 0)};
-    private final RectF ctrlRect = new RectF();
-    private int ctrlIndex = 1;
-    /** The person's choice (OK on the widget): the full capsule or just the cover. */
-    private boolean npCollapsed;
     /** The account circle at the top right: the person's photo (assets/profile.jpg) or a silhouette. */
     private final Spring[] avatarFocus = new Spring[1];
     /** Off: the account is in the TV's settings, reached from the quick settings panel. */
@@ -133,7 +122,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private List<HomeApps.Item> recent = new ArrayList<>();
     private final RectF[] recentRects = new RectF[RECENT_MAX];
     private final Spring[] recentFocus = new Spring[RECENT_MAX];
-    private final Spring[] playerFocus = new Spring[1];
     private int recentIndex;
 
     private final Activity activity;
@@ -678,9 +666,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             recentFocus[i] = new Spring(0.32f, 0.78f, 0);
             recentRects[i] = new RectF();
         }
-        playerFocus[0] = new Spring(0.26f, 0.85f, 0);
         avatarFocus[0] = new Spring(0.26f, 0.85f, 0);
-        for (int i = 0; i < 6; i++) ctrlFocus[i] = new Spring(0.26f, 0.85f, 0);
         makeLightButtons();
         recs.setLight(true);
         checkNight(false);
@@ -937,7 +923,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
         applyDim();
         updateWallpaper();
-        restartTick();
         checkNight(false);
         resumedAt = SystemClock.uptimeMillis();
         lastNanos = 0;
@@ -946,8 +931,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         recs.addListener(this);
         data.refreshIfStale();
         recs.refreshIfStale();
-        if (nowPlaying == null) nowPlaying = new NowPlaying(getContext(), this::onNowPlaying);
-        nowPlaying.start();
         // The island's data (the TV Provider, pictures) waits until Home is back on screen: reading it during the
         // return fought the animation for the TV's CPU. Nothing is focused on return, so nothing waits for it.
         handler.postDelayed(watchStart, WATCH_START_MS);
@@ -983,8 +966,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         handler.removeCallbacks(reloadSoon);
         data.removeListener(this);
         recs.removeListener(this);
-        if (nowPlaying != null) nowPlaying.stop();
-        handler.removeCallbacks(npTick);
         handler.removeCallbacks(watchStart);
         WatchNext.get(getContext()).stop();
         MediaHistory.get(getContext()).setListener(null);
@@ -1198,7 +1179,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (reorderAnim) tilesMoving |= stepReorder(dt, up);
         boolean statusMoving = step(statusFocus, dt);
         boolean heroMoving = heroFocus.step(dt);
-        boolean topMoving = step(topFocus, dt) | step(playerFocus, dt) | step(avatarFocus, dt) | step(npExpand, dt) | step(ctrlFocus, dt) | step(ctrlShow, dt), cardsMoving = step(cardFocus, dt) | step(recentFocus, dt);
+        boolean topMoving = step(topFocus, dt) | step(avatarFocus, dt), cardsMoving = step(cardFocus, dt) | step(recentFocus, dt);
         boolean watchMoving = step(watchFocus, dt), watchFading = step(watchShow, dt) | step(watchActive, dt);
         if (watchSwap && watchShow[0].value < 0.03f) showWatch(watchWaiting);   // the old one faded: the new one comes in
         if (topMoving) status.invalidate();
@@ -2365,14 +2346,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         heroChanged |= aim(watchFocus, !sheetOpen && zone == Z_WATCH ? watchIndex : -1, snap);
         heroChanged |= aim(watchActive, !sheetOpen && zone == Z_WATCH ? 0 : -1, snap);
         followWatch();
-        statusChanged |= aim(playerFocus, !sheetOpen && zone == Z_PLAYER ? 0 : -1, snap);
         statusChanged |= aim(avatarFocus, !sheetOpen && zone == Z_AVATAR ? 0 : -1, snap);
-        statusChanged |= aim(ctrlFocus, !sheetOpen && zone == Z_PLAYER_CTRL ? ctrlIndex : -1, snap);
-        float show = !sheetOpen && !npCollapsed && (zone == Z_PLAYER || zone == Z_PLAYER_CTRL) ? 1 : 0;
-        if (ctrlShow[0].target != show) {
-            ctrlShow[0].target = show;
-            statusChanged = true;
-        }
         statusChanged |= topChanged;
         tilesDirty |= snap || tilesChanged;
         statusDirty |= snap || statusChanged;
@@ -2949,26 +2923,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             } catch (RuntimeException e) {
                 getContext().startActivity(new android.content.Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
             }
-            return;
-        } else if (zone == Z_PLAYER) {
-            npCollapsed = !npCollapsed;
-            ctrlShow[0].target = npCollapsed ? 0 : 1;
-            npExpand[0].target = npCollapsed ? 0 : 1;
-            statusDirty = true;
-            click.open();
-            return;
-        } else if (zone == Z_PLAYER_CTRL) {
-            if (nowPlaying != null && ctrlIndex < ctrlKinds.length) {
-                switch (ctrlKinds[ctrlIndex]) {
-                    case C_SHUFFLE: nowPlaying.shuffle(); break;
-                    case C_PREV: nowPlaying.previous(); break;
-                    case C_PLAY: nowPlaying.toggle(); break;
-                    case C_NEXT: nowPlaying.next(); break;
-                    case C_STOP: nowPlaying.stopPlayback(); break;
-                    default: nowPlaying.repeat(); break;
-                }
-            }
-            click.open();
             return;
         } else if (zone == Z_WATCH) {
             if (watch == null || watchIndex >= watch.items.size()) return;
@@ -4016,268 +3970,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
     }
 
-    // MARK: - Now playing (top right, left of the round buttons)
-
-    private NowPlaying nowPlaying;
-    private TextPaint npTitle, npArtist;
-    private int npVersion = -1;
-    private float npWidth = -1;
-    private CharSequence npTitleText = "", npArtistText = "";
-    private final RectF npRect = new RectF();
-    /** 1 = the full capsule (playing), 0 = collapsed to a round cover (paused). */
-    private final Spring[] npExpand = {new Spring(0.3f, 0.82f, 1)};
-    private static final float[] EQ_SPEED = {5.3f, 7.1f, 4.4f}, EQ_PHASE = {0f, 1.7f, 0.9f};
-
-    /**
-     * A new song or play/pause: the buttons' layer is drawn again; while a song plays, ~12 times a second for the
-     * equalizer (only that layer, and only while Home is on screen).
-     */
-    private static final long EQ_FRAME = 83;
-    private final Runnable npTick = new Runnable() {
-        @Override public void run() {
-            if (!running) return;
-            boolean eq = nowPlaying != null && nowPlaying.playing && nowPlaying.visible();
-            if (nowPlaying != null) {
-                statusDirty = true;
-                wake();
-            }
-            if (eq) handler.postDelayed(this, EQ_FRAME);
-        }
-    };
-
-    private void restartTick() {
-        handler.removeCallbacks(npTick);
-        handler.post(npTick);
-    }
-
-    private void onNowPlaying() {
-        npExpand[0].target = npCollapsed ? 0 : 1;
-        if ((zone == Z_PLAYER || zone == Z_PLAYER_CTRL) && (nowPlaying == null || !nowPlaying.visible())) {
-            zone = Z_TOP;
-            topIndex = 3;
-            retarget(false);
-        }
-        restartTick();
-    }
-
-    /** Cover, title and artist, in a glass capsule like the buttons beside it. */
-    private void drawNowPlaying(Canvas c) {
-        NowPlaying np = nowPlaying;
-        if (np == null || !np.visible()) return;
-        RectF first = topRects[3];
-        float h = first.height(), right = first.left - 22 * k, rad = h / 2;
-        // Paused, it collapses to a circle the size of the buttons; playing again, it opens back up.
-        float e = Ui.clamp(npExpand[0].value), full = 440 * k;
-        npRect.set(right - (h + (full - h) * e), first.top, right, first.bottom);
-        RectF r = npRect;
-        tmp.set(r);
-        tmp.offset(0, 6 * k);
-        shadow.setColor(Ui.alpha(0xFF000000, tone(0.1f, 0.3f)));
-        shadows.draw(c, tmp, rad, SHADOW_BLUR * k, shadow);
-        scene.liquid(c, r, rad, tone(0xFFFFFFFF, SMOKE), tone(0.55f, 0.5f), tone(0.02f, 0.01f), 12 * k, 8 * k, tone(0.6f, 0.45f), 1);
-        // Focused: white, like the round buttons beside it (OK then plays or pauses).
-        float pf = Ui.clamp(playerFocus[0].value);
-        if (pf > 0.01f) {
-            fill.setShader(null);
-            fill.setColor(Ui.alpha(0xFFFFFFFF, pf));
-            c.drawRoundRect(r, rad, rad, fill);
-        }
-        // Inset enough that the cover's corners clear the capsule's round end.
-        float pad = 10 * k, as = h - 2 * pad, ax = r.left + pad + 3 * k * e, ar = as * (0.5f - 0.22f * e);
-        cell.set(ax, r.top + pad, ax + as, r.top + pad + as);
-        if (np.art != null) {
-            roundImage(c, np.art, cell, ar);
-        } else {
-            fill.setShader(null);
-            fill.setColor(tone(0x14000000, 0x24FFFFFF));
-            c.drawRoundRect(cell, ar, ar, fill);
-            Symbols.draw(getContext(), c, "play", cell.centerX(), cell.centerY(), 22 * k, tone(L_DIM, 0xB3FFFFFF));
-        }
-        // The equalizer: moving while it plays, still at its lowest when paused.
-        float eqW = 22 * k;
-        // Text and equalizer fade in once the capsule is mostly open, clipped to it while it moves.
-        float te = Ui.clamp((e - 0.4f) / 0.6f);
-        if (te <= 0.01f) return;
-        float tx = cell.right + 16 * k, tr = r.right - rad * 0.75f - (eqW > 0 ? eqW + 14 * k : 0);
-        float avail = full - (pad + 3 * k + as + 16 * k) - (rad * 0.75f + eqW + 14 * k);   // the open width: stable text
-        c.save();
-        c.clipRect(r);
-        if (npTitle == null || npTitle.getTextSize() != 24 * k) {
-            npTitle = new TextPaint(Ui.text(Ui.displaySemibold, 24 * k, 0xFFFFFFFF));
-            npTitle.setLetterSpacing(-0.01f);
-            npArtist = new TextPaint(Ui.text(Ui.regular, 19 * k, 0xFFFFFFFF));
-            npArtist.setLetterSpacing(0.01f);
-            npVersion = -1;
-        }
-        if (np.version != npVersion || avail != npWidth) {
-            npVersion = np.version;
-            npWidth = avail;
-            npTitleText = android.text.TextUtils.ellipsize(np.title, npTitle, avail, android.text.TextUtils.TruncateAt.END);
-            npArtistText = android.text.TextUtils.ellipsize(np.artist, npArtist, avail, android.text.TextUtils.TruncateAt.END);
-        }
-        npTitle.setColor(Ui.alpha(blend(tone(L_INK, 0xFAFFFFFF), L_INK, pf), te));
-        npArtist.setColor(Ui.alpha(blend(tone(L_DIM, 0x99FFFFFF), L_DIM, pf), te));
-        // Two lines centred as a block on the capsule.
-        float t1 = Ui.cap(npTitle), t2 = Ui.cap(npArtist), lineGap = 11 * k, block = t1 + lineGap + t2;
-        float base1 = r.centerY() - block / 2 + t1, base2 = base1 + lineGap + t2;
-        c.drawText(npTitleText, 0, npTitleText.length(), tx, base1, npTitle);
-        c.drawText(npArtistText, 0, npArtistText.length(), tx, base2, npArtist);
-        if (eqW > 0) {
-            fill.setShader(null);
-            fill.setColor(Ui.alpha(blend(tone(L_INK, 0xE6FFFFFF), L_INK, pf), te));
-            float bw = 4 * k, gap = (eqW - 3 * bw) / 2, x = r.right - rad * 0.75f - eqW, bottom = r.centerY() + 9 * k;
-            float t = SystemClock.uptimeMillis() / 1000f;
-            for (int b = 0; b < 3; b++) {
-                // Each bar bounces at its own pace (an animation: measuring the sound cost the TV too much); paused,
-                // three still dots.
-                float bh = !np.playing ? bw : (8 + 11 * Math.abs((float) Math.sin(t * EQ_SPEED[b] + EQ_PHASE[b]))) * k;
-                tmp.set(x + b * (bw + gap), bottom - bh, x + b * (bw + gap) + bw, bottom);
-                c.drawRoundRect(tmp, bw / 2, bw / 2, fill);
-            }
-        }
-        c.restore();
-    }
-
-    /**
-     * Previous, play/pause and next: three glass circles floating under the widget, like the round buttons, that rise
-     * into place while the widget (or one of them) has focus. Focused: white with dark ink.
-     */
-    private void drawPlayerControls(Canvas c) {
-        float show = Ui.clamp(ctrlShow[0].value);
-        NowPlaying np = nowPlaying;
-        if (show <= 0.01f || np == null || !np.visible()) return;
-        updateCtrlKinds(np);
-        int n = ctrlKinds.length;
-        // Anchored where the open capsule's centre is (it shrinks to the right as it collapses: following it dragged the
-        // buttons sideways); they rise into it as they shrink and fade, the outer ones a little ahead of the middle one.
-        float dia = 58 * k, gap = 16 * k, cx = npRect.right - 440 * k / 2, base = npRect.bottom + 22 * k + dia / 2;
-        for (int i = 0; i < n; i++) {
-            float side = Math.abs(i - (n - 1) / 2f) / Math.max(1, (n - 1) / 2f);   // 0 middle, 1 the ends
-            float own = Ui.clamp((show - 0.25f * side) / (1 - 0.25f * side));
-            if (own <= 0.01f) continue;
-            float eased = own * own * (3 - 2 * own);
-            float f = Ui.clamp(ctrlFocus[i].value), s = (0.6f + 0.4f * eased) * (1 + 0.1f * f), rad = dia / 2 * s;
-            float x = cx + (i - (n - 1) / 2f) * (dia + gap);
-            float cy = base - (1 - eased) * 34 * k;
-            float showWas = show;
-            show = eased * eased;   // the fade runs ahead of the motion: gone before it reaches the capsule
-            cell.set(x - rad, cy - rad, x + rad, cy + rad);
-            tmp.set(cell);
-            tmp.offset(0, (5 + 7 * f) * k);
-            shadow.setColor(Ui.alpha(0xFF000000, (tone(0.1f, 0.3f) + tone(0.12f, 0.18f) * f) * show));
-            shadows.draw(c, tmp, rad, SHADOW_BLUR * k, shadow);
-            scene.liquid(c, cell, rad, tone(0xFFFFFFFF, SMOKE), tone(0.55f, 0.5f), tone(0.02f, 0.01f), 10 * k, 7 * k,
-                    tone(0.6f, 0.45f), show * (1 - f));
-            if (f > 0.01f) {
-                fill.setShader(null);
-                fill.setColor(Ui.alpha(0xFFFFFFFF, f * show));
-                c.drawCircle(x, cy, rad, fill);
-            }
-            fill.setShader(null);
-            fill.setColor(Ui.alpha(blend(tone(L_INK, 0xEBFFFFFF), L_INK, f), show));
-            int kind = ctrlKinds[i];
-            boolean active = (kind == C_SHUFFLE && np.shuffleOn) || (kind == C_REPEAT && np.repeatMode != 0);
-            if (active && f < 0.5f) fill.setColor(Ui.alpha(0xFF30D158, show));   // on: green, like the apps do
-            drawControlGlyph(c, kind == C_PLAY ? (np.playing ? 3 : 1) : kind, x, cy, rad * 0.36f);
-            show = showWas;
-        }
-    }
-
-    private void updateCtrlKinds(NowPlaying np) {
-        int n = 4 + (np.canShuffle() ? 1 : 0) + (np.canRepeat() ? 1 : 0);
-        if (n == ctrlKinds.length) return;
-        int[] k2 = new int[n];
-        int i = 0;
-        if (np.canShuffle()) k2[i++] = C_SHUFFLE;
-        k2[i++] = C_PREV;
-        k2[i++] = C_PLAY;
-        k2[i++] = C_NEXT;
-        k2[i++] = C_STOP;
-        if (np.canRepeat()) k2[i] = C_REPEAT;
-        ctrlKinds = k2;
-        ctrlIndex = Math.min(ctrlIndex, n - 1);
-    }
-
-    private int indexOfKind(int kind) {
-        for (int i = 0; i < ctrlKinds.length; i++) if (ctrlKinds[i] == kind) return i;
-        return 0;
-    }
-
-    private Paint ctrlStroke;
-
-    /**
-     * 0 previous, 1 play, 2 next, 3 pause (filled), 4 shuffle, 5 repeat (stroked): centred on (x, y), `u` about half
-     * their height, in `fill`'s colour.
-     */
-    private void drawControlGlyph(Canvas c, int which, float x, float y, float u) {
-        glyphPath.reset();
-        if (which == C_STOP) {   // stop: a rounded square
-            tmp.set(x - u * 0.72f, y - u * 0.72f, x + u * 0.72f, y + u * 0.72f);
-            c.drawRoundRect(tmp, u * 0.18f, u * 0.18f, fill);
-            return;
-        }
-        if (which == C_SHUFFLE || which == C_REPEAT) {
-            if (ctrlStroke == null) {
-                ctrlStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
-                ctrlStroke.setStyle(Paint.Style.STROKE);
-                ctrlStroke.setStrokeCap(Paint.Cap.ROUND);
-                ctrlStroke.setStrokeJoin(Paint.Join.ROUND);
-            }
-            ctrlStroke.setStrokeWidth(u * 0.24f);
-            ctrlStroke.setColor(fill.getColor());
-            if (which == C_SHUFFLE) {
-                // Two crossing arrows.
-                glyphPath.moveTo(x - u, y - u * 0.6f);
-                glyphPath.cubicTo(x - u * 0.2f, y - u * 0.6f, x + u * 0.1f, y + u * 0.6f, x + u, y + u * 0.6f);
-                glyphPath.moveTo(x - u, y + u * 0.6f);
-                glyphPath.cubicTo(x - u * 0.2f, y + u * 0.6f, x + u * 0.1f, y - u * 0.6f, x + u, y - u * 0.6f);
-                glyphPath.moveTo(x + u * 0.65f, y - u * 0.95f);
-                glyphPath.lineTo(x + u, y - u * 0.6f);
-                glyphPath.lineTo(x + u * 0.65f, y - u * 0.25f);
-                glyphPath.moveTo(x + u * 0.65f, y + u * 0.25f);
-                glyphPath.lineTo(x + u, y + u * 0.6f);
-                glyphPath.lineTo(x + u * 0.65f, y + u * 0.95f);
-            } else {
-                // A loop with an arrow head.
-                tmp.set(x - u, y - u * 0.6f, x + u, y + u * 0.6f);
-                glyphPath.addRoundRect(tmp, u * 0.5f, u * 0.5f, Path.Direction.CW);
-                glyphPath.moveTo(x + u * 0.05f, y - u * 0.95f);
-                glyphPath.lineTo(x + u * 0.4f, y - u * 0.6f);
-                glyphPath.lineTo(x + u * 0.05f, y - u * 0.25f);
-            }
-            c.drawPath(glyphPath, ctrlStroke);
-            return;
-        }
-        switch (which) {
-            case 1:
-                glyphPath.moveTo(x - u * 0.7f, y - u);
-                glyphPath.lineTo(x + u * 0.95f, y);
-                glyphPath.lineTo(x - u * 0.7f, y + u);
-                glyphPath.close();
-                break;
-            case 3:
-                tmp.set(x - u * 0.8f, y - u, x - u * 0.22f, y + u);
-                c.drawRoundRect(tmp, u * 0.15f, u * 0.15f, fill);
-                tmp.set(x + u * 0.22f, y - u, x + u * 0.8f, y + u);
-                c.drawRoundRect(tmp, u * 0.15f, u * 0.15f, fill);
-                return;
-            default: {
-                float dir = which == 0 ? -1 : 1;   // previous points left, next points right
-                glyphPath.moveTo(x - dir * u * 0.75f, y - u * 0.85f);
-                glyphPath.lineTo(x + dir * u * 0.55f, y);
-                glyphPath.lineTo(x - dir * u * 0.75f, y + u * 0.85f);
-                glyphPath.close();
-                float bx = x + dir * u * 0.62f;
-                tmp.set(Math.min(bx, bx + dir * u * 0.28f), y - u * 0.85f, Math.max(bx, bx + dir * u * 0.28f), y + u * 0.85f);
-                c.drawRoundRect(tmp, u * 0.1f, u * 0.1f, fill);
-                break;
-            }
-        }
-        c.drawPath(glyphPath, fill);
-    }
-
-    private final Path glyphPath = new Path();
-
     /** The account circle: glass like the buttons, the photo inside; focused, a white ring and the label. */
     private void drawAvatar(Canvas c) {
         if (!SHOW_AVATAR) return;
@@ -4342,8 +4034,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private void drawLightButtons(Canvas c) {
         drawAvatar(c);
-        drawNowPlaying(c);
-        drawPlayerControls(c);
         applyTone();
         for (int i = 0; i < 3; i++) {
             RectF r = topRects[3 + i];
@@ -4429,39 +4119,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                     if (!shelf.isEmpty()) shelfIndex = nearest(tileRects, tileRects.length, recentRects[recentIndex].centerX());
                 }
                 break;
-            case Z_PLAYER:
-                if (dx > 0) {
-                    zone = Z_TOP;
-                    topIndex = 3;
-                } else if (dx < 0 && picksOn()) {
-                    zone = Z_TOP;
-                    topIndex = 2;
-                    selectTab(2);
-                } else if (dy > 0) {
-                    if (npCollapsed) {
-                        zone = cards.isEmpty() ? Z_SHELF : Z_CARDS;
-                    } else {
-                        zone = Z_PLAYER_CTRL;   // down into the controls under it, on play/pause
-                        ctrlIndex = indexOfKind(C_PLAY);
-                    }
-                } else if (dy < 0) {
-                    idleFrom = Z_PLAYER;
-                    zone = Z_IDLE;
-                } else {
-                    return true;
-                }
-                break;
-            case Z_PLAYER_CTRL:
-                if (dx != 0) {
-                    int next = Math.max(0, Math.min(ctrlKinds.length - 1, ctrlIndex + dx));
-                    if (next == ctrlIndex) return true;
-                    ctrlIndex = next;
-                } else if (dy < 0) {
-                    zone = Z_PLAYER;
-                } else {
-                    zone = cards.isEmpty() ? Z_SHELF : Z_CARDS;
-                }
-                break;
             case Z_AVATAR:
                 if (dx < 0) {
                     zone = Z_TOP;
@@ -4476,11 +4133,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 if (dx > 0 && topIndex == 5) {
                     if (!SHOW_AVATAR) return true;
                     zone = Z_AVATAR;
-                    break;
-                }
-                // Left from the first round button: the now-playing widget, when it shows.
-                if (dx < 0 && topIndex == 3 && nowPlaying != null && nowPlaying.visible()) {
-                    zone = Z_PLAYER;
                     break;
                 }
                 if (dx != 0) {
