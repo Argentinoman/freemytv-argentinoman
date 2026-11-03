@@ -29,8 +29,14 @@ for f in custom ttyunos v9ying; do
 done
 chown -R root:root /data/ttyunos; chmod 755 /data/ttyunos /data/ttyunos/*.sh
 setprop persist.sys.jm.url http://127.0.0.1
-iptables -N fmtv_vendor 2>/dev/null
-iptables -F fmtv_vendor
+for t in iptables ip6tables; do
+  $t -N fmtv_vendor 2>/dev/null
+  $t -F fmtv_vendor
+  while $t -D OUTPUT -j fmtv_vendor 2>/dev/null; do :; done
+  $t -I OUTPUT -j fmtv_vendor
+done
 for ip in 8.138.18.183 115.126.61.77 123.207.77.74; do iptables -A fmtv_vendor -d $ip -j REJECT; done
-while iptables -D OUTPUT -j fmtv_vendor 2>/dev/null; do :; done
-iptables -I OUTPUT -j fmtv_vendor
+# The board's live TV app stays (it holds TV_INPUT_HARDWARE: off, HDMI may stop for good), without internet: it only
+# carried a British Freeview client. Free My TV's own HDMI view is what the HDMI button opens.
+LIVETV=$(stat -c %u /data/data/com.droidlogic.android.tv 2>/dev/null)
+[ -n "$LIVETV" ] && for t in iptables ip6tables; do $t -A fmtv_vendor -m owner --uid-owner $LIVETV ! -o lo -j REJECT; done

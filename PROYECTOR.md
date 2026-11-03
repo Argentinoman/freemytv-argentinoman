@@ -121,3 +121,6 @@ Internet*), o Android borra la red.
   serie, modelo y país a `123.207.77.74`, traían "reglas" y ejecutaban lo que dijeran (de ahí las instalaciones y el
   paquete cifrado). `agent.sh` los deja vacíos y de root en cada arranque, apunta `persist.sys.jm.url` a 127.0.0.1 y
   bloquea esos servidores.
+- **HDMI propio** (`HdmiActivity`): el botón HDMI abre una vista a pantalla completa (un `TvView` con la entrada), con
+  "Sin señal" en nuestro estilo; Atrás vuelve al inicio. La app de TV de Amlogic (`com.droidlogic.android.tv`) queda
+  prendida porque tiene `TV_INPUT_HARDWARE`, pero `agent.sh` le corta internet.
