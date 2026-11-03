@@ -595,9 +595,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final TvInputManager.TvInputCallback inputCallback = new TvInputManager.TvInputCallback() {
         @Override public void onInputStateChanged(String inputId, int state) {
             Integer before = inputStates.put(inputId, state);
-            if (state == TvInputManager.INPUT_STATE_CONNECTED && before != null && before != state) {
+            boolean plugged = state == TvInputManager.INPUT_STATE_CONNECTED;
+            boolean unplugged = before != null && before == TvInputManager.INPUT_STATE_CONNECTED && !plugged;
+            if ((plugged && before != null && before != state) || unplugged) {
                 for (HomeApps.Item d : drawerItems) {
-                    if (d.kind == HomeApps.INPUT && inputId.equals(d.inputId)) showToast("Se detectó un equipo en " + d.label, 2000);
+                    if (d.kind != HomeApps.INPUT || !inputId.equals(d.inputId)) continue;
+                    showToast(plugged ? "Se detectó un equipo en " + d.label : "Se desconectó el equipo de " + d.label, 2000);
                 }
             }
             reloadSoon();
