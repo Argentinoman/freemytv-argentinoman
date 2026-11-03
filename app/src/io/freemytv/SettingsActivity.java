@@ -145,6 +145,8 @@ public class SettingsActivity extends Activity {
         private long startedAt, lastNanos, pendingAt, lastSky;
         private int w, h;
         private float k = 1;
+        private Paint pink;
+        private int pinkH;
         private Paint title, subtitle, version, rowLabel, rowValue, rowSub, header, cellLabel, cellValue, warn, spinner, white, shadow;
         private TextPaint notice;
 
@@ -283,7 +285,11 @@ public class SettingsActivity extends Activity {
             if (!running) return;
             boolean moving = busy();
             for (Spring s : pop) moving |= !s.settled();
-            if (moving || SystemClock.uptimeMillis() - lastSky >= 100) invalidate();
+            long now = SystemClock.uptimeMillis();
+            if (moving || now - lastSky >= 1000) {   // the background is still: idle, once a second is plenty
+                lastSky = now;
+                invalidate();
+            }
             Choreographer.getInstance().postFrameCallback(this);
         }
 
@@ -354,19 +360,21 @@ public class SettingsActivity extends Activity {
                 pop[i].target = i == focus && i < rowCount() ? 1 : 0;
                 pop[i].step(dt);
             }
-            long up = SystemClock.uptimeMillis();
-            float seconds = (up - startedAt) / 1000f;
-            if (up - lastSky >= 100) {
-                lastSky = up;
-                scene.advance(seconds);
+            float seconds = (SystemClock.uptimeMillis() - startedAt) / 1000f;   // the spinner's turn
+            // Eli's pink, flat: no moving sky to compute.
+            if (pink == null || pinkH != getHeight()) {
+                pinkH = getHeight();
+                pink = new Paint();
+                pink.setShader(new android.graphics.LinearGradient(0, 0, 0, pinkH, 0xFFD9759E, 0xFFAE4E7C,
+                        android.graphics.Shader.TileMode.CLAMP));
             }
-            scene.drawBackground(c);
+            c.drawRect(0, 0, getWidth(), getHeight(), pink);
 
             // On the left: big symbol, title, description.
             float cx = 500 * k;
             Symbols.draw(getContext(), c, "sparkles", cx, 400 * k, 150 * k, 0xEBFFFFFF);
-            c.drawText("TV de Mati", cx, 612 * k, title);
-            c.drawText("Ajustada bajo los gustos y los requerimientos del Buen Mati", cx, 660 * k, subtitle);
+            c.drawText("Proyector de Eli", cx, 612 * k, title);
+            c.drawText("Ajustado en base al buen gusto de Mati", cx, 660 * k, subtitle);
             c.drawText(versionName(getContext()), cx, 704 * k, version);
 
             if (screen == MAIN) drawMain(c, seconds); else if (screen == HOME_CHOICE) drawChoice(c); else if (screen == PICKER) drawPicker(c); else if (screen == SHELF_EDIT) drawShelfEditor(c); else drawList(c);
@@ -481,11 +489,11 @@ public class SettingsActivity extends Activity {
         }
 
         private static String versionName(Context c) {
+            // The projector branch of Mati's fork (Free My TV's MIT notice stays in LICENSE).
             try {
-                // Credit where it's due: built on Free My TV (MIT).
-                return "Basada en Free My TV " + c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
+                return "Basado en TV de Mati " + c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                return "Basada en Free My TV";
+                return "Basado en TV de Mati";
             }
         }
 
