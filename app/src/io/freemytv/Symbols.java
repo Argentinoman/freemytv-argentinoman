@@ -56,6 +56,7 @@ final class Symbols {
     private static Bitmap drawn(String name) {
         if (name.equals("globe")) return globe();
         if (name.equals("folder")) return folder();
+        if (name.equals("keystone")) return keystone();
         boolean picture = name.equals("picture");
         boolean tv = picture || name.equals("live_tv") || name.equals("tv"), hdmi = name.equals("hdmi");
         if (!tv && !hdmi) return null;
@@ -133,6 +134,28 @@ final class Symbols {
         f.close();
         c.drawPath(f, p);
         c.drawLine(h2 + 4, 44, w - h2 - 4, 44, p);
+        b.setHasMipMap(true);
+        return b;
+    }
+
+    /** The projection screen: a keystoned picture, a trapezoid wider at the top, with a square inside it. */
+    private static Bitmap keystone() {
+        float sw = 13f, h2 = sw / 2, w = 152, h = 120;
+        Bitmap b = Bitmap.createBitmap((int) w, (int) h, Bitmap.Config.ALPHA_8);
+        Canvas c = new Canvas(b);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(sw);
+        p.setStrokeJoin(Paint.Join.ROUND);
+        android.graphics.Path t = new android.graphics.Path();
+        t.moveTo(h2, h2);
+        t.lineTo(w - h2, h2);
+        t.lineTo(w - 30, h - h2);
+        t.lineTo(30, h - h2);
+        t.close();
+        c.drawPath(t, p);
+        p.setStrokeWidth(10f);
+        c.drawRect(new RectF(50, 32, w - 50, h - 32), p);
         b.setHasMipMap(true);
         return b;
     }

@@ -1011,10 +1011,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         motionDirty = true;
     }
 
-    /** The three corner buttons, with their names in the current language. */
+    /** The corner buttons, with their names in the current language. */
     private void makeLightButtons() {
         lightButtons.clear();
-        lightButtons.add(HomeApps.action(HomeApps.LIVE_TV, "live", Ui.tr("light|Live TV"), "live_tv"));
+        if (HomeApps.projection(getContext().getPackageManager()) != null)   // a projector has no live TV: its keystone instead
+            lightButtons.add(HomeApps.action(HomeApps.PROJECTION, "projection", "Proyección", "keystone"));
         lightButtons.add(HomeApps.action(HomeApps.INPUTS, "inputs", Ui.tr("HDMI Inputs"), "hdmi"));
         lightButtons.add(HomeApps.action(HomeApps.QUICK_SETTINGS, "settings", Ui.tr("light|Settings"), "settings"));
     }
@@ -4151,7 +4152,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             case Z_AVATAR:
                 if (dx < 0) {
                     zone = Z_TOP;
-                    topIndex = 5;
+                    topIndex = 2 + lightButtons.size();
                 } else if (dy > 0) {
                     zone = cards.isEmpty() ? Z_SHELF : Z_CARDS;
                 } else {
@@ -4159,13 +4160,13 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 }
                 break;
             case Z_TOP:
-                if (dx > 0 && topIndex == 5) {
+                if (dx > 0 && topIndex == 2 + lightButtons.size()) {
                     if (!SHOW_AVATAR) return true;
                     zone = Z_AVATAR;
                     break;
                 }
                 if (dx != 0) {
-                    int next = Math.max(picksOn() ? 0 : 3, Math.min(5, topIndex + dx));
+                    int next = Math.max(picksOn() ? 0 : 3, Math.min(2 + lightButtons.size(), topIndex + dx));
                     if (next == topIndex) return true;
                     topIndex = next;
                     if (topIndex < 3) selectTab(topIndex);   // like Apple TV tabs: focusing a tab selects it

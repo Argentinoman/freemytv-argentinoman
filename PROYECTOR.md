@@ -12,7 +12,8 @@ aparte de `master`: lo que se arregle allá se trae con `git merge master` (o `c
   X-plore, Files de Google…; sin ninguno, abre la Play Store para bajar uno) y **Parlante** (abre los dispositivos
   Bluetooth; se ve apagado mientras no hay un parlante conectado, y lleva el nombre del favorito, que se elige en
   *Ajustes de inicio → Parlante favorito*). A la derecha (*Accesos directos*) Todas las apps, Ajustes del TV y **Play
-  Store**, que ya no aparece en Todas las apps.
+  Store**, que ya no aparece en Todas las apps. Si el proyector tiene pantalla de proyección conocida (trapezoide, zoom,
+  modo de proyección), también **Proyección**, que reemplaza a "TV en vivo" en la esquina (un proyector no tiene antena).
 - **Tus fondos**, en el inicio y en el protector de pantalla (con favoritas). Sin internet.
 - El cambio completo a Free My TV / Original, igual que en la tele.
 
@@ -51,3 +52,16 @@ personalizados y Favoritas; las del protector, las mismas fotos o el Reloj.
 El cambio de modo usa las listas de la TCL (`HomeMode.DEBLOAT` y `PROTECTED`, `HomeApps.SHELF`, `LIVE_TV_APPS` y
 `HIDDEN`). Antes de hacer el cambio en el proyector, hay que leer qué trae (ver *Adapting it to another TV* en
 `CLAUDE.md`) y completar esas listas con las apps de esa marca.
+
+### HY300 (el de Eli)
+
+Amlogic T950S, Android 13, 1 GB de RAM, Mali-450 (OpenGL ES 2.0), pantalla de 1024×600 a 30 Hz. El foco es la rueda
+del costado; la pantalla de proyección es `com.softwinner.tcorrection/.projection.ProjectionSettingActivity`
+(`HomeApps.PROJECTION_SCREENS`). Prime Video es la versión de celular (`com.amazon.avod.thirdpartyclient`).
+El ADB por red viene abierto, sin autorización y como root.
+
+Desactivadas con `pm disable-user` (se vuelven con `pm enable`): `com.android.mgstv` (IPTV disfrazada),
+`com.gecen.store`, `com.master.tv.market`, `com.overseas.store.appstore`, `com.android.camera2`,
+`com.android.gallery3d`, `com.android.printspooler`, `com.google.android.syncadapters.calendar` y `.contacts`,
+`com.google.android.tvrecommendations`, `com.google.android.backuptransport`, `com.google.android.partnersetup`,
+`com.waxrain.airplayer2` y `com.droidlogic.miracast` (duplicación de pantalla).

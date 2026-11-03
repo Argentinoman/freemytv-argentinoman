@@ -60,6 +60,8 @@ final class HomeApps {
     static final int SPEAKER = 8;
     /** The drawer's file explorer: the projector's file manager, or the Play Store's when it has none. */
     static final int FILES = 9;
+    /** The projector's own projection screen: keystone, zoom and projection mode (focus is a wheel on the HY300). */
+    static final int PROJECTION = 10;
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -87,6 +89,7 @@ final class HomeApps {
         {"netflix", "Netflix", "com.netflix.ninja", "E50914", "", "1"},
         {"youtube", "YouTube", "com.google.android.youtube.tv", "FF0033", "play", "1"},
         {"prime", "Prime Video", "com.amazon.amazonvideo.livingroom", "1A98FF", "tint", "0.96"},
+        {"prime", "Prime Video", "com.amazon.avod.thirdpartyclient", "1A98FF", "tint", "0.96"},   // the phone build (HY300)
         {"disney", "Disney+", "com.disney.disneyplus", "1838C8", "", "1"},
         {"max", "HBO Max", "com.wbd.stream", "D0D0D4", "", "1"},
         {"max", "HBO Max", "com.hbo.hbonow", "D0D0D4", "", "1"},
@@ -192,12 +195,9 @@ final class HomeApps {
         return out;
     }
 
-    /** Live TV, the HDMI inputs with a device sending a signal, and All Apps. */
+    /** The HDMI inputs with a device sending a signal, and All Apps (no live TV on a projector). */
     static List<Item> shortcuts(Context c) {
         List<Item> items = new ArrayList<>();
-        if (liveTv(c) != null) {
-            items.add(shortcut(LIVE_TV, "live", Ui.tr("Live TV"), "tv"));
-        }
         items.addAll(inputs(c));
         items.add(shortcut(ALL_APPS, "all", Ui.tr("All Apps"), "apps"));
         return items;
@@ -227,6 +227,7 @@ final class HomeApps {
         List<Item> items = new ArrayList<>();
         items.add(shortcut(ALL_APPS, "all", Ui.tr("All Apps"), "apps"));
         items.add(shortcut(ANDROID_SETTINGS, "tv-settings", Ui.tr("TV Settings"), "settings"));
+        if (projection(c.getPackageManager()) != null) items.add(shortcut(PROJECTION, "projection", "Proyección", "keystone"));
         if (launchIntent(c.getPackageManager(), BROWSER) != null) {   // hidden from All Apps, reached from here
             Item browser = shortcut(APP, BROWSER, "Navegador", "globe");
             browser.pkg = BROWSER;
@@ -269,6 +270,19 @@ final class HomeApps {
 
     private static String fileManager(PackageManager pm) {
         for (String pkg : FILE_MANAGERS) if (launchIntent(pm, pkg) != null) return pkg;
+        return null;
+    }
+
+    /** Projection screens of projector boards (keystone, zoom, ceiling or rear mode), the first one found opens. */
+    private static final String[][] PROJECTION_SCREENS = {
+        {"com.softwinner.tcorrection", "com.softwinner.tcorrection.projection.ProjectionSettingActivity"},   // HY300
+    };
+
+    static Intent projection(PackageManager pm) {
+        for (String[] s : PROJECTION_SCREENS) {
+            Intent i = new Intent(Intent.ACTION_MAIN).setClassName(s[0], s[1]);
+            if (i.resolveActivity(pm) != null) return i;
+        }
         return null;
     }
 
@@ -324,7 +338,7 @@ final class HomeApps {
     /** For the bottom drawer: live TV and every HDMI input (the ones with no device are shown dimmed). */
     static List<Item> allInputs(Context c) {
         List<Item> items = new ArrayList<>();
-        if (liveTv(c) != null) items.add(shortcut(LIVE_TV, "live", Ui.tr("Live TV"), "tv"));
+        // No live TV on a projector: no antenna, though Amlogic boards still list a tuner input.
         items.addAll(inputs(c, true));
         return items;
     }
@@ -537,6 +551,9 @@ final class HomeApps {
             case SPEAKER:
                 intent = bluetoothSettings(a);
                 plain = new Intent(Settings.ACTION_SETTINGS);   // a projector without a Bluetooth page: its settings
+                break;
+            case PROJECTION:
+                intent = projection(a.getPackageManager());
                 break;
             case QUICK_SETTINGS:
                 intent = RemoteKeys.quickPanel(a);
