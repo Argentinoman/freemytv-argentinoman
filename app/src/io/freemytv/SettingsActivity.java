@@ -949,6 +949,10 @@ public class SettingsActivity extends Activity {
             float hy = (LIST_TOP + 20 + labels.length * (LIST_ROW_H + LIST_ROW_GAP) + 36) * k;
             c.drawText(Ui.tr("OK or the arrows change the value."), LIST_X * k + 30 * k, hy, hint);
             if (backgrounds) c.drawText("En el protector: ↑ favorita · ↓ cambiar fondos · ← → otra foto.", LIST_X * k + 30 * k, hy + 38 * k, hint);
+            if (!backgrounds && !keys) {   // Eli's projector, signed
+                c.drawText("Ajustado en base al criterio del buen Mati.", LIST_X * k + 30 * k, hy + 38 * k, hint);
+                c.drawText("Conseguime sueldo en dólares, Eliana.", LIST_X * k + 30 * k, hy + 76 * k, hint);
+            }
             if (keys) {
                 c.drawText(RemoteKeys.VESTEL ? Ui.tr("YouTube, Prime Video and Google Play: the TV itself controls those buttons.")
                         : RemoteKeys.KTC ? Ui.tr("Netflix, YouTube and Prime Video: the TV itself controls those buttons.")

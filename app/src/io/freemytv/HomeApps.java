@@ -221,7 +221,7 @@ final class HomeApps {
     static List<Item> drawerShortcuts(Context c) {
         List<Item> items = new ArrayList<>();
         items.add(shortcut(ALL_APPS, "all", Ui.tr("All Apps"), "apps"));
-        items.add(shortcut(ANDROID_SETTINGS, "tv-settings", Ui.tr("TV Settings"), "settings"));
+        items.add(shortcut(ANDROID_SETTINGS, "tv-settings", "Proyector de Eli", "settings"));   // this projector's owner
         if (launchIntent(c.getPackageManager(), BROWSER) != null) {   // hidden from All Apps, reached from here
             Item browser = shortcut(APP, BROWSER, "Navegador", "globe");
             browser.pkg = BROWSER;
