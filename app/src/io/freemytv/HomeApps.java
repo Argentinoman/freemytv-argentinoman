@@ -56,6 +56,10 @@ final class HomeApps {
     static final int APP = 0, LIVE_TV = 1, INPUT = 2, ALL_APPS = 3, SETTINGS = 4, ANDROID_SETTINGS = 5, QUICK_SETTINGS = 6;
     /** The "HDMI Inputs" button: opens the bottom drawer on the inputs (the home screen handles it). */
     static final int INPUTS = 7;
+    /** The drawer's speaker button: opens the Bluetooth devices, dimmed while no speaker is connected. */
+    static final int SPEAKER = 8;
+    /** The drawer's file explorer: the projector's file manager, or the Play Store's when it has none. */
+    static final int FILES = 9;
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -108,6 +112,7 @@ final class HomeApps {
             "com.tcl.guard",                        // TCL: Safety Guard
             "com.tcl.suspension",                   // TCL: Quick panel (the inputs panel; the quick settings open it)
             "com.tcl.browser",                      // TCL: BrowseHere (the drawer's "Navegador" opens it)
+            "com.android.vending",                  // Google Play Store (the drawer's "Play Store" opens it)
             "com.homwee.factory",                   // Philco: factory menu
             "com.mstar.android.tv.disclaimercustomization",   // Philco: disclaimer
             "com.homwee.chtvmanager",               // Philco: TV Manager (cleaner)
@@ -217,21 +222,82 @@ final class HomeApps {
         return shortcut(SETTINGS, "settings", Ui.tr("Settings"), "settings");
     }
 
-    /** Shortcuts in the bottom drawer. */
+    /** Shortcuts in the bottom drawer (its right-hand group). */
     static List<Item> drawerShortcuts(Context c) {
         List<Item> items = new ArrayList<>();
         items.add(shortcut(ALL_APPS, "all", Ui.tr("All Apps"), "apps"));
-        items.add(shortcut(ANDROID_SETTINGS, "tv-settings", "Proyector de Eli", "settings"));   // this projector's owner
+        items.add(shortcut(ANDROID_SETTINGS, "tv-settings", Ui.tr("TV Settings"), "settings"));
         if (launchIntent(c.getPackageManager(), BROWSER) != null) {   // hidden from All Apps, reached from here
             Item browser = shortcut(APP, BROWSER, "Navegador", "globe");
             browser.pkg = BROWSER;
             items.add(browser);
         }
+        if (launchIntent(c.getPackageManager(), STORE) != null) {   // hidden from All Apps too
+            Item store = shortcut(APP, STORE, "Play Store", "play");
+            store.pkg = STORE;
+            items.add(store);
+        }
         return items;
+    }
+
+    /** After the HDMI inputs, in the drawer's left-hand group: the files and the Bluetooth speaker. */
+    static List<Item> drawerDevices(Context c) {
+        List<Item> items = new ArrayList<>();
+        Item files = shortcut(FILES, "files", "Explorador de archivos", "folder");
+        files.pkg = fileManager(c.getPackageManager());
+        items.add(files);
+        String speaker = Prefs.speaker(c);
+        Item sp = shortcut(SPEAKER, "speaker", speaker.isEmpty() ? "Parlante" : speaker, "speaker");
+        sp.connected = speakerConnected();
+        items.add(sp);
+        return items;
+    }
+
+    /** File managers, the first one installed opens: the boards' own (Amlogic, Allwinner, Rockchip...), then the usual. */
+    private static final String[] FILE_MANAGERS = {
+        "com.droidlogic.FileBrower",                // Amlogic boards
+        "com.softwinner.TvdFileManager",            // Allwinner
+        "com.android.rockchip",                     // Rockchip's RkExplorer
+        "com.mediatek.filemanager",                 // MediaTek
+        "com.hisilicon.explorer",                   // HiSilicon
+        "com.lonelycatgames.Xplore",                // X-plore
+        "com.google.android.apps.nbu.files",        // Files by Google
+        "com.alphainventor.filemanager",            // File Manager+
+        "com.estrongs.android.pop",                 // ES File Explorer
+        "com.android.documentsui",                  // Android's own Files
+    };
+
+    private static String fileManager(PackageManager pm) {
+        for (String pkg : FILE_MANAGERS) if (launchIntent(pm, pkg) != null) return pkg;
+        return null;
     }
 
     /** TCL's browser (BrowseHere): a shortcut in the drawer when it's installed. */
     static final String BROWSER = "com.tcl.browser";
+    static final String STORE = "com.android.vending";
+
+    /**
+     * Whether a Bluetooth speaker (or any audio sink) is connected now. Without the permission to ask (Android 12+
+     * before the switch grants it), it says yes: a button dimmed for no reason would be worse.
+     */
+    @SuppressWarnings("deprecation")
+    static boolean speakerConnected() {
+        try {
+            android.bluetooth.BluetoothAdapter bt = android.bluetooth.BluetoothAdapter.getDefaultAdapter();
+            if (bt == null || !bt.isEnabled()) return false;
+            return bt.getProfileConnectionState(android.bluetooth.BluetoothProfile.A2DP)
+                    == android.bluetooth.BluetoothProfile.STATE_CONNECTED;
+        } catch (SecurityException e) {
+            return true;
+        }
+    }
+
+    /** Android TV has no BLUETOOTH_SETTINGS screen: its "Remote & accessories" page holds the switch and the devices. */
+    static Intent bluetoothSettings(Context c) {
+        Intent tv = new Intent("com.android.tv.settings.ACCESSORIES_CONNECTED_DEVICES");
+        if (tv.resolveActivity(c.getPackageManager()) != null) return tv;
+        return new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
+    }
 
     /** The app's brand colour from SHELF (the widget's progress bar), or 0 when it has none. */
     static int brandColor(String pkg) {
@@ -463,6 +529,14 @@ final class HomeApps {
                 break;
             case ANDROID_SETTINGS:
                 intent = new Intent(Settings.ACTION_SETTINGS);
+                break;
+            case FILES:
+                intent = it.pkg != null ? launchIntent(a.getPackageManager(), it.pkg)
+                        : new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://search?q=file%20manager%20tv"));
+                break;
+            case SPEAKER:
+                intent = bluetoothSettings(a);
+                plain = new Intent(Settings.ACTION_SETTINGS);   // a projector without a Bluetooth page: its settings
                 break;
             case QUICK_SETTINGS:
                 intent = RemoteKeys.quickPanel(a);

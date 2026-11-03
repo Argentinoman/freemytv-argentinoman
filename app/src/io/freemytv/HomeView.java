@@ -460,7 +460,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     // Bottom drawer
     private List<HomeApps.Item> drawerItems = new ArrayList<>();
-    private int drawerInputs;          // how many leading items are inputs (the rest are shortcuts)
+    private int drawerInputs;          // how many leading items are inputs and devices (the rest are shortcuts)
     private Spring[] drawerFocus = new Spring[0];
     private RectF[] drawerRects = new RectF[0];
     private final RectF weatherCard = new RectF();
@@ -941,6 +941,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         apps.addAction(android.content.Intent.ACTION_PACKAGE_CHANGED);   // turned on or off in the TV's settings
         apps.addDataScheme("package");
         getContext().registerReceiver(appsChanged, apps);
+        android.content.IntentFilter bt = new android.content.IntentFilter();
+        bt.addAction("android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED");
+        bt.addAction(android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED);
+        getContext().registerReceiver(appsChanged, bt);   // the speaker button lights up or dims with it
         handler.postDelayed(tick, 15_000);
         checkNotices();
         reload();
@@ -2049,13 +2053,19 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private static List<HomeApps.Item> drawerList(Context c) {
         List<HomeApps.Item> list = HomeApps.allInputs(c);
+        list.addAll(HomeApps.drawerDevices(c));
         list.addAll(HomeApps.drawerShortcuts(c));
         return list;
     }
 
+    /** "Entradas", on the left: the inputs, the files and the speaker. */
+    private static boolean leftGroup(int kind) {
+        return kind == HomeApps.INPUT || kind == HomeApps.LIVE_TV || kind == HomeApps.FILES || kind == HomeApps.SPEAKER;
+    }
+
     private void setDrawerItems(List<HomeApps.Item> list) {
         int inputs = 0;
-        while (inputs < list.size() && (list.get(inputs).kind == HomeApps.INPUT || list.get(inputs).kind == HomeApps.LIVE_TV)) inputs++;
+        while (inputs < list.size() && leftGroup(list.get(inputs).kind)) inputs++;
         boolean same = list.size() == drawerItems.size();
         for (int i = 0; same && i < list.size(); i++) {
             same = list.get(i).key.equals(drawerItems.get(i).key) && list.get(i).connected == drawerItems.get(i).connected;
@@ -2177,7 +2187,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             fill.setColor(Ui.alpha(WHITE, f));
             c.drawRoundRect(cell, r, r, fill);
         }
-        boolean off = it.kind == HomeApps.INPUT && !it.connected;
+        boolean off = (it.kind == HomeApps.INPUT || it.kind == HomeApps.SPEAKER) && !it.connected;
         int ink = blend(tone(off ? 0xFF8E8E93 : L_INK, off ? 0x6BFFFFFF : 0xF2FFFFFF), INK, f);
         Symbols.draw(getContext(), c, it.symbol, cx, cell.top + cell.height() * 0.4f, 34 * k * s, ink);
         drawerLabel.setColor(ink);

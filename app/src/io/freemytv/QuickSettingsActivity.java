@@ -208,11 +208,8 @@ public class QuickSettingsActivity extends Activity {
             return new Intent(getContext(), SettingsActivity.class).putExtra("screensaver", true);
         }
 
-        /** Android TV has no BLUETOOTH_SETTINGS screen: its "Remote & accessories" page holds the switch and the devices. */
         private Intent bluetoothSettings() {
-            Intent tv = new Intent("com.android.tv.settings.ACCESSORIES_CONNECTED_DEVICES");
-            if (tv.resolveActivity(getContext().getPackageManager()) != null) return tv;
-            return new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
+            return HomeApps.bluetoothSettings(getContext());
         }
 
         private boolean installed(String pkg) {

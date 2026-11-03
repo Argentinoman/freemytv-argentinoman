@@ -564,8 +564,8 @@ public class SettingsActivity extends Activity {
         // MARK: - Home Settings and Remote Buttons
 
         private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
-        /** Home Settings: language, temperature, theme, sounds, weather, city, Continue watching. */
-        private static final int CITY_ROW = 5, WATCH_ROW = 6;
+        /** Home Settings: language, temperature, theme, sounds, weather, city, Continue watching, favourite speaker. */
+        private static final int CITY_ROW = 5, WATCH_ROW = 6, SPEAKER_ROW = 7;
         private static final String[] HOME_PICTURES = {"black", Gallery.SYSTEM, Gallery.MINE, Gallery.FAVORITES};
         private static final String[] SCREENSAVERS = {Gallery.SYSTEM, Gallery.MINE, Gallery.FAVORITES, "clock"};
         /** Backgrounds: how often the home one changes (minutes) and how long each screensaver photo stays (seconds). */
@@ -646,6 +646,7 @@ public class SettingsActivity extends Activity {
             l.add(Ui.tr("Weather widget"));
             l.add(Ui.tr("City"));
             l.add("Continuar viendo");
+            l.add("Parlante favorito");
             return l.toArray(new String[0]);
         }
 
@@ -662,6 +663,8 @@ public class SettingsActivity extends Activity {
             v[4] = onOff(Prefs.weather());
             v[CITY_ROW] = !cityStatus.isEmpty() ? cityStatus : Prefs.city().isEmpty() ? "—" : Prefs.city();
             v[WATCH_ROW] = onOff(Prefs.watchNext());
+            String speaker = Prefs.speaker(getContext());
+            v[SPEAKER_ROW] = speaker.isEmpty() ? "Ninguno" : speaker;
             return v;
         }
 
@@ -745,10 +748,38 @@ public class SettingsActivity extends Activity {
                 case 4: Prefs.setWeather(!Prefs.weather()); break;
                 case CITY_ROW: return;
                 case WATCH_ROW: Prefs.setWatchNext(!Prefs.watchNext()); break;
+                case SPEAKER_ROW: {
+                    List<String> names = speakers();
+                    int at = names.indexOf(Prefs.speaker(getContext()));
+                    Prefs.setSpeaker(getContext(), names.get((Math.max(0, at) + dir + names.size()) % names.size()));
+                    invalidate();
+                    return;
+                }
                 default:
                     return;
             }
             HomeData.get(getContext()).settingsChanged();
+        }
+
+        /** "" (none), then the audio devices paired with the projector (speakers, headphones), by name. */
+        @SuppressWarnings("deprecation")
+        private static List<String> speakers() {
+            List<String> out = new ArrayList<>();
+            out.add("");
+            try {
+                android.bluetooth.BluetoothAdapter bt = android.bluetooth.BluetoothAdapter.getDefaultAdapter();
+                if (bt == null) return out;
+                for (android.bluetooth.BluetoothDevice d : bt.getBondedDevices()) {
+                    android.bluetooth.BluetoothClass type = d.getBluetoothClass();
+                    String name = d.getName();
+                    if (name == null || name.trim().isEmpty() || out.contains(name.trim())) continue;
+                    if (type != null && type.getMajorDeviceClass() != android.bluetooth.BluetoothClass.Device.Major.AUDIO_VIDEO) continue;
+                    out.add(name.trim());
+                }
+            } catch (SecurityException e) {
+                AppLog.w("speakers: " + e.getMessage());   // Android 12+ before the switch grants the permission
+            }
+            return out;
         }
 
         private void askCity() {

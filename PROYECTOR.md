@@ -8,6 +8,11 @@ aparte de `master`: lo que se arregle allá se trae con `git merge master` (o `c
 - Estante de apps, reloj y clima (con el pronóstico de 7 días en el cajón).
 - Continuar viendo (Netflix, Disney+, YouTube, Spotify, Prime Video).
 - Panel rápido, con el brillo del inicio.
+- El cajón de abajo: a la izquierda (*Entradas*) HDMI, **Explorador de archivos** (el primero instalado: el de la placa,
+  X-plore, Files de Google…; sin ninguno, abre la Play Store para bajar uno) y **Parlante** (abre los dispositivos
+  Bluetooth; se ve apagado mientras no hay un parlante conectado, y lleva el nombre del favorito, que se elige en
+  *Ajustes de inicio → Parlante favorito*). A la derecha (*Accesos directos*) Todas las apps, Ajustes del TV y **Play
+  Store**, que ya no aparece en Todas las apps.
 - **Tus fondos**, en el inicio y en el protector de pantalla (con favoritas). Sin internet.
 - El cambio completo a Free My TV / Original, igual que en la tele.
 
