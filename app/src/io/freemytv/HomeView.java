@@ -480,8 +480,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     // Toasts
     private final ArrayDeque<String> toasts = new ArrayDeque<>();
+    private final ArrayDeque<Long> toastLengths = new ArrayDeque<>();
     private StaticLayout toast;
-    private long toastAt;
+    private long toastAt, toastMs = TOAST_MS;
 
     // Frames
     private boolean running, tilesDirty, statusDirty, heroDirty, drawerDirty, gridDirty, motionDirty = true;
@@ -588,8 +589,19 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
     };
 
+    /** The last state of each input, to tell a device just plugged in from one that was already there. */
+    private final java.util.Map<String, Integer> inputStates = new java.util.HashMap<>();
+
     private final TvInputManager.TvInputCallback inputCallback = new TvInputManager.TvInputCallback() {
-        @Override public void onInputStateChanged(String inputId, int state) { reloadSoon(); }
+        @Override public void onInputStateChanged(String inputId, int state) {
+            Integer before = inputStates.put(inputId, state);
+            if (state == TvInputManager.INPUT_STATE_CONNECTED && before != null && before != state) {
+                for (HomeApps.Item d : drawerItems) {
+                    if (d.kind == HomeApps.INPUT && inputId.equals(d.inputId)) showToast("Se detectó un equipo en " + d.label, 2000);
+                }
+            }
+            reloadSoon();
+        }
         @Override public void onInputAdded(String inputId) { reloadSoon(); }
         @Override public void onInputRemoved(String inputId) { reloadSoon(); }
     };
@@ -934,7 +946,16 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         // The island's data (the TV Provider, pictures) waits until Home is back on screen: reading it during the
         // return fought the animation for the TV's CPU. Nothing is focused on return, so nothing waits for it.
         handler.postDelayed(watchStart, WATCH_START_MS);
-        if (tvInputs != null) tvInputs.registerCallback(inputCallback, handler);
+        if (tvInputs != null) {
+            tvInputs.registerCallback(inputCallback, handler);
+            for (HomeApps.Item d : drawerItems) {   // as they are now: only a change afterwards shows a notice
+                if (d.kind != HomeApps.INPUT) continue;
+                try {
+                    inputStates.put(d.inputId, tvInputs.getInputState(d.inputId));
+                } catch (RuntimeException ignored) {
+                }
+            }
+        }
         android.content.IntentFilter apps = new android.content.IntentFilter();
         apps.addAction(android.content.Intent.ACTION_PACKAGE_ADDED);
         apps.addAction(android.content.Intent.ACTION_PACKAGE_REMOVED);
@@ -2569,6 +2590,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     /** Any notice on screen or waiting goes (another screen takes its place). */
     private void clearToasts() {
         toasts.clear();
+        toastLengths.clear();
         if (toast != null) {
             toast = null;
             toastLayer.invalidate();
@@ -2576,14 +2598,20 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     }
 
     void showToast(String text) {
+        showToast(text, TOAST_MS);
+    }
+
+    /** A short notice too (a device plugged in: two seconds). */
+    void showToast(String text, long ms) {
         toasts.add(text);
+        toastLengths.add(ms);
         announceForAccessibility(text);
         wake();
     }
 
     /** Advances the toast queue; returns true while a toast fades in or out (animation). */
     private boolean tickToast(long up) {
-        if (toast != null && up - toastAt > TOAST_MS) {
+        if (toast != null && up - toastAt > toastMs) {
             toast = null;
             toastLayer.invalidate();
         }
@@ -2592,11 +2620,13 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             if (next != null) {
                 toast = layout(next);
                 toastAt = up;
+                Long ms = toastLengths.poll();
+                toastMs = ms == null ? TOAST_MS : ms;
             }
         }
         if (toast == null) return false;
         long age = up - toastAt;
-        boolean fading = age < 350 || age > TOAST_MS - 450;
+        boolean fading = age < 350 || age > toastMs - 450;
         if (fading) toastLayer.invalidate();
         return fading;
     }
@@ -2604,7 +2634,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private void drawToast(Canvas c) {
         if (toast == null) return;
         float age = (SystemClock.uptimeMillis() - toastAt) / 1000f;
-        float a = Math.min(Ui.clamp(age / 0.3f), Ui.clamp((TOAST_MS / 1000f - age) / 0.4f));
+        float a = Math.min(Ui.clamp(age / 0.3f), Ui.clamp((toastMs / 1000f - age) / 0.4f));
         if (a <= 0) return;
         float padX = 28 * k, padY = 18 * k;
         float tw = toast.getWidth(), th = toast.getHeight();
@@ -2980,6 +3010,16 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             return;
         }
         if (it.kind == HomeApps.INPUTS) {
+            // One HDMI port (a projector): straight to it, no drawer to pick from.
+            HomeApps.Item only = null;
+            int count = 0;
+            for (HomeApps.Item d : drawerItems) if (d.kind == HomeApps.INPUT) { only = d; count++; }
+            if (count == 1) {
+                dimInHome();
+                if (!HomeApps.open(activity, only, this, Math.round(r.left), Math.round(r.top), Math.round(r.width()), Math.round(r.height())))
+                    showToast(Ui.trf("Couldn't open {app}.", "app", only.label));
+                return;
+            }
             openDrawer();
             for (int i = 0; i < drawerItems.size(); i++) {
                 if (drawerItems.get(i).kind == HomeApps.INPUT) {
