@@ -28,8 +28,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Weather/sunrise/sunset (Open-Meteo, every 30 min, cached so the screen opens with numbers) and football (ESPN, see
- * Futbol). Only fetched while the home screen or the screensaver is visible (the screen asks). Neither needs a key.
+ * Weather/sunrise/sunset (Open-Meteo, every 30 min, cached so the screen opens with numbers). Only fetched while the
+ * home screen or the screensaver is visible (the screen asks). No key needed.
  */
 final class HomeData {
     private static final String WEATHER_QUERY = "&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,weather_code"
@@ -46,12 +46,10 @@ final class HomeData {
     private static final long WEATHER_EVERY = 30 * 60_000L;
     interface Listener { void onData(); }
 
-    /** Settings changed (city, favourite teams): fetch again now. */
+    /** Settings changed (city): fetch again now. */
     void settingsChanged() {
         weatherAt = 0;
         weatherFailedAt = 0;
-        matchesAt = 0;
-        matchesFailedAt = 0;
     }
 
     static final class Weather {
@@ -87,19 +85,7 @@ final class HomeData {
     private volatile boolean fetchingWeather;
     private volatile long weatherFailedAt;
 
-    /** Football in place of the quotes (Futbol): every minute during a game, every 5 minutes otherwise. */
-    volatile List<Futbol.Match> matches = new ArrayList<>();
-    /** Every game of the coming week, for the drawer card. */
-    volatile List<Futbol.Match> upcoming = new ArrayList<>();
-    volatile long matchesAt;
-    private volatile boolean fetchingMatches;
-    private volatile long matchesFailedAt;
-    private final java.io.File crestDir;
-    // Its own thread: a dozen ESPN calls shouldn't hold up the weather.
-    private final ExecutorService sports = Executors.newSingleThreadExecutor();
-
     private HomeData(Context c) {
-        crestDir = new java.io.File(c.getCacheDir(), "crests");
         cache = c.getSharedPreferences("homedata", Context.MODE_PRIVATE);
         try {
             String w = cache.getString("weather", null);
@@ -131,33 +117,7 @@ final class HomeData {
 
     /** Fetches whatever is stale. The screen calls this when it appears and every minute while it's visible. */
     void refreshIfStale() {
-        long now = System.currentTimeMillis();
-        long every = Futbol.anyLive(matches) || Futbol.anyLive(upcoming) ? 55_000L : 5 * 60_000L;
-        if (Prefs.futbol() && !fetchingMatches && (now - matchesAt > every || now < matchesAt) && !failedRecently(matchesFailedAt, now)) {
-            fetchingMatches = true;
-            sports.execute(() -> {
-                try {
-                    Futbol.CLUB = Prefs.club();
-                    Futbol.NATION = Prefs.nation();
-                    if (Futbol.weekMissing()) publish(Futbol.fetch(crestDir, true));
-                    publish(Futbol.fetch(crestDir, false));
-                } catch (Exception e) {
-                    matchesFailedAt = System.currentTimeMillis();
-                    AppLog.w("futbol: " + e.getMessage());
-                } finally {
-                    fetchingMatches = false;
-                }
-            });
-        }
-        refreshOthers(now);
-    }
-
-    private void publish(Futbol.Result r) {
-        upcoming = r.upcoming;
-        // The home screen rotates through these: the big games being played now, else Racing's of the day or next.
-        matches = new ArrayList<>(r.featured);
-        matchesAt = System.currentTimeMillis();
-        notifyListeners();
+        refreshOthers(System.currentTimeMillis());
     }
 
     /** The weather. */

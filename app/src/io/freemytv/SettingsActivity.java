@@ -556,8 +556,8 @@ public class SettingsActivity extends Activity {
         // MARK: - Home Settings and Remote Buttons
 
         private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
-        /** Home Settings: language, temperature, theme, sounds, weather, city, football, favourite club and team. */
-        private static final int CITY_ROW = 5, FUTBOL_ROW = 6, CLUB_ROW = 7, NATION_ROW = 8, WATCH_ROW = 9;
+        /** Home Settings: language, temperature, theme, sounds, weather, city, Continue watching. */
+        private static final int CITY_ROW = 5, WATCH_ROW = 6;
         private static final String[] HOME_PICTURES = {"black", Gallery.LANDSCAPES, Gallery.ART, Gallery.ABSTRACT,
                 Gallery.ANIMALS, Gallery.FAVORITES};
         private static final String[] SCREENSAVERS = {Gallery.LANDSCAPES, Gallery.ART, Gallery.ABSTRACT, Gallery.ANIMALS,
@@ -639,24 +639,6 @@ public class SettingsActivity extends Activity {
             return Gallery.photos(v) ? Gallery.name(v) : v.equals("clock") ? "Reloj" : "Negro";
         }
 
-        /** The Liga Profesional's clubs and South America's national teams, as ESPN ids. */
-        private static final String[][] CLUBS = {
-            {"9739", "Aldosivi"}, {"3", "Argentinos Juniors"}, {"9785", "Atlético Tucumán"}, {"235", "Banfield"},
-            {"10060", "Barracas Central"}, {"4", "Belgrano"}, {"5", "Boca Juniors"}, {"11989", "Central Córdoba"},
-            {"8950", "Defensa y Justicia"}, {"8", "Estudiantes"}, {"19685", "Estudiantes (RC)"}, {"11972", "Gimnasia (M)"},
-            {"9", "Gimnasia LP"}, {"10", "Huracán"}, {"9744", "Independiente Rivadavia"}, {"11", "Independiente"},
-            {"2975", "Instituto"}, {"12", "Lanús"}, {"14", "Newell's"}, {"7764", "Platense"}, {"15", "Racing Club"},
-            {"17702", "Riestra"}, {"16", "River Plate"}, {"17", "Rosario Central"}, {"18", "San Lorenzo"},
-            {"10158", "Sarmiento"}, {"19", "Talleres"}, {"7767", "Tigre"}, {"20", "Unión"}, {"21", "Vélez Sarsfield"}};
-        private static final String[][] NATIONS = {
-            {"202", "Argentina"}, {"204", "Bolivia"}, {"205", "Brasil"}, {"207", "Chile"}, {"208", "Colombia"},
-            {"209", "Ecuador"}, {"210", "Paraguay"}, {"211", "Perú"}, {"212", "Uruguay"}, {"213", "Venezuela"}};
-
-        private static int indexOf(String[][] teams, String id) {
-            for (int i = 0; i < teams.length; i++) if (teams[i][0].equals(id)) return i;
-            return 0;
-        }
-
         private String[] settingLabels() {
             List<String> l = new ArrayList<>();
             l.add(Ui.tr("Language"));
@@ -665,9 +647,6 @@ public class SettingsActivity extends Activity {
             l.add(Ui.tr("Navigation sounds"));
             l.add(Ui.tr("Weather widget"));
             l.add(Ui.tr("City"));
-            l.add("Fútbol");
-            l.add("Club favorito");
-            l.add("Selección favorita");
             l.add("Continuar viendo");
             return l.toArray(new String[0]);
         }
@@ -684,9 +663,6 @@ public class SettingsActivity extends Activity {
             v[3] = onOff(Prefs.sounds());
             v[4] = onOff(Prefs.weather());
             v[CITY_ROW] = !cityStatus.isEmpty() ? cityStatus : Prefs.city().isEmpty() ? "—" : Prefs.city();
-            v[FUTBOL_ROW] = onOff(Prefs.futbol());
-            v[CLUB_ROW] = CLUBS[indexOf(CLUBS, Prefs.club())][1];
-            v[NATION_ROW] = NATIONS[indexOf(NATIONS, Prefs.nation())][1];
             v[WATCH_ROW] = onOff(Prefs.watchNext());
             return v;
         }
@@ -770,20 +746,7 @@ public class SettingsActivity extends Activity {
                 case 3: Prefs.setSounds(!Prefs.sounds()); break;
                 case 4: Prefs.setWeather(!Prefs.weather()); break;
                 case CITY_ROW: return;
-                case FUTBOL_ROW: Prefs.setFutbol(!Prefs.futbol()); break;
                 case WATCH_ROW: Prefs.setWatchNext(!Prefs.watchNext()); break;
-                case CLUB_ROW: {
-                    if (!Prefs.futbol()) return;
-                    int at = indexOf(CLUBS, Prefs.club());
-                    Prefs.setClub(CLUBS[(at + dir + CLUBS.length) % CLUBS.length][0]);
-                    break;
-                }
-                case NATION_ROW: {
-                    if (!Prefs.futbol()) return;
-                    int at = indexOf(NATIONS, Prefs.nation());
-                    Prefs.setNation(NATIONS[(at + dir + NATIONS.length) % NATIONS.length][0]);
-                    break;
-                }
                 default:
                     return;
             }
@@ -987,9 +950,7 @@ public class SettingsActivity extends Activity {
                 rowRect.set(LIST_X * k, y, LIST_R * k, y + LIST_ROW_H * k);
                 float f = drawRowBackground(c, i);
                 rowLabel.setColor(blend(0xF2FFFFFF, INK, f));
-                boolean locked = !keys && (i == CLUB_ROW || i == NATION_ROW) && !Prefs.futbol();
-                rowValue.setColor(blend(locked ? 0x59FFFFFF : 0xB3FFFFFF, locked ? 0x591C1C1E : 0xB31C1C1E, f));
-                if (locked) rowLabel.setColor(blend(0x73FFFFFF, 0x731C1C1E, f));
+                rowValue.setColor(blend(0xB3FFFFFF, 0xB31C1C1E, f));
                 float base = rowRect.centerY() + Ui.halfCap(rowLabel);
                 c.drawText(labels[i], rowRect.left + 30 * k, base, rowLabel);
                 c.drawText(values[i], rowRect.right - 30 * k, base, rowValue);

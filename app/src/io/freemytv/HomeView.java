@@ -93,7 +93,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final float L_TITLE_BASE = 130, L_TABBAR_TOP = 158, L_TABBAR_H = 68, L_CARDS_TOP = 262, L_CARD_H = 442;
     private static final float L_TALL_W = 320, L_CARD_GAP = 40, L_BUTTON = 68, L_BUTTON_GAP = 20, L_BUTTON_CY = 103;
     private static final float L_PLATTER_TOP = 850, L_TILE_H = 84;   // smaller shelf tiles (was 814, 126); same bottom margin
-    private static final float L_DATE_BASE = 330, L_CLOCK_BASE = 540, L_WEATHER_BASE = 626, L_QUOTES_BASE = 694;
+    private static final float L_DATE_BASE = 330, L_CLOCK_BASE = 540, L_WEATHER_BASE = 626;
     private static final float RECENT_W = 196, RECENT_GAP = 24, RECENT_TOP = 368;   // compact (was 268)
     private static final int L_INK = 0xFF1D1D1F, L_DIM = 0xFF6E6E73, L_FAINT = 0xFF8E8E93;
     private static String[] tabs;
@@ -101,7 +101,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final String[] TAB_KIND = {null, "movie", "tv"};
     private static final int Z_TOP = 4, Z_CARDS = 5;
     /** "Seguir en…" (the recent apps, without TMDB picks) and the now-playing widget. */
-    private static final int Z_RECENT = 6, Z_PLAYER = 7, Z_AVATAR = 8, Z_PLAYER_CTRL = 9, Z_FUTBOL = 10, Z_WEATHER = 11;
+    private static final int Z_RECENT = 6, Z_PLAYER = 7, Z_AVATAR = 8, Z_PLAYER_CTRL = 9, Z_WEATHER = 11;
     /** Nothing focused (up from the top row, or Back on the shelf): any arrow brings the focus back where it was. */
     private static final int Z_IDLE = 12;
     private int idleFrom = Z_SHELF;
@@ -112,9 +112,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private int weatherPage;
     private final String[] dayText = new String[7], dayMaxText = new String[7], dayMinText = new String[7];
     /** The drawer's football card: focused, ←/→ turn its pages by hand (and it stops turning on its own for a while). */
-    private final Spring[] futbolFocus = {new Spring(0.26f, 0.85f, 0)};
-    private int cardPage;
-    private long cardManualAt;
     /** The now-playing controls under the widget: previous, play/pause, next. */
     private final Spring[] ctrlFocus = new Spring[6];
     /** The controls shown: shuffle and repeat only when the playing app supports them. */
@@ -179,7 +176,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final Spring[] cardFocus = new Spring[3];
     private final RectF[] cardRects = new RectF[3];
     private final List<HomeApps.Item> lightButtons = new ArrayList<>();
-    private Paint lTitle, lTab, lTabOn, lCardTitle, lCardMeta, lMatch, lTip, lDate, lClock, lWeather, lClockMatch;
+    private Paint lTitle, lTab, lTabOn, lCardTitle, lCardMeta, lTip, lDate, lClock, lWeather;
     private Shader lightGradient;
 
     // Shelf
@@ -478,7 +475,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private int drawerInputs;          // how many leading items are inputs (the rest are shortcuts)
     private Spring[] drawerFocus = new Spring[0];
     private RectF[] drawerRects = new RectF[0];
-    private final RectF weatherCard = new RectF(), futbolCard = new RectF();
+    private final RectF weatherCard = new RectF();
     private final Spring drawer = new Spring(0.46f, 0.92f, 0);
     private boolean drawerOpen;
     private int drawerIndex;
@@ -1146,14 +1143,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lCardTitle = Ui.text(Ui.semibold, 31 * k, L_INK);
         lCardTitle.setLetterSpacing(0.012f);
         lCardMeta = Ui.text(Ui.medium, 25 * k, L_DIM);
-        lMatch = Ui.numbers(Ui.regular, 21 * k, L_FAINT);
         lTip = Ui.text(Ui.semibold, 25 * k, L_INK);
         lTip.setTextAlign(Paint.Align.CENTER);
         lDate = Ui.text(Ui.semibold, 34 * k, L_DIM);
         lClock = Ui.numbers(Ui.light, 200 * k, L_INK);
         lClock.setLetterSpacing(-0.01f);
         lWeather = Ui.text(Ui.medium, 34 * k, L_DIM);
-        lClockMatch = Ui.numbers(Ui.medium, 28 * k, L_DIM);
         lightGradient = null;
         buttonPaint = Ui.text(Ui.semibold, 29 * k, INK);
         capsuleText = Ui.numbers(Ui.medium, 29 * k, 0xF2FFFFFF);
@@ -1208,7 +1203,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (watchSwap && watchShow[0].value < 0.03f) showWatch(watchWaiting);   // the old one faded: the new one comes in
         if (topMoving) status.invalidate();
         heroMoving |= topMoving | cardsMoving;
-        boolean drawerItemsMoving = step(drawerFocus, dt) | step(futbolFocus, dt) | step(weatherFocus, dt);
+        boolean drawerItemsMoving = step(drawerFocus, dt) | step(weatherFocus, dt);
         boolean gridMoving = step(gridFocus, dt) | scroll.step(dt);
         boolean drawerMoving = drawer.step(dt);
         boolean sheetMoving = sheet.step(dt);
@@ -1531,12 +1526,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lTabOn.setColor(tone(L_INK, WHITE));
         lCardTitle.setColor(tone(L_INK, WHITE));
         lCardMeta.setColor(tone(L_DIM, 0xFF98989D));
-        lMatch.setColor(tone(L_FAINT, 0xB8FFFFFF));
         lTip.setColor(tone(L_INK, WHITE));
         lDate.setColor(tone(L_DIM, 0xFF98989D));
         lClock.setColor(tone(L_INK, WHITE));
         lWeather.setColor(tone(L_DIM, 0xFF98989D));
-        lClockMatch.setColor(tone(L_DIM, 0xFF98989D));
     }
 
     private boolean tickBackgroundFade(long up) {
@@ -1729,209 +1722,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 tone(30, 34) * k, tone(22, 28) * k, tone(0.65f, 0.95f), 1);
     }
 
-    // MARK: - Football
-
-    private static final int LIVE_RED = 0xFFFF453A;
-    private long futbolAt = -1, futbolMinute = -1;
-    private float futbolSizes = -1;
-    private List<Futbol.Match> futbolShown = new ArrayList<>();
-    private String[] futbolLine = new String[0], futbolShort = new String[0], futbolStatus = new String[0];
-    private float[] wLineClock = new float[0], wLineCard = new float[0], wShort = new float[0];
-    private float[] wStatusClock = new float[0], wStatusTab = new float[0];
-    private final Snapshot futbolSnapshot = new Snapshot();
-
-    /** Text and widths for the matches, made again only when the data, the minute or the text size change. */
-    private void refreshFutbolText() {
-        long minute = System.currentTimeMillis() / 60_000;
-        float sizes = lClockMatch.getTextSize() + lMatch.getTextSize() * 7 + cardText.getTextSize() * 13;
-        if (data.matchesAt == futbolAt && minute == futbolMinute && sizes == futbolSizes) return;
-        futbolAt = data.matchesAt;
-        futbolMinute = minute;
-        futbolSizes = sizes;
-        List<Futbol.Match> ms = data.matches;
-        int n = ms.size();
-        long now = System.currentTimeMillis();
-        String[] line = new String[n], shrt = new String[n], status = new String[n];
-        float[] wlc = new float[n], wlk = new float[n], ws = new float[n], wsc = new float[n], wst = new float[n];
-        for (int i = 0; i < n; i++) {
-            Futbol.Match m = ms.get(i);
-            boolean scored = m.live() || m.done();
-            line[i] = m.home.shortName + (scored ? "  " + Futbol.score(m) + "  " : "  vs  ") + m.away.shortName;
-            shrt[i] = m.home.abbr + (scored ? "  " + Futbol.score(m) + "  " : "  vs  ") + m.away.abbr;
-            status[i] = Futbol.status(m, now);
-            wlc[i] = lClockMatch.measureText(line[i]);
-            wlk[i] = cardText.measureText(line[i]);
-            ws[i] = lMatch.measureText(shrt[i]);
-            wsc[i] = lClockMatch.measureText(status[i]);
-            wst[i] = lMatch.measureText(status[i]);
-        }
-        futbolShown = ms;
-        futbolLine = line;
-        futbolShort = shrt;
-        futbolStatus = status;
-        wLineClock = wlc;
-        wLineCard = wlk;
-        wShort = ws;
-        wStatusClock = wsc;
-        wStatusTab = wst;
-    }
-
-    private void drawCrest(Canvas c, Bitmap b, float x, float mid, float size, float alpha) {
-        if (b == null) return;
-        float h = size * b.getHeight() / Math.max(1f, b.getWidth());
-        tmp.set(x, mid - h / 2, x + size, mid + h / 2);
-        bitmapPaint.setAlpha(Math.round(255 * alpha));
-        c.drawBitmap(b, null, tmp, bitmapPaint);
-        bitmapPaint.setAlpha(255);
-    }
-
-    /**
-     * The games under the clock (or at the right of the tab row with picks on). Two or three being played at once show
-     * together, one under the other, a little smaller; four or more, three at a time, taking turns. Otherwise one game
-     * at a time, taking turns slowly. No dots.
-     */
-    private static final long ROTATE_MS = 12_000;
-    private static final int LIVE_AT_ONCE = 3;
-    private final Runnable rotateFutbol = () -> {
-        heroDirty = true;
-        wake();
-    };
-
-    private void drawFutbolRow(Canvas c) {
-        refreshFutbolText();
-        int n = futbolShown.size();
-        if (n == 0) return;
-        boolean clock = !picksOn();
-        applyTone();
-        Paint text = clock ? lClockMatch : lMatch;
-        float fade = 1;
-        for (int i = 3; i < 6 && !clock; i++) fade = Math.min(fade, 1 - Ui.clamp(topFocus[i].value));
-        if (fade <= 0.01f) return;
-        long now = System.currentTimeMillis();
-        int live = 0;
-        while (live < n && (futbolShown.get(live).live() || futbolShown.get(live).kickedOff(now))) live++;   // the live ones come first
-        boolean stack = clock && live >= 2;
-        // Games being played always win: while any is live, the others (later, finished) wait their turn.
-        int turns = stack ? (live + LIVE_AT_ONCE - 1) / LIVE_AT_ONCE : live > 0 ? live : n;
-        int turn = (int) ((now / ROTATE_MS) % turns);
-        if (turns > 1) {
-            handler.removeCallbacks(rotateFutbol);
-            handler.postDelayed(rotateFutbol, ROTATE_MS - now % ROTATE_MS + 20);
-        }
-        int textColor = text.getColor();
-        float base = clock ? L_QUOTES_BASE * k : (L_TABBAR_TOP + L_TABBAR_H / 2) * k + Ui.halfCap(text);
-        if (!stack) {
-            drawMatchLine(c, turn, text, textColor, clock, clock ? MARGIN * k : -1, base, fade, 1);
-            text.setColor(textColor);
-            return;
-        }
-        // Live together: smaller, one per line.
-        float size = text.getTextSize();
-        text.setTextSize(size * 0.82f);
-        float step = Ui.cap(text) * 2.1f;   // three lines still end above the shelf (the layer is 790 tall)
-        for (int j = 0; j < LIVE_AT_ONCE; j++) {
-            int i = turn * LIVE_AT_ONCE + j;
-            if (i >= live) break;
-            drawMatchLine(c, i, text, textColor, true, MARGIN * k, base + j * step, fade, 0.82f);
-        }
-        text.setTextSize(size);
-        text.setColor(textColor);
-    }
-
-    /** One game: crest, teams and score, crest, status. x < 0: ending at the content's right edge (the tab row). */
-    private void drawMatchLine(Canvas c, int i, Paint text, int textColor, boolean clock, float x, float base, float fade,
-            float scale) {
-        float cap = Ui.cap(text), crest = cap * 1.9f, gap = 10 * k * scale;
-        float mid = base - cap / 2;
-        float wLine = clock ? wLineClock[i] * scale : wShort[i], wStatus = clock ? wStatusClock[i] * scale : wStatusTab[i];
-        if (x < 0) x = CONTENT_R * k - (2 * crest + 4 * gap + wLine + wStatus);
-        int dim = clock ? Ui.alpha(textColor, 0.75f * fade) : Ui.alpha(tone(0xB38E8E93, 0x8CFFFFFF), fade);
-        Futbol.Match m = futbolShown.get(i);
-        drawCrest(c, m.home.crest, x, mid, crest, fade);
-        x += crest + gap;
-        text.setColor(Ui.alpha(textColor, fade));
-        c.drawText(clock ? futbolLine[i] : futbolShort[i], x, base, text);
-        x += wLine + gap;
-        drawCrest(c, m.away.crest, x, mid, crest, fade);
-        x += crest + 3 * gap;
-        text.setColor(m.live() ? Ui.alpha(LIVE_RED, fade) : dim);
-        c.drawText(futbolStatus[i], x, base, text);
-    }
-
-    /**
-     * The drawer card: the week's games as a calendar, live ones first, under a heading per round ("Fecha 15 · Liga
-     * Profesional", "Semifinal · vuelta · Libertadores"); four rows a page, turning every few seconds. A page that
-     * starts mid-round repeats its heading.
-     */
-    private static final int CARD_ROWS = 4;
-    private static final long PAGE_MS = 6000;
-    private long upcomingAt = -1, upcomingMinute = -1;
-    private float upcomingWidth = -1;
-    /** A page is a list of rows; a row is a heading (match == null) or a game. */
-    private static final class CardRow {
-        Futbol.Match match;
-        String text, status;
-        float width;
-    }
-    private List<List<CardRow>> cardPages = new ArrayList<>();
-
-    private void refreshUpcomingText(float width) {
-        long minute = System.currentTimeMillis() / 60_000;
-        if (data.matchesAt == upcomingAt && minute == upcomingMinute && width == upcomingWidth) return;
-        upcomingAt = data.matchesAt;
-        upcomingMinute = minute;
-        upcomingWidth = width;
-        long now = System.currentTimeMillis();
-        float crest = Ui.cap(cardText) * 1.55f;
-        List<List<CardRow>> pages = new ArrayList<>();
-        List<CardRow> page = new ArrayList<>();
-        String group = null;
-        for (Futbol.Match m : data.upcoming) {
-            String g = m.live() ? "EN VIVO" : m.round;
-            boolean heading = !g.equals(group) || page.isEmpty();
-            if (page.size() + (heading ? 2 : 1) > CARD_ROWS) {
-                pages.add(page);
-                page = new ArrayList<>();
-                heading = true;
-            }
-            if (heading) {
-                CardRow h = new CardRow();
-                h.text = g;
-                page.add(h);
-            }
-            CardRow r = new CardRow();
-            r.match = m;
-            r.status = Futbol.status(m, now);
-            boolean scored = m.live() || m.done();
-            float room = width - cardDimRight.measureText(r.status) - 2 * crest - 48 * k;
-            r.text = m.home.shortName + (scored ? "  " + Futbol.score(m) + "  " : "  vs  ") + m.away.shortName;
-            if (cardText.measureText(r.text) > room) {
-                r.text = m.home.abbr + (scored ? "  " + Futbol.score(m) + "  " : "  vs  ") + m.away.abbr;
-            }
-            r.width = cardText.measureText(r.text);
-            page.add(r);
-            group = g;
-        }
-        if (!page.isEmpty()) pages.add(page);
-        cardPages = pages;
-    }
-
-    private void drawFutbolCard(Canvas c, RectF r) {
-        drawerCard(c, r);
-        refreshUpcomingText(r.width() - 68 * k);
-        long now = System.currentTimeMillis();
-        int pages = Math.max(1, cardPages.size());
-        boolean manual = zone == Z_FUTBOL || now - cardManualAt < 20_000;
-        if (!manual) cardPage = (int) ((now / PAGE_MS) % pages);   // by hand, it carries on from the page shown
-        cardPage = Math.min(cardPage, pages - 1);
-        int page = cardPage;
-        if (pages > 1) postInvalidateDelayed(manual ? 20_000 : PAGE_MS - now % PAGE_MS + 20);
-        String key = data.matchesAt + "|" + now / 60_000 + "|" + page + "|" + Float.floatToIntBits(dark()) + "|" + Ui.language;
-        if (Ui.LEGACY) futbolSnapshot.draw(c, r, key, cc -> drawFutbolRows(cc, r, page, pages));
-        else drawFutbolRows(c, r, page, pages);
-        drawCardFocus(c, r, Ui.clamp(futbolFocus[0].value), page, pages);
-    }
-
     private Paint cardRim;
 
     /**
@@ -1951,42 +1741,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             fill.setColor(Ui.alpha(p == page ? cardText.getColor() : Ui.alpha(cardDimRight.getColor(), 0.55f), alpha));
             c.drawCircle(x + i * step, y, size / 2, fill);
         }
-    }
-
-    private Paint roundHeading;
-
-    private void drawFutbolRows(Canvas c, RectF r, int page, int pages) {
-        float x = r.left + 34 * k, right = r.right - 34 * k;
-        c.drawText("Próximos partidos", x, r.top + 54 * k, cardTitle);
-        if (cardPages.isEmpty()) {
-            c.drawText(data.matchesAt == 0 ? "Buscando partidos…" : "No hay partidos esta semana", x, r.top + 110 * k, cardDim);
-            return;
-        }
-        if (roundHeading == null || roundHeading.getTextSize() != 19 * k) {
-            roundHeading = Ui.text(Ui.semibold, 19 * k, 0xFFFFFFFF);
-            roundHeading.setLetterSpacing(0.06f);
-        }
-        float cap = Ui.cap(cardText), crest = cap * 1.55f;
-        int statusColor = cardDimRight.getColor();
-        List<CardRow> rows = cardPages.get(Math.min(page, cardPages.size() - 1));
-        for (int j = 0; j < rows.size(); j++) {
-            CardRow row = rows.get(j);
-            float base = r.top + (110 + 52 * j) * k;
-            if (row.match == null) {
-                roundHeading.setColor(statusColor);   // only the games' own "EN VIVO" is red
-                c.drawText(row.text.toUpperCase(Ui.locale()), x, base - 6 * k, roundHeading);
-                continue;
-            }
-            Futbol.Match m = row.match;
-            float mid = base - cap / 2;
-            drawCrest(c, m.home.crest, x, mid, crest, 1);
-            float tx = x + crest + 12 * k;
-            c.drawText(row.text, tx, base, cardText);
-            drawCrest(c, m.away.crest, tx + row.width + 12 * k, mid, crest, 1);
-            cardDimRight.setColor(m.live() ? LIVE_RED : statusColor);
-            c.drawText(row.status, right, base, cardDimRight);
-        }
-        cardDimRight.setColor(statusColor);
     }
 
     private void drawTiles(Canvas c) {
@@ -2336,10 +2090,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             x += tw + gap;
         }
         float cardsTop = CARDS_TOP * k, split = left + (right - left) * 0.585f;
-        boolean wx = Prefs.weather(), qt = Prefs.futbol();
-        // A card that is off gives its room to the other one.
-        weatherCard.set(left, cardsTop, qt ? split - 16 * k : right, cardsTop + CARDS_H * k);
-        futbolCard.set(wx ? split + 16 * k : left, cardsTop, right, cardsTop + CARDS_H * k);
+        weatherCard.set(left, cardsTop, right, cardsTop + CARDS_H * k);
         drawerDirty = true;
     }
 
@@ -2405,7 +2156,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         for (int i = 0; i < drawerItems.size(); i++) if (i != top) drawDrawerTile(c, i);
         if (top >= 0) drawDrawerTile(c, top);
         if (Prefs.weather()) drawWeatherCard(c, weatherCard);
-        if (Prefs.futbol()) drawFutbolCard(c, futbolCard);
     }
 
     /** Square drawer button: symbol and name; an input with no device is dimmed. Focused: white, with dark text. */
@@ -2605,7 +2355,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         boolean tilesChanged = aim(tileFocus, !sheetOpen && zone == Z_SHELF ? shelfIndex : -1, snap);
         boolean statusChanged = aim(statusFocus, !sheetOpen && zone == Z_STATUS ? statusIndex : -1, snap);
         boolean drawerChanged = aim(drawerFocus, !sheetOpen && zone == Z_DRAWER ? drawerIndex : -1, snap);
-        drawerChanged |= aim(futbolFocus, !sheetOpen && zone == Z_FUTBOL ? 0 : -1, snap);
         drawerChanged |= aim(weatherFocus, !sheetOpen && zone == Z_WEATHER ? 0 : -1, snap);
         boolean heroChanged = heroFocus.target != (!sheetOpen && zone == Z_HERO ? 1 : 0);
         heroFocus.target = !sheetOpen && zone == Z_HERO ? 1 : 0;
@@ -2983,7 +2732,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     }
 
     private void back() {
-        if (cardEngaged && (zone == Z_FUTBOL || zone == Z_WEATHER)) {
+        if (cardEngaged && zone == Z_WEATHER) {
             cardEngaged = false;   // out of the card's pages, still on the card
             drawerDirty = true;
             click.move();
@@ -2991,7 +2740,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
         if (sheetOpen) {
             closeSheet();
-        } else if (zone == Z_DRAWER || zone == WIDGETS || zone == Z_FUTBOL || zone == Z_WEATHER) {
+        } else if (zone == Z_DRAWER || zone == WIDGETS || zone == Z_WEATHER) {
             closeDrawer();
             retarget(false);
         } else if (zone == Z_IDLE) {
@@ -3060,31 +2809,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                     return;
                 }
                 break;
-            case Z_FUTBOL: {
-                if (dy < 0) {
-                    zone = Z_DRAWER;
-                    cardEngaged = false;
-                } else if (dx < 0 && !cardEngaged && Prefs.weather()) {
-                    zone = Z_WEATHER;   // ← : the weather card (OK first to turn this one's pages)
-                    drawerDirty = true;
-                } else if (dx != 0 && cardEngaged) {
-                    int pages = Math.max(1, cardPages.size()), next = Math.max(0, Math.min(pages - 1, cardPage + dx));
-                    if (next == cardPage) return;
-                    cardPage = next;
-                    cardManualAt = System.currentTimeMillis();
-                    drawerDirty = true;
-                } else {
-                    return;
-                }
-                break;
-            }
             case Z_WEATHER: {
                 if (dy < 0) {
                     zone = Z_DRAWER;
                     cardEngaged = false;
-                } else if (dx > 0 && !cardEngaged) {
-                    if (!Prefs.futbol()) return;
-                    zone = Z_FUTBOL;   // → : the football card (OK first to turn this one's pages)
                 } else if (dx != 0 && cardEngaged) {
                     int next = Math.max(0, Math.min(1, weatherPage + dx));
                     if (next == weatherPage) return;
@@ -3114,13 +2842,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                     drawerIndex = next;
                 } else if (dy < 0) {
                     closeDrawer();
-                } else if ((Prefs.futbol() || Prefs.weather()) && !talkBack()) {
-                    // Down onto the card under the focused button.
-                    boolean weatherSide = Prefs.weather() && (!Prefs.futbol()
-                            || drawerRects[drawerIndex].centerX() < futbolCard.left);
-                    zone = weatherSide ? Z_WEATHER : Z_FUTBOL;
+                } else if (Prefs.weather() && !talkBack()) {
+                    // Down onto the weather card.
+                    zone = Z_WEATHER;
                     cardEngaged = false;
-                    if (weatherSide) weatherPage = 0;
+                    weatherPage = 0;
                 } else if (talkBack() && !widgets().isEmpty()) {
                     // Only with TalkBack: the widgets are there to be read, and this is how it gets to them.
                     zone = WIDGETS;
@@ -3181,7 +2907,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         HomeApps.Item it;
         RectF r;
         if (!sheetOpen && zone == WIDGETS) return;   // a widget is only read
-        if (!sheetOpen && (zone == Z_FUTBOL || zone == Z_WEATHER)) {
+        if (!sheetOpen && zone == Z_WEATHER) {
             cardEngaged = !cardEngaged;
             drawerDirty = true;
             click.open();
@@ -3513,7 +3239,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         for (int i = 0; i < shelf.size(); i++) out.add(a11yId(Z_SHELF, i));
         for (int i = 0; i < drawerItems.size(); i++) out.add(a11yId(Z_DRAWER, i));
         if (drawerOpen && Prefs.weather()) out.add(a11yId(WIDGETS, 0));
-        if (drawerOpen && Prefs.futbol()) out.add(a11yId(WIDGETS, 1));
     }
 
     private String a11yText(int id) {
@@ -3533,7 +3258,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 }
                 return label(shelf, i);
             case Z_DRAWER: return label(drawerItems, i);
-            case WIDGETS: return i == 0 ? weatherText() : futbolText();
+            case WIDGETS: return weatherText();
             default: return "";
         }
     }
@@ -3577,7 +3302,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 break;
             case WIDGETS:
                 if (!drawerOpen) return false;
-                a11yRect.set(i == 0 ? weatherCard : futbolCard);
+                a11yRect.set(weatherCard);
                 dy = 0;
                 break;
             default:
@@ -3603,12 +3328,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
     }
 
-    /** The drawer's widgets that are on (0 weather, 1 football), with the drawer open. */
+    /** The drawer's widgets that are on (0 weather), with the drawer open. */
     private List<Integer> widgets() {
         List<Integer> out = new ArrayList<>();
         if (!drawerOpen) return out;
         if (Prefs.weather()) out.add(0);
-        if (Prefs.futbol()) out.add(1);
         return out;
     }
 
@@ -3698,17 +3422,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
         if (wx.sunrise != 0) s.append(' ').append(Ui.trf("talkback|Sunrise {time}", "time", Ui.time(wx.sunrise))).append('.');
         if (wx.sunset != 0) s.append(' ').append(Ui.trf("Sunset {time}", "time", Ui.time(wx.sunset))).append('.');
-        return s.toString();
-    }
-
-    /** The football card as TalkBack reads it: each game with its round and when. */
-    private String futbolText() {
-        StringBuilder s = new StringBuilder("Próximos partidos.");
-        long now = System.currentTimeMillis();
-        for (Futbol.Match m : data.upcoming) {
-            s.append(' ').append(m.home.name).append(m.live() || m.done() ? " " + Futbol.score(m) + ", " : " contra ")
-                    .append(m.away.name).append(", ").append(m.round).append(", ").append(Futbol.status(m, now)).append('.');
-        }
         return s.toString();
     }
 
@@ -3853,7 +3566,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         applyTone();
         if (!picksOn()) {
             drawClock(c);
-            if (Prefs.futbol()) drawFutbolRow(c);
             return;
         }
         String hello = Ui.tr("For You");
@@ -3886,7 +3598,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         for (int i = 0; i < 3; i++) if (cardFocus[i].value > 0.02f && (top < 0 || cardFocus[i].value > cardFocus[top].value)) top = i;
         for (int i = 0; i < 3; i++) if (i != top) drawLightCard(c, i);
         if (top >= 0) drawLightCard(c, top);
-        if (Prefs.futbol()) drawFutbolRow(c);
     }
 
     private boolean picksOn() {
@@ -4098,7 +3809,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     /** Called on every focus change: which app the widget should follow now, picked 220 ms later (no flicker). */
     private void followWatch() {
         String pkg;
-        if (sheetOpen || zone == Z_DRAWER || zone == Z_FUTBOL || zone == Z_WEATHER || zone == Z_IDLE) {
+        if (sheetOpen || zone == Z_DRAWER || zone == Z_WEATHER || zone == Z_IDLE) {
             pkg = null;
         } else if (zone == Z_SHELF) {
             HomeApps.Item it = shelfIndex < shelf.size() ? shelf.get(shelfIndex) : null;

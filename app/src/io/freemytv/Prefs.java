@@ -251,24 +251,14 @@ final class Prefs {
     static boolean sounds() { return sp().getBoolean("sounds", true); }
     static void setSounds(boolean on) { put("sounds", on); }
 
-    // MARK: - Widgets and football
+    // MARK: - Widgets
 
     static boolean weather() { return sp().getBoolean("weather", true); }
     static void setWeather(boolean on) { put("weather", on); }
 
-    /** The football row under the clock, the drawer card and the screensaver line. */
-    static boolean futbol() { return sp().getBoolean("futbol", true); }
-    static void setFutbol(boolean on) { put("futbol", on); }
-
     /** The floating "Continuar viendo" island over the home screen (what to resume, recent, featured). */
     static boolean watchNext() { return sp().getBoolean("watch_next", true); }
     static void setWatchNext(boolean on) { put("watch_next", on); }
-
-    /** Favourite club and national team, as ESPN team ids: their games come first everywhere. */
-    static String club() { return sp().getString("club", "15"); }
-    static void setClub(String id) { put("club", id); }
-    static String nation() { return sp().getString("nation", "202"); }
-    static void setNation(String id) { put("nation", id); }
 
     // MARK: - Shelf
 

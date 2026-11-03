@@ -48,7 +48,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
     /** Photos 10% larger than the screen (the zoom goes up to 1.1 without upscaling). */
     private static final int PW = 2112, PH = 1188;
     private static final float MARGIN = 80, RIGHT = 1840, TITLE_W = 900, META_BASE = 1008;
-    private static final float DATE_BASE = 92, CLOCK_TOP = 120, CLOCK_SIZE = 110, QUOTES_GAP = 52;
+    private static final float DATE_BASE = 92, CLOCK_TOP = 120, CLOCK_SIZE = 110;
     private static final double DRIFT_PERIOD_S = 600;
     // The high and low, made again only when they change (drawn on every frame).
     private String range = "";
@@ -134,7 +134,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
     private float k = 1;
     private long minute = -1;
     private String clock = "", date = "";
-    private Paint datePaint, clockPaint, weatherPaint, weatherDim, quotePaint;
+    private Paint datePaint, clockPaint, weatherPaint, weatherDim;
     private Paint cornerDate, cornerQuote, cornerClock, labelPaint, metaPaint;
     private TextPaint titlePaint;
     private TextPaint captionLabel, captionTitle, captionAuthor;
@@ -487,7 +487,6 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         clockPaint.setLetterSpacing(-0.01f);
         weatherPaint = Ui.numbers(Ui.medium, 30 * k, 0xC7FFFFFF);
         weatherDim = Ui.numbers(Ui.regular, 28 * k, 0x80FFFFFF);
-        quotePaint = Ui.numbers(Ui.medium, 24 * k, 0x99FFFFFF);
         // With photos: the corner (date, clock, the game) and the caption.
         cornerDate = Ui.numbers(Ui.semibold, 30 * k, 0xEBFFFFFF);
         cornerQuote = Ui.numbers(Ui.regular, 23 * k, 0xC7FFFFFF);
@@ -879,10 +878,6 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
                 cornerClock.getTextBounds(clock, 0, clock.length(), ink);
                 c.drawText(clock, right - ink.right, CLOCK_TOP * k - ink.top, cornerClock);
             }
-
-            // The favourite team's game (or the big game being played) under the clock, right-aligned.
-            float base = (CLOCK_TOP + Ui.cap(cornerClock) / k + QUOTES_GAP) * k;
-            drawGames(c, cornerQuote, 0xA6FFFFFF, right, base, 1, false);
             drawMusicCorner(c);
         } finally {
             chrome.endRecording();
@@ -1126,21 +1121,6 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
 
         // What's playing, under the weather.
         drawCenteredMusic(c, cx, clockBase + 200 * k);
-
-        // The game near the bottom edge, centred.
-        drawGames(c, quotePaint, 0x80FFFFFF, cx, h - 92 * k, 0, true);
-    }
-
-    /** The games of the moment (Futbol.shownNow), one per line; `upward`: the last line sits at `base`. */
-    private void drawGames(Canvas c, Paint p, int color, float x, float base, int align, boolean upward) {
-        if (!Prefs.futbol() || data.matches.isEmpty()) return;
-        List<Futbol.Match> shown = Futbol.shownNow(data.matches, System.currentTimeMillis());
-        float step = Ui.cap(p) * 2.4f;
-        if (upward) base -= (shown.size() - 1) * step;
-        for (Futbol.Match m : shown) {
-            Futbol.drawLine(c, m, p, color, x, base, align);
-            base += step;
-        }
     }
 
     private boolean gallerySource() {
@@ -1181,8 +1161,6 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         c.drawText(date, right, dateBase, ambientDate);
         float top = 56 * k, art = 62 * k;
         if (music) drawAmbientMusic(c, right, top + art - 6 * k, np);
-
-        drawGames(c, cornerQuote, 0xA6FFFFFF, right, music ? top + art + 44 * k : DATE_BASE * k, 1, false);
     }
 
     /**
