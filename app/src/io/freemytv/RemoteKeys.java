@@ -29,11 +29,13 @@ final class RemoteKeys {
      * Vestel builds TVs sold under other brands (F&U...), so BRAND varies: check the maker too.
      */
     static final boolean TCL = is("TCL"), VESTEL = is("Vestel"), KTC = is("KTC"), SONY = is("Sony"), FORMOVIE = is("Formovie");
+    /** The HY300 projector (an Amlogic T950S board posing as a Pixel, so no brand to go by): its arrows and mouse buttons. */
+    static final boolean HY300 = "t950s_be311".equalsIgnoreCase(Build.DEVICE);
     /** Brands whose Netflix button is STEM_1, a global key (MediaTek): only that button is ours. */
     static final boolean STEM_NETFLIX = VESTEL || FORMOVIE;
 
     static boolean supported() {
-        return TCL || STEM_NETFLIX || KTC || SONY;
+        return TCL || STEM_NETFLIX || KTC || SONY || HY300;
     }
 
     private static boolean is(String maker) {
@@ -80,6 +82,9 @@ final class RemoteKeys {
                 || keyCode == KeyEvent.KEYCODE_BUTTON_9)) {
             keyCode = Prefs.SONY_KEY + e.getScanCode();
         }
+        // The HY300 sends F11 for its arrows button and its own MOUSE key (the pointer) for the next one: the scan code
+        // keeps them apart from a keyboard's F11.
+        if (HY300 && (e.getScanCode() == 87 || e.getScanCode() == 637)) keyCode = Prefs.HY_KEY + e.getScanCode();
         // The gear and the profile keys: fixed, the stock home screen's own jobs.
         if ((TCL && keyCode == KEY_TCL_SETTINGS) || keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH) {
             if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
