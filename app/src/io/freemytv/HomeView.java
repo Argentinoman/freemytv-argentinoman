@@ -1765,7 +1765,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         HomeApps.Item it = shelf.get(i);
         // Lifted to be moved: a little bigger than focused, with a deeper shadow.
         float l = i == liftIndex ? Math.max(0, moveLift.value) : 0;
-        float f = tileFocus[i].value, fc = Ui.clamp(f), s = (1 + FOCUS_GROW * f + LIFT_GROW * l);
+        float f = tileFocus[i].value, fc = Ui.clamp(f), s = (1 + (Ui.FLAT ? 0 : FOCUS_GROW * f) + LIFT_GROW * l);
         RectF base = tileRects[i];
         float bw = base.width(), bh = base.height(), r0 = TILE_RADIUS * k;
         float cx = base.centerX(), cy = base.centerY();
@@ -1781,7 +1781,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         shadowDeep.setColor(Ui.alpha(0xFF000000, tone(0.14f, 0.3f) + tone(0.18f, 0.3f) * fc + 0.14f * Ui.clamp(l)));
         shadows.draw(c, tmp, r0, DEEP_BLUR * k, shadowDeep);
         c.restore();
-        if (fc > 0.01f && it.tile != null) drawAmbilight(c, it.tile, cell, r, fc);
+        if (fc > 0.01f && it.tile != null && !Ui.FLAT) drawAmbilight(c, it.tile, cell, r, fc);
         int[] style = TILE_STYLE.get(it.key);
         if (it.logo != null && style != null) {
             if (tileShaders.length != shelf.size() || tileShaderH != bh) {
@@ -1789,8 +1789,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 tileShaderH = bh;
                 tileGlow = new LinearGradient(0, -bh / 2, 0, 0, 0x14FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP);
             }
-            if (tileShaders[i] == null) {
-                tileShaders[i] = new LinearGradient(0, -bh / 2, 0, bh / 2, style[0], style[1], Shader.TileMode.CLAMP);
+            if (tileShaders[i] == null) {   // flat: one colour, the brand's
+                tileShaders[i] = new LinearGradient(0, -bh / 2, 0, bh / 2, style[0], Ui.FLAT ? style[0] : style[1], Shader.TileMode.CLAMP);
             }
             c.save();
             c.translate(cx, cy);
@@ -1799,7 +1799,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             tileFill.setShader(tileShaders[i]);
             tileFill.setAlpha(255);
             c.drawRoundRect(tmp, r0, r0, tileFill);
-            if (fc > 0.01f) {
+            if (fc > 0.01f && !Ui.FLAT) {
                 tileFill.setShader(tileGlow);
                 tileFill.setAlpha(Math.round(255 * fc));
                 c.drawRoundRect(tmp, r0, r0, tileFill);
@@ -1818,6 +1818,24 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             // (resting, focused) swapped resolution visibly as the focus arrived.
             roundImage(c, cardImage(it, bw * (1 + FOCUS_GROW), bh * (1 + FOCUS_GROW)), cell, r);
         }
+        if (Ui.FLAT) focusRing(c, cell, r, fc);
+    }
+
+    private Paint ring;
+
+    /** The flat look's focus: a thin white outline just outside the shape, nothing growing or rising. */
+    private void focusRing(Canvas c, RectF shape, float r, float f) {
+        if (f <= 0.01f) return;
+        if (ring == null) {
+            ring = new Paint(Paint.ANTI_ALIAS_FLAG);
+            ring.setStyle(Paint.Style.STROKE);
+        }
+        float wid = 3 * k, gap = 3 * k + wid / 2;
+        ring.setStrokeWidth(wid);
+        ring.setColor(Ui.alpha(0xFFFFFFFF, f));
+        tmp.set(shape);
+        tmp.inset(-gap, -gap);
+        c.drawRoundRect(tmp, r + gap, r + gap, ring);
     }
 
     private final android.util.LruCache<String, Bitmap> crispTiles = new android.util.LruCache<>(32);
@@ -2142,7 +2160,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     /** Square drawer button: symbol and name; an input with no device is dimmed. Focused: white, with dark text. */
     private void drawDrawerTile(Canvas c, int i) {
         HomeApps.Item it = drawerItems.get(i);
-        float f = Ui.clamp(drawerFocus[i].value), s = 1 + 0.07f * f;
+        float f = Ui.clamp(drawerFocus[i].value), s = Ui.FLAT ? 1 : 1 + 0.07f * f;
         RectF base = drawerRects[i];
         float cx = base.centerX(), cy = base.centerY();
         cell.set(cx - base.width() * s / 2, cy - base.height() * s / 2, cx + base.width() * s / 2, cy + base.height() * s / 2);
@@ -2485,7 +2503,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     /** 16:9 sheet card. Focused (the shelf's subtle focus): it grows, with a shadow, a soft sheen and a thin border. */
     private void drawCard(Canvas c, Bitmap image, RectF base, float radius, float f, float grow) {
-        float s = 1 + grow * f;
+        float s = Ui.FLAT ? 1 : 1 + grow * f;
         float cx = base.centerX(), cy = base.centerY();
         cell.set(cx - base.width() * s / 2, cy - base.height() * s / 2, cx + base.width() * s / 2, cy + base.height() * s / 2);
         float r = radius * s;
@@ -2503,7 +2521,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             fill.setColor(0x26FFFFFF);   // still loading: a faint card where it will be
             c.drawRoundRect(cell, r, r, fill);
         }
-        if (f > 0.01f) {
+        if (f > 0.01f && !Ui.FLAT) {
             float bh = base.height();
             if (cardSheen == null || cardSheenH != bh) {
                 cardSheen = new LinearGradient(0, -bh / 2, 0, 0, 0x1AFFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP);
@@ -2525,13 +2543,14 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
         border.setColor(0x14FFFFFF);
         c.drawRoundRect(cell, r, r, border);
-        if (f > 0.01f) {
+        if (f > 0.01f && !Ui.FLAT) {
             rim.setShader(null);
             rim.setColor(Ui.alpha(0xFFFFFFFF, 0.4f * fc));
             rim.setStrokeWidth(1.5f * k);
             c.drawRoundRect(cell, r, r, rim);
             rim.setStrokeWidth(2.5f * k);
         }
+        if (Ui.FLAT) focusRing(c, cell, r, fc);
     }
 
     // MARK: - Toasts
@@ -3530,7 +3549,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         for (int i = 0; i < 3; i++) {
             RectF r = topRects[i];
             if (i == tab && focus > 0.01f) {
-                float s = 1 + 0.05f * focus;
+                float s = Ui.FLAT ? 1 : 1 + 0.05f * focus;
                 cell.set(r.centerX() - r.width() * s / 2, r.centerY() - r.height() * s / 2,
                         r.centerX() + r.width() * s / 2, r.centerY() + r.height() * s / 2);
                 float rr = cell.height() / 2;
@@ -3908,9 +3927,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         boolean round = wc.variant == WatchNext.ROW_ROUND;
         for (int i = 0; i < Math.min(3, wc.items.size()); i++) {
             RectF r = watchRects[i];
-            float f = Ui.clamp(watchFocus[i].value), s = 1 + 0.06f * f;
-            cell.set(r.centerX() - r.width() * s / 2, r.centerY() - r.height() * s / 2 - 3 * k * f,
-                    r.centerX() + r.width() * s / 2, r.centerY() + r.height() * s / 2 - 3 * k * f);
+            float f = Ui.clamp(watchFocus[i].value), s = Ui.FLAT ? 1 : 1 + 0.06f * f, rise = Ui.FLAT ? 0 : 3 * k * f;
+            cell.set(r.centerX() - r.width() * s / 2, r.centerY() - r.height() * s / 2 - rise,
+                    r.centerX() + r.width() * s / 2, r.centerY() + r.height() * s / 2 - rise);
             float rad = round ? cell.width() / 2 : 12 * k * s;
             drawWatchImage(c, wc.items.get(i), cell, rad, a);
             if (watchProgress[i] > 0) {   // a thin bar along the picture's foot, in the app's colour
@@ -3978,7 +3997,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             avatar = loadAvatar();
         }
         RectF r = avatarRect;
-        float f = Ui.clamp(avatarFocus[0].value), s = 1 + 0.1f * f, rad = r.width() / 2 * s;
+        float f = Ui.clamp(avatarFocus[0].value), s = Ui.FLAT ? 1 : 1 + 0.1f * f, rad = r.width() / 2 * s;
         cell.set(r.centerX() - rad, r.centerY() - rad, r.centerX() + rad, r.centerY() + rad);
         tmp.set(cell);
         tmp.offset(0, (6 + 8 * f) * k);
@@ -4037,7 +4056,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         applyTone();
         for (int i = 0; i < 3; i++) {
             RectF r = topRects[3 + i];
-            float f = Ui.clamp(topFocus[3 + i].value), s = 1 + 0.1f * f, rad = r.width() / 2 * s;
+            float f = Ui.clamp(topFocus[3 + i].value), s = Ui.FLAT ? 1 : 1 + 0.1f * f, rad = r.width() / 2 * s;
             cell.set(r.centerX() - rad, r.centerY() - rad, r.centerX() + rad, r.centerY() + rad);
             tmp.set(cell);
             tmp.offset(0, (6 + 8 * f) * k);

@@ -46,11 +46,13 @@ final class Scene {
         this.withGlass = withGlass;
         try {
             aurora = new RuntimeShader(Shaders.AURORA);
-            glass = new RuntimeShader(Shaders.GLASS);
-            liquid = new RuntimeShader(Shaders.LIQUID);
             auroraPaint.setShader(aurora);
-            glassPaint.setShader(glass);
-            liquidPaint.setShader(liquid);
+            if (!Ui.FLAT) {
+                glass = new RuntimeShader(Shaders.GLASS);
+                liquid = new RuntimeShader(Shaders.LIQUID);
+                glassPaint.setShader(glass);
+                liquidPaint.setShader(liquid);
+            }
         } catch (RuntimeException | LinkageError e) {   // Android 8 to 12: no AGSL, flat look instead
             AppLog.w("shader unavailable, using gradient: " + e.getMessage());
             aurora = null;
@@ -73,7 +75,7 @@ final class Scene {
             aurora.setFloatUniform("res", w, h);
             aurora.setFloatUniform("layer", lw, lh);
             setFrostScale();
-            if (imageGlass) liquid.setFloatUniform("imageScale", (float) Backdrop.GW / w, (float) Backdrop.GH / h);
+            if (imageGlass && liquid != null) liquid.setFloatUniform("imageScale", (float) Backdrop.GW / w, (float) Backdrop.GH / h);
         }
         push();
     }
@@ -105,7 +107,7 @@ final class Scene {
         time = seconds;
         if (aurora == null) return;
         aurora.setFloatUniform("t", seconds);
-        if (withGlass && (!imageFrost || !imageGlass)) {
+        if (withGlass && glass != null && (!imageFrost || !imageGlass)) {   // flat: no glass, no frost to compute
             BitmapShader s = frost.render(seconds, speed, dim, palette.c, (float) w / h);
             if (!imageFrost) glass.setInputShader("frost", s);
             if (!imageGlass) {
@@ -254,10 +256,10 @@ final class Scene {
         if (alpha <= 0.004f) return;
         if (glass == null) {
             if (body > 0) {
-                flatFill.setColor(Ui.alpha(tint | 0xFF000000, Math.max(0.35f, tintAlpha)));
+                flatFill.setColor(Ui.alpha(tint | 0xFF000000, Math.max(0.35f, tintAlpha) * Math.min(1, alpha)));
                 c.drawRoundRect(r, radius, radius, flatFill);
             }
-            c.drawRoundRect(r, radius, radius, flatRim);
+            if (!Ui.FLAT) c.drawRoundRect(r, radius, radius, flatRim);
             return;
         }
         float hw = r.width() / 2, hh = r.height() / 2, inner = Math.min(hw, hh);
