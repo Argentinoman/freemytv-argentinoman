@@ -80,3 +80,17 @@ Quedan para el cambio de modo (`HomeMode.DEBLOAT`, así *Original* los devuelve)
 `com.master.apps` y la capa de ajustes `com.htc.htcsettings`. **Ojo:** la red Wi-Fi la guardó `com.htc.htcsettings`;
 antes de apagarla hay que olvidar la red y volver a conectarla desde los ajustes de Android (*Ajustes → Redes e
 Internet*), o Android borra la red.
+
+### Seguridad del HY300
+
+- `com.fb` era un **instalador remoto**: el 2026-11-03 a las 22:15, apenas se conectó al Wi-Fi, bajó de
+  `apk.v8ying.com` e instaló como root `TvMarket`, una versión nueva de `com.htc.htcsettings` y Netflix de celular, y
+  desinstaló otras (registro en `/data/local/install/script.log`; reglas en `/data/local/rule/`). También dejó un
+  paquete cifrado, `/data/local/com.master.jmsu_*.apk`. Desactivado, nada de eso corre.
+- `com.htc.htcsettings` desactivada a pedido (se lleva la red Wi-Fi: hay que volver a conectarse desde los ajustes
+  de Android).
+- Puertos abiertos: solo el 5555 (ADB, como root y sin autorización; `service.adb.tcp.port` está en
+  `/vendor/build.prop`). SELinux apagado, compilación `userdebug/test-keys`, bootloader abierto: no se arreglan sin
+  otro firmware.
+- `/system/etc/init/preinstall.rc` corre como root al arrancar `/data/local/agent.sh` si existe (hoy no existe),
+  e instala lo que haya en `/data/preinstall` que no esté anotado en `/data/local/tmp/preinstalled`.
