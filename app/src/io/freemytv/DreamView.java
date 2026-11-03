@@ -118,8 +118,8 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
     private RuntimeShader glassShader;
     private boolean running, dirty = true, chromeDirty = true;
     private boolean fallback;       // the aurora with the clock (no photos)
-    /** Home Settings > Screensaver: Gallery.MINE or Gallery.FAVORITES passing by, or "clock". */
-    private String source = Gallery.MINE;
+    /** Home Settings > Screensaver: one of Gallery.KINDS passing by, or "clock". */
+    private String source = Gallery.SYSTEM;
     private volatile List<Gallery.Item> gallery = new java.util.ArrayList<>();
     private int galleryNext;
     /** Bumped when ← or a new choice of pictures makes the photo being decoded the wrong one. */
@@ -233,8 +233,8 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
     // MARK: - The remote over the photos: ↑ favourite, ↓ which pictures, → the next one
 
     private static final int MENU_NONE = 0, MENU_FAVORITE = 1, MENU_SOURCE = 2;
-    private static final String[] SOURCES = {Gallery.FAVORITES, Gallery.MINE};
-    private static final String[] SOURCE_NAMES = {"Favoritas", "Mis fondos"};
+    private static final String[] SOURCES = {Gallery.FAVORITES, Gallery.SYSTEM, Gallery.MINE};
+    private static final String[] SOURCE_NAMES = {"Favoritas", "Del sistema", "Personalizados"};
     private int menu = MENU_NONE, menuIndex, consumed = -1;
     private float hush;   // 1 while a menu, a hint or a notice shows: the corners fade out
     private long menuUntil, hintUntil;

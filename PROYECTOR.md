@@ -20,7 +20,13 @@ aparte de `master`: lo que se arregle allá se trae con `git merge master` (o `c
 
 ## Los fondos
 
-Van en `app/assets/local/fondos/` (git no los sube, como el resto de `assets/local/`), y entran en el APK al compilar:
+Dos tipos, que se eligen en *Ajustes de inicio → Fondos* (para el inicio y para el protector por separado):
+
+- **Fondos del sistema:** los de `app/assets/fondos/`, que están en el repositorio y van siempre.
+- **Fondos personalizados:** los tuyos, en `app/assets/local/fondos/` (git no los sube, como el resto de
+  `assets/local/`). Si la carpeta está vacía, muestra los del sistema.
+
+Los dos entran en el APK al compilar:
 
 - JPG, PNG o WebP, horizontales. Con 1920 px de ancho alcanza: se achican a eso igual, y cada MB suma al APK.
 - El título que muestra el protector sale del nombre del archivo (`atardecer-en-el-delta.jpg` → "atardecer en el
@@ -31,8 +37,9 @@ Van en `app/assets/local/fondos/` (git no los sube, como el resto de `assets/loc
   delta.jpg.autor=Mati
   ```
 
-*Ajustes de inicio → Fondos* elige entre Negro, Mis fondos y Favoritas para el inicio, y Mis fondos, Favoritas o Reloj
-para el protector.
+Cada cuánto cambian: *Cambiar fondo cada* (inicio: de 15 minutos a 1 semana) y *Cambiar foto cada* (protector: de 15
+segundos a 5 minutos), en la misma pantalla. Las opciones del inicio son Negro, Fondos del sistema, Fondos
+personalizados y Favoritas; las del protector, las mismas fotos o el Reloj.
 
 ## Pendiente: adaptarlo al proyector
 

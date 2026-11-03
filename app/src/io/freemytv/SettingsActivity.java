@@ -558,11 +558,11 @@ public class SettingsActivity extends Activity {
         private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
         /** Home Settings: language, temperature, theme, sounds, weather, city, Continue watching. */
         private static final int CITY_ROW = 5, WATCH_ROW = 6;
-        private static final String[] HOME_PICTURES = {"black", Gallery.MINE, Gallery.FAVORITES};
-        private static final String[] SCREENSAVERS = {Gallery.MINE, Gallery.FAVORITES, "clock"};
+        private static final String[] HOME_PICTURES = {"black", Gallery.SYSTEM, Gallery.MINE, Gallery.FAVORITES};
+        private static final String[] SCREENSAVERS = {Gallery.SYSTEM, Gallery.MINE, Gallery.FAVORITES, "clock"};
         /** Backgrounds: how often the home one changes (minutes) and how long each screensaver photo stays (seconds). */
-        private static final int[] HOME_MINUTES = {60, 360, 720, 1440, 10080};
-        private static final String[] HOME_MINUTES_NAMES = {"1 hora", "6 horas", "12 horas", "1 día", "1 semana"};
+        private static final int[] HOME_MINUTES = {15, 30, 60, 360, 720, 1440, 10080};
+        private static final String[] HOME_MINUTES_NAMES = {"15 minutos", "30 minutos", "1 hora", "6 horas", "12 horas", "1 día", "1 semana"};
         private static final int[] PHOTO_SECONDS = {15, 30, 60, 300};
         private static final String[] PHOTO_SECONDS_NAMES = {"15 segundos", "30 segundos", "1 minuto", "5 minutos"};
         private static final int CHANGE_NOW_ROW = 2, FAVORITE_ROW = 3;

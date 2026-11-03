@@ -93,8 +93,8 @@ final class Prefs {
 
     /** The home screen's background: "black" or one of Gallery.KINDS (a file: the screensaver reads it too). */
     static String homeBackground(Context c) {
-        String v = readString(c, "home-background.txt", Gallery.MINE);
-        return v.equals("black") || Gallery.photos(v) ? v : Gallery.MINE;   // Wikimedia's kinds, from before
+        String v = readString(c, "home-background.txt", Gallery.SYSTEM);
+        return v.equals("black") || Gallery.photos(v) ? v : Gallery.SYSTEM;   // Wikimedia's kinds, from before
     }
 
     static void setHomeBackground(Context c, String v) {
@@ -138,8 +138,8 @@ final class Prefs {
 
     /** The screensaver: one of Gallery.KINDS passing by, or "clock" (the big clock, no photos). */
     static String screensaver(Context c) {
-        String v = readString(c, "screensaver.txt", Gallery.MINE);
-        return v.equals("clock") || Gallery.photos(v) ? v : Gallery.MINE;   // Wikimedia's kinds, from before
+        String v = readString(c, "screensaver.txt", Gallery.SYSTEM);
+        return v.equals("clock") || Gallery.photos(v) ? v : Gallery.SYSTEM;   // Wikimedia's kinds, from before
     }
 
     static void setScreensaver(Context c, String v) {

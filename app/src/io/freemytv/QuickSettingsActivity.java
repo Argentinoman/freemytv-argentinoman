@@ -172,7 +172,7 @@ public class QuickSettingsActivity extends Activity {
             Tile home = new Tile("Ajustes de inicio", "sparkles", () -> open(new Intent(c, SettingsActivity.class)));
             tiles.add(home);
             // Over Home with a picture behind it: the next picture, seen changing behind the panel.
-            // Held: the next kind of picture (mine, favourites).
+            // Held: the next kind of picture (system, custom, favourites).
             if (HomeActivity.shown && !Prefs.homeBackgroundShown(c).equals("black")) {
                 final Tile bg = new Tile("Cambiar fondo", "sync", null);
                 bg.sub = kindName(Prefs.homeBackgroundShown(c));   // the kind of picture (hold OK to change it)

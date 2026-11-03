@@ -17,20 +17,20 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * The pictures for the home screen's background and the screensaver: the person's own, packed into the APK from the
- * git-ignored app/assets/local/fondos/ (no network). Each one is shrunk once to the UI's width and the last few dozen
- * kept in the cache. Disk work: background threads only.
+ * The pictures for the home screen's background and the screensaver, packed into the APK (no network): the system
+ * ones (app/assets/fondos/, in the repository) and the person's own (the git-ignored app/assets/local/fondos/). Each
+ * one is shrunk once to the UI's width and the last few dozen kept in the cache. Disk work: background threads only.
  */
 final class Gallery {
     private Gallery() {}
 
-    static final String MINE = "mine", FAVORITES = "favorites";
+    static final String SYSTEM = "system", MINE = "mine", FAVORITES = "favorites";
 
     /** Every kind of pictures, in the order they're offered. */
-    static final String[] KINDS = {MINE, FAVORITES};
+    static final String[] KINDS = {SYSTEM, MINE, FAVORITES};
 
-    /** The folder in assets; titulos.properties beside the pictures may name them ("<file>=Title", "<file>.autor="). */
-    private static final String FOLDER = "local/fondos";
+    /** The folders in assets; titulos.properties beside the pictures may name them ("<file>=Title", "<file>.autor="). */
+    private static final String SYSTEM_FOLDER = "fondos", MINE_FOLDER = "local/fondos";
 
     /** A kind of pictures (not "black" or "clock"). */
     static boolean photos(String kind) {
@@ -40,7 +40,11 @@ final class Gallery {
 
     /** Its name in the settings and menus. */
     static String name(String kind) {
-        return kind.equals(FAVORITES) ? "Favoritas" : "Mis fondos";
+        switch (kind) {
+            case FAVORITES: return "Favoritas";
+            case MINE: return "Fondos personalizados";
+            default: return "Fondos del sistema";
+        }
     }
 
     static final class Item {
@@ -51,19 +55,27 @@ final class Gallery {
     /** Saved this wide at most: a 1080p screen shows no more, and a 720p UI far less. */
     private static final int SAVE_WIDTH = 1920;
 
-    private static List<Item> mine;
+    private static List<Item> system, mine;
 
-    /** The pictures, in a fixed shuffled order (the same on every call: the home screen counts its turns in it). */
+    /**
+     * The pictures, in a fixed shuffled order (the same on every call: the home screen counts its turns in it). No
+     * custom ones in this build: the system ones, so the screen is never left black.
+     */
     static synchronized List<Item> list(Context c, String kind) {
         if (kind.equals(FAVORITES)) return read(favoritesFile(c));
-        if (mine != null) return mine;
+        if (system == null) system = folder(c, SYSTEM_FOLDER);
+        if (mine == null) mine = folder(c, MINE_FOLDER);
+        return kind.equals(MINE) && !mine.isEmpty() ? mine : system;
+    }
+
+    private static List<Item> folder(Context c, String folder) {
         String[] files = null;
         try {
-            files = c.getAssets().list(FOLDER);
+            files = c.getAssets().list(folder);
         } catch (IOException ignored) {
         }
         java.util.Properties titles = new java.util.Properties();
-        try (InputStream in = c.getAssets().open(FOLDER + "/titulos.properties")) {
+        try (InputStream in = c.getAssets().open(folder + "/titulos.properties")) {
             titles.load(new java.io.InputStreamReader(in, StandardCharsets.UTF_8));
         } catch (IOException ignored) {
         }
@@ -73,15 +85,14 @@ final class Gallery {
             for (String name : files) {
                 if (!name.toLowerCase(java.util.Locale.ROOT).matches(".*\\.(jpe?g|png|webp)$")) continue;
                 Item it = new Item();
-                it.url = "asset:" + FOLDER + "/" + name;
+                it.url = "asset:" + folder + "/" + name;
                 it.title = titles.getProperty(name, name.replaceFirst("\\.[^.]+$", "").replace('_', ' ').replace('-', ' '));
                 it.author = titles.getProperty(name + ".autor", "");
                 out.add(it);
             }
         }
         Collections.shuffle(out, new java.util.Random(out.size()));
-        mine = Collections.unmodifiableList(out);
-        return mine;
+        return Collections.unmodifiableList(out);
     }
 
     /** Always on the TV: they come in the APK. */
