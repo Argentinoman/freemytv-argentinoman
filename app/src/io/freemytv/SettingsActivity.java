@@ -558,18 +558,14 @@ public class SettingsActivity extends Activity {
         private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
         /** Home Settings: language, temperature, theme, sounds, weather, city, Continue watching. */
         private static final int CITY_ROW = 5, WATCH_ROW = 6;
-        private static final String[] HOME_PICTURES = {"black", Gallery.LANDSCAPES, Gallery.ART, Gallery.ABSTRACT,
-                Gallery.ANIMALS, Gallery.FAVORITES};
-        private static final String[] SCREENSAVERS = {Gallery.LANDSCAPES, Gallery.ART, Gallery.ABSTRACT, Gallery.ANIMALS,
-                Gallery.FAVORITES, "clock"};
+        private static final String[] HOME_PICTURES = {"black", Gallery.MINE, Gallery.FAVORITES};
+        private static final String[] SCREENSAVERS = {Gallery.MINE, Gallery.FAVORITES, "clock"};
         /** Backgrounds: how often the home one changes (minutes) and how long each screensaver photo stays (seconds). */
         private static final int[] HOME_MINUTES = {60, 360, 720, 1440, 10080};
         private static final String[] HOME_MINUTES_NAMES = {"1 hora", "6 horas", "12 horas", "1 día", "1 semana"};
         private static final int[] PHOTO_SECONDS = {15, 30, 60, 300};
         private static final String[] PHOTO_SECONDS_NAMES = {"15 segundos", "30 segundos", "1 minuto", "5 minutos"};
         private static final int CHANGE_NOW_ROW = 2, FAVORITE_ROW = 3;
-        private static final String[] THEME_CHOICES = {"off", Gallery.HALLOWEEN, Gallery.CHRISTMAS, Gallery.NEW_YEAR,
-                Gallery.CARNIVAL, Gallery.EASTER, Gallery.BIRTHDAY};
 
         private static int indexOf(int[] values, int v) {
             for (int i = 0; i < values.length; i++) if (values[i] == v) return i;
@@ -578,7 +574,7 @@ public class SettingsActivity extends Activity {
 
         private String[] backgroundLabels() {
             return new String[] {"Fondo del inicio", "Cambiar fondo cada", "Cambiar fondo ahora", "Fondo actual",
-                    "Protector de pantalla", "Cambiar foto cada", "Tema de temporada"};
+                    "Protector de pantalla", "Cambiar foto cada"};
         }
 
         private String[] backgroundValues() {
@@ -586,8 +582,7 @@ public class SettingsActivity extends Activity {
             return new String[] {pictureName(Prefs.homeBackground(c)),
                     HOME_MINUTES_NAMES[indexOf(HOME_MINUTES, Prefs.homeBackgroundMinutes(c))],
                     "OK", currentFavoriteText(c), pictureName(Prefs.screensaver(c)),
-                    PHOTO_SECONDS_NAMES[indexOf(PHOTO_SECONDS, Prefs.screensaverSeconds(c))],
-                    Gallery.photos(Prefs.seasonalTheme(c)) ? Gallery.name(Prefs.seasonalTheme(c)) : "Desactivado"};
+                    PHOTO_SECONDS_NAMES[indexOf(PHOTO_SECONDS, Prefs.screensaverSeconds(c))]};
         }
 
         private String currentFavoriteText(Context c) {
@@ -622,14 +617,9 @@ public class SettingsActivity extends Activity {
                     Prefs.setScreensaver(c, SCREENSAVERS[(Math.max(0, at) + dir + SCREENSAVERS.length) % SCREENSAVERS.length]);
                     break;
                 }
-                case 5: {
+                default: {
                     int at = indexOf(PHOTO_SECONDS, Prefs.screensaverSeconds(c));
                     Prefs.setScreensaverSeconds(c, PHOTO_SECONDS[(at + dir + PHOTO_SECONDS.length) % PHOTO_SECONDS.length]);
-                    break;
-                }
-                default: {   // the seasonal theme: off, then each theme
-                    int at = java.util.Arrays.asList(THEME_CHOICES).indexOf(Prefs.seasonalTheme(c));
-                    Prefs.setSeasonalTheme(c, THEME_CHOICES[(Math.max(0, at) + dir + THEME_CHOICES.length) % THEME_CHOICES.length]);
                     break;
                 }
             }

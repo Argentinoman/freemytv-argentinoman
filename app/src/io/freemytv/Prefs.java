@@ -93,33 +93,20 @@ final class Prefs {
 
     /** The home screen's background: "black" or one of Gallery.KINDS (a file: the screensaver reads it too). */
     static String homeBackground(Context c) {
-        String v = readString(c, "home-background.txt", "black");
-        return v.equals("modern") ? Gallery.ART : v;   // modern art was an option for a while
+        String v = readString(c, "home-background.txt", Gallery.MINE);
+        return v.equals("black") || Gallery.photos(v) ? v : Gallery.MINE;   // Wikimedia's kinds, from before
     }
 
     static void setHomeBackground(Context c, String v) {
         writeString(c, "home-background.txt", v);
     }
 
-    /** The seasonal theme (Gallery.THEMES), or "off". A file: the screensaver reads it too. */
-    static String seasonalTheme(Context c) {
-        return readString(c, "seasonal-theme.txt", "off");
-    }
-
-    static void setSeasonalTheme(Context c, String v) {
-        writeString(c, "seasonal-theme.txt", v);
-    }
-
-    /** What the home screen shows: the seasonal theme while one is on, else the background picked. */
     static String homeBackgroundShown(Context c) {
-        String theme = seasonalTheme(c);
-        return Gallery.photos(theme) ? theme : homeBackground(c);
+        return homeBackground(c);
     }
 
-    /** What the screensaver shows: the seasonal theme while one is on (the big clock stays a clock). */
     static String screensaverShown(Context c) {
-        String theme = seasonalTheme(c), picked = screensaver(c);
-        return Gallery.photos(theme) && !picked.equals("clock") ? theme : picked;
+        return screensaver(c);
     }
 
     /** How long each home background stays, in minutes (360: six hours). */
@@ -151,8 +138,8 @@ final class Prefs {
 
     /** The screensaver: one of Gallery.KINDS passing by, or "clock" (the big clock, no photos). */
     static String screensaver(Context c) {
-        String v = readString(c, "screensaver.txt", Gallery.LANDSCAPES);
-        return v.equals("modern") ? Gallery.ART : v;
+        String v = readString(c, "screensaver.txt", Gallery.MINE);
+        return v.equals("clock") || Gallery.photos(v) ? v : Gallery.MINE;   // Wikimedia's kinds, from before
     }
 
     static void setScreensaver(Context c, String v) {
