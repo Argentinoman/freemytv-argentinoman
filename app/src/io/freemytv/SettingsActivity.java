@@ -965,7 +965,7 @@ public class SettingsActivity extends Activity {
             if (keys) {
                 c.drawText(RemoteKeys.VESTEL ? Ui.tr("YouTube, Prime Video and Google Play: the TV itself controls those buttons.")
                         : RemoteKeys.KTC ? Ui.tr("Netflix, YouTube and Prime Video: the TV itself controls those buttons.")
-                        : RemoteKeys.HY300 ? "Nada: el botón hace lo de siempre. Atrás, Opciones e Inicio no cambian."
+                        : RemoteKeys.HY300 ? "Nada: el botón hace lo de siempre. Opciones abre el panel rápido."
                         : RemoteKeys.SONY ? Ui.tr("Sony default: the button opens what it always did.")
                         : RemoteKeys.FORMOVIE ? Ui.tr("The other buttons: the TV itself controls them.")
                         : RemoteKeys.supported() ? Ui.tr("Disney and Globoplay: the TV itself controls those buttons.")

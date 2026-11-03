@@ -85,10 +85,12 @@ final class RemoteKeys {
         // The HY300 sends F11 for its arrows button and its own MOUSE key (the pointer) for the next one: the scan code
         // keeps them apart from a keyboard's F11.
         if (HY300 && (e.getScanCode() == 87 || e.getScanCode() == 637)) keyCode = Prefs.HY_KEY + e.getScanCode();
-        // The gear and the profile keys: fixed, the stock home screen's own jobs.
-        if ((TCL && keyCode == KEY_TCL_SETTINGS) || keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH) {
+        // The gear and the profile keys (and the HY300's Options button, which opened the vendor's settings): fixed, the
+        // stock home screen's own jobs.
+        if ((TCL && keyCode == KEY_TCL_SETTINGS) || (HY300 && keyCode == KeyEvent.KEYCODE_MENU)
+                || keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH) {
             if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
-                final Intent intent = keyCode == KEY_TCL_SETTINGS ? quickPanel(c) : accounts(c);
+                final Intent intent = keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH ? accounts(c) : quickPanel(c);
                 final int code = keyCode;
                 afterScreensaver(c, () -> {
                     try {

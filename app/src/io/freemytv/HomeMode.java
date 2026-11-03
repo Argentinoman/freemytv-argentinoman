@@ -78,6 +78,8 @@ final class HomeMode {
         // KTC (NextStar; MediaTek)
         "tv.anoki.acr.controller",                                                    // Anoki ACR: watches what's on screen
         "com.mediatek.tv.retaildemo", "com.electronic.manual",                        // store demo, manual
+        // HY300 projector (Amlogic T950S): two filler launchers (the HTC-named stock one goes as the home screen)
+        "com.jm.jmlauncher", "com.master.apps",
     };
 
     /** The voice assistant, only with disable_assistant=true in config.properties (the mic button stops working). */
@@ -136,7 +138,14 @@ final class HomeMode {
         "com.fengmi.projector.imaging", "com.fengmi.platform", "com.fengmi.Autopair", "com.fengmi.fmsettings",
         "com.fengmi.testsuite", "android.autoinstalls.config.fomovie",
         "uk.co.freeview.tifbridge",
-        "uk.co.freeview.mdsclient", "uk.co.freeview.fvpconfigauth"));
+        "uk.co.freeview.mdsclient", "uk.co.freeview.fvpconfigauth",
+        // HY300 projector (Amlogic T950S): keystone and zoom, the board's system, inputs, picture and sound, remote, file
+        // explorer, updates, overlays; and the vendor's settings, which saved the Wi-Fi network
+        "com.softwinner.tcorrection", "com.droidlogic", "com.droidlogic.tvinput", "com.droidlogic.android.tv",
+        "com.droidlogic.tv.settings", "com.droidlogic.tv.settings.resoverlay", "com.droidlogic.droidlivetvsettings",
+        "com.droidlogic.inputmethod.remote", "com.droidlogic.FileBrower", "com.droidlogic.updater",
+        "com.droidlogic.appinstall", "com.droidlogic.overlay", "com.droidlogic.systemui.overlay", "com.droidlogic.wifion",
+        "com.htc.htcsettings"));
 
     /**
      * Android's own pieces: with one of them off, a TV may not start again (a list that took the permission
