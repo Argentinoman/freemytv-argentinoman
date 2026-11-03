@@ -57,6 +57,7 @@ final class Symbols {
         if (name.equals("globe")) return globe();
         if (name.equals("folder")) return folder();
         if (name.equals("keystone")) return keystone();
+        if (name.equals("usb")) return usb();
         boolean picture = name.equals("picture");
         boolean tv = picture || name.equals("live_tv") || name.equals("tv"), hdmi = name.equals("hdmi");
         if (!tv && !hdmi) return null;
@@ -156,6 +157,24 @@ final class Symbols {
         c.drawPath(t, p);
         p.setStrokeWidth(10f);
         c.drawRect(new RectF(50, 32, w - 50, h - 32), p);
+        b.setHasMipMap(true);
+        return b;
+    }
+
+    /** A pen drive standing up: its body, and the metal plug on top with its two holes. */
+    private static Bitmap usb() {
+        float sw = 13f, h2 = sw / 2, w = 84, h = 140;
+        Bitmap b = Bitmap.createBitmap((int) w, (int) h, Bitmap.Config.ALPHA_8);
+        Canvas c = new Canvas(b);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(sw);
+        p.setStrokeJoin(Paint.Join.ROUND);
+        c.drawRoundRect(new RectF(h2, 52, w - h2, h - h2), 16, 16, p);
+        c.drawRect(new RectF(18, h2, w - 18, 52), p);
+        p.setStyle(Paint.Style.FILL);
+        c.drawRect(new RectF(30, 20, 38, 30), p);
+        c.drawRect(new RectF(w - 38, 20, w - 30, 30), p);
         b.setHasMipMap(true);
         return b;
     }

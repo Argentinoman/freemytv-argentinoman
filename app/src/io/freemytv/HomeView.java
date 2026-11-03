@@ -945,6 +945,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         bt.addAction("android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED");
         bt.addAction(android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED);
         getContext().registerReceiver(appsChanged, bt);   // the speaker button lights up or dims with it
+        android.content.IntentFilter usb = new android.content.IntentFilter(android.content.Intent.ACTION_MEDIA_MOUNTED);
+        usb.addAction(android.content.Intent.ACTION_MEDIA_UNMOUNTED);
+        usb.addAction(android.content.Intent.ACTION_MEDIA_EJECT);
+        usb.addAction(android.content.Intent.ACTION_MEDIA_REMOVED);
+        usb.addDataScheme("file");
+        getContext().registerReceiver(appsChanged, usb);   // and the USB button with a pen drive
         handler.postDelayed(tick, 15_000);
         checkNotices();
         reload();
@@ -2061,7 +2067,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     /** "Entradas", on the left: the inputs, the files and the speaker. */
     private static boolean leftGroup(int kind) {
-        return kind == HomeApps.INPUT || kind == HomeApps.LIVE_TV || kind == HomeApps.FILES || kind == HomeApps.SPEAKER;
+        return kind == HomeApps.INPUT || kind == HomeApps.LIVE_TV || kind == HomeApps.FILES || kind == HomeApps.USB || kind == HomeApps.SPEAKER;
     }
 
     private void setDrawerItems(List<HomeApps.Item> list) {
@@ -2188,7 +2194,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             fill.setColor(Ui.alpha(WHITE, f));
             c.drawRoundRect(cell, r, r, fill);
         }
-        boolean off = (it.kind == HomeApps.INPUT || it.kind == HomeApps.SPEAKER) && !it.connected;
+        boolean off = (it.kind == HomeApps.INPUT || it.kind == HomeApps.USB || it.kind == HomeApps.SPEAKER) && !it.connected;
         int ink = blend(tone(off ? 0xFF8E8E93 : L_INK, off ? 0x6BFFFFFF : 0xF2FFFFFF), INK, f);
         Symbols.draw(getContext(), c, it.symbol, cx, cell.top + cell.height() * 0.4f, 34 * k * s, ink);
         drawerLabel.setColor(ink);

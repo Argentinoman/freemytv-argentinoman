@@ -62,6 +62,8 @@ final class HomeApps {
     static final int FILES = 9;
     /** The projector's own projection screen: keystone, zoom and projection mode (focus is a wheel on the HY300). */
     static final int PROJECTION = 10;
+    /** The drawer's USB button: the pen drive in the file explorer, dimmed while none is plugged in. */
+    static final int USB = 11;
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -247,6 +249,11 @@ final class HomeApps {
         Item files = shortcut(FILES, "files", "Explorador de archivos", "folder");
         files.pkg = fileManager(c.getPackageManager());
         items.add(files);
+        Item usb = shortcut(USB, "usb", "USB", "usb");
+        usb.pkg = files.pkg;
+        usb.uri = usbPath(c);
+        usb.connected = usb.uri != null;
+        items.add(usb);
         String speaker = Prefs.speaker(c);
         Item sp = shortcut(SPEAKER, "speaker", speaker.isEmpty() ? "Parlante" : speaker, "speaker");
         sp.connected = speakerConnected();
@@ -267,6 +274,24 @@ final class HomeApps {
         "com.estrongs.android.pop",                 // ES File Explorer
         "com.android.documentsui",                  // Android's own Files
     };
+
+    /** Where the plugged-in pen drive is mounted, or null without one. */
+    static String usbPath(Context c) {
+        android.os.storage.StorageManager sm = (android.os.storage.StorageManager) c.getSystemService(Context.STORAGE_SERVICE);
+        if (sm == null) return null;
+        try {
+            for (android.os.storage.StorageVolume v : sm.getStorageVolumes()) {
+                if (!v.isRemovable() || !android.os.Environment.MEDIA_MOUNTED.equals(v.getState())) continue;
+                if (android.os.Build.VERSION.SDK_INT >= 30 && v.getDirectory() != null) return v.getDirectory().getPath();
+                if (v.getUuid() != null) return "/storage/" + v.getUuid();
+            }
+        } catch (RuntimeException ignored) {
+        }
+        return null;
+    }
+
+    /** Amlogic's file explorer opens at a folder given as `cur_path`. */
+    private static final String AMLOGIC_FILES = "com.droidlogic.FileBrower";
 
     private static String fileManager(PackageManager pm) {
         for (String pkg : FILE_MANAGERS) if (launchIntent(pm, pkg) != null) return pkg;
@@ -404,6 +429,9 @@ final class HomeApps {
             out.add(it);
         }
         Collections.sort(out, (a, b) -> a.number.compareTo(b.number));
+        // A projector has one HDMI port, though Amlogic boards list two: the first, named plain "HDMI".
+        if (out.size() > 1) out.subList(1, out.size()).clear();
+        if (!out.isEmpty() && out.get(0).label.equals("HDMI " + out.get(0).number)) out.get(0).label = "HDMI";
         return out;
     }
 
@@ -551,6 +579,14 @@ final class HomeApps {
             case SPEAKER:
                 intent = bluetoothSettings(a);
                 plain = new Intent(Settings.ACTION_SETTINGS);   // a projector without a Bluetooth page: its settings
+                break;
+            case USB:
+                if (it.uri != null && AMLOGIC_FILES.equals(it.pkg)) {
+                    intent = new Intent(Intent.ACTION_MAIN).setClassName(AMLOGIC_FILES, AMLOGIC_FILES + ".FileBrower").putExtra("cur_path", it.uri);
+                    plain = launchIntent(a.getPackageManager(), it.pkg);
+                } else {
+                    intent = it.pkg != null ? launchIntent(a.getPackageManager(), it.pkg) : null;
+                }
                 break;
             case PROJECTION:
                 intent = projection(a.getPackageManager());

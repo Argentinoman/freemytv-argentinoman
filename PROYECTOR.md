@@ -8,8 +8,9 @@ aparte de `master`: lo que se arregle allá se trae con `git merge master` (o `c
 - Estante de apps, reloj y clima (con el pronóstico de 7 días en el cajón).
 - Continuar viendo (Netflix, Disney+, YouTube, Spotify, Prime Video).
 - Panel rápido, con el brillo del inicio.
-- El cajón de abajo: a la izquierda (*Entradas*) HDMI, **Explorador de archivos** (el primero instalado: el de la placa,
-  X-plore, Files de Google…; sin ninguno, abre la Play Store para bajar uno) y **Parlante** (abre los dispositivos
+- El cajón de abajo: a la izquierda (*Entradas*) un solo **HDMI** (las placas Amlogic dicen tener dos), **Explorador de archivos** (el primero instalado: el de la placa,
+  X-plore, Files de Google…; sin ninguno, abre la Play Store para bajar uno), **USB** (abre el pendrive enchufado directo
+  en el explorador; apagado sin pendrive) y **Parlante** (abre los dispositivos
   Bluetooth; se ve apagado mientras no hay un parlante conectado, y lleva el nombre del favorito, que se elige en
   *Ajustes de inicio → Parlante favorito*). A la derecha (*Accesos directos*) Todas las apps, Ajustes del TV y **Play
   Store**, que ya no aparece en Todas las apps. Si el proyector tiene pantalla de proyección conocida (trapezoide, zoom,
