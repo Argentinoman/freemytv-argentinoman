@@ -20,3 +20,17 @@ for t in iptables ip6tables; do
   while $t -D OUTPUT -o lo -p tcp --dport 5555 -j fmtv_adb_apps 2>/dev/null; do :; done
   $t -I OUTPUT -o lo -p tcp --dport 5555 -j fmtv_adb_apps
 done
+
+# The firmware's own remote control (ttyunos.rc): at every boot it downloaded scripts from the vendor and ran them as
+# root (reporting the MAC, serial and country first). Its scripts in /data/ttyunos stay emptied and root's, and the
+# vendor's servers stay unreachable (jm.v7ying.com and jm.v9ying.com, aliyun.v9ying.cn, txy.jiumaoos.com).
+for f in custom ttyunos v9ying; do
+  printf '#!/system/bin/sh\n# Free My TV: neutralizado\nexit 0\n' > /data/ttyunos/$f.sh
+done
+chown -R root:root /data/ttyunos; chmod 755 /data/ttyunos /data/ttyunos/*.sh
+setprop persist.sys.jm.url http://127.0.0.1
+iptables -N fmtv_vendor 2>/dev/null
+iptables -F fmtv_vendor
+for ip in 8.138.18.183 115.126.61.77 123.207.77.74; do iptables -A fmtv_vendor -d $ip -j REJECT; done
+while iptables -D OUTPUT -j fmtv_vendor 2>/dev/null; do :; done
+iptables -I OUTPUT -j fmtv_vendor

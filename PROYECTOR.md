@@ -115,3 +115,9 @@ Internet*), o Android borra la red.
   `com.softwinner.tcorrection` queda desactivada: mandaba datos a `txy.jiumaoos.com/netflix/dataSave` y su servicio
   disparaba los scripts root del firmware (`vendor.jm.usb.upgrade`: al enchufar un pendrive con carpeta `jm`, instala
   sus APK y corre `jm/jm.sh` como root; `vendor.jm.apk.install`).
+- **El instalador remoto de verdad era el firmware** (`/system/etc/init/ttyunos.rc`): al arrancar copiaba
+  `ttyunos.sh`, `v9ying.sh` y `custom.sh` a `/data/ttyunos` (carpeta 777: cualquier app podía cambiarlos) y los corría
+  como root. Bajaban por HTTP scripts de `jm.v7ying.com` / `jm.v9ying.com` / `persist.sys.jm.url`, que mandaban MAC,
+  serie, modelo y país a `123.207.77.74`, traían "reglas" y ejecutaban lo que dijeran (de ahí las instalaciones y el
+  paquete cifrado). `agent.sh` los deja vacíos y de root en cada arranque, apunta `persist.sys.jm.url` a 127.0.0.1 y
+  bloquea esos servidores.
