@@ -177,6 +177,29 @@ public class QuickSettingsActivity extends Activity {
             tiles.add(dim);
             Tile home = new Tile("Ajustes de inicio", "sparkles", () -> open(new Intent(c, SettingsActivity.class)));
             tiles.add(home);
+            if (RemoteKeys.HY300) {   // network ADB: closed by the boot firewall, opened here to work from a computer
+                final Tile adb = new Tile("ADB por red", "lock", null);
+                adb.sub = "…";
+                final Runnable show = () -> new Thread(() -> {
+                    Boolean open = NetworkAdb.open(c);
+                    String text = open == null ? "Sin firewall" : open ? "Abierto · " + NetworkAdb.address() : "Cerrado";
+                    post(() -> {
+                        adb.sub = text;
+                        invalidate();
+                    });
+                }).start();
+                adb.stay = () -> {
+                    final boolean open = adb.sub.startsWith("Cerrado");
+                    adb.sub = "…";
+                    invalidate();
+                    new Thread(() -> {
+                        NetworkAdb.set(c, open);
+                        show.run();
+                    }).start();
+                };
+                show.run();
+                tiles.add(adb);
+            }
             // Over Home with a picture behind it: the next picture, seen changing behind the panel.
             // Held: the next kind of picture (system, custom, favourites).
             if (HomeActivity.shown && !Prefs.homeBackgroundShown(c).equals("black")) {

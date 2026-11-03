@@ -59,6 +59,7 @@ final class Symbols {
         if (name.equals("keystone")) return keystone();
         if (name.equals("usb")) return usb();
         if (name.equals("store")) return store();
+        if (name.equals("lock")) return lock();
         boolean picture = name.equals("picture");
         boolean tv = picture || name.equals("live_tv") || name.equals("tv"), hdmi = name.equals("hdmi");
         if (!tv && !hdmi) return null;
@@ -199,6 +200,24 @@ final class Symbols {
         t.lineTo(54, 112);
         t.close();
         c.drawPath(t, p);
+        b.setHasMipMap(true);
+        return b;
+    }
+
+    /** A padlock: its shackle and its body, for network ADB. */
+    private static Bitmap lock() {
+        float sw = 13f, h2 = sw / 2, w = 112, h = 140;
+        Bitmap b = Bitmap.createBitmap((int) w, (int) h, Bitmap.Config.ALPHA_8);
+        Canvas c = new Canvas(b);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(sw);
+        p.setStrokeCap(Paint.Cap.ROUND);
+        c.drawArc(new RectF(26, h2, w - 26, 84), 180, 180, false, p);
+        c.drawLine(26, 45, 26, 62, p);
+        c.drawLine(w - 26, 45, w - 26, 62, p);
+        p.setStyle(Paint.Style.FILL);
+        c.drawRoundRect(new RectF(0, 60, w, h), 16, 16, p);
         b.setHasMipMap(true);
         return b;
     }

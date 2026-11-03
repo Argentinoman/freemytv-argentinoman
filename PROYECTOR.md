@@ -94,3 +94,14 @@ Internet*), o Android borra la red.
   otro firmware.
 - `/system/etc/init/preinstall.rc` corre como root al arrancar `/data/local/agent.sh` si existe (hoy no existe),
   e instala lo que haya en `/data/preinstall` que no esté anotado en `/data/local/tmp/preinstalled`.
+- **Firewall del ADB:** `tools/proyector/agent.sh` va en `/data/local/agent.sh` (root, 755, fin de línea LF): el
+  firmware lo corre como root al arrancar y deja el puerto 5555 solo para el propio proyector (el cambio de modo usa
+  127.0.0.1). Para trabajar desde una computadora: panel rápido → **ADB por red** (muestra la IP); se vuelve a cerrar
+  con el mismo botón o al reiniciar. Se puso con:
+
+  ```bash
+  adb push tools/proyector/agent.sh /data/local/agent.sh
+  adb shell "chown root:root /data/local/agent.sh; chmod 755 /data/local/agent.sh"
+  ```
+- Borrados los restos del instalador remoto (`/data/local/com.master.jmsu_*.apk`, `rule`, `install`, `push`,
+  `uninstall`, `shell`).
