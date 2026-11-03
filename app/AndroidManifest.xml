@@ -102,6 +102,9 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
+                <!-- HY300 firmware: with a launcher that isn't the vendor's as default, the system asks for HOME.JM instead,
+                     and only its own blank FallbackHome answered (stuck on the boot logo). -->
+                <category android:name="android.intent.category.HOME.JM" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

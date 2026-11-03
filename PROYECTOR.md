@@ -105,3 +105,6 @@ Internet*), o Android borra la red.
   ```
 - Borrados los restos del instalador remoto (`/data/local/com.master.jmsu_*.apk`, `rule`, `install`, `push`,
   `uninstall`, `shell`).
+- **El firmware bloquea otros launchers:** cuando el inicio predeterminado no es el suyo, el sistema pide la categoría
+  `android.intent.category.HOME.JM` en vez de `HOME`, y solo le contestaba `FallbackHome` de los ajustes (una pantalla
+  vacía: quedaba el logo del proyector). `HomeActivity` declara `HOME.JM` también.
