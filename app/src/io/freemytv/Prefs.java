@@ -149,6 +149,15 @@ final class Prefs {
         writeString(c, "screensaver.txt", v);
     }
 
+    /** The HY300's picture: "auto,vertical,horizontal,zoom,mode" (Projector). A file: the panel and Home both read it. */
+    static String projector(Context c) {
+        return readString(c, "projector.txt", "");
+    }
+
+    static void setProjector(Context c, String v) {
+        writeString(c, "projector.txt", v);
+    }
+
     private static String readString(Context c, String file, String fallback) {
         try {
             String s = new String(java.nio.file.Files.readAllBytes(new File(c.getFilesDir(), file).toPath()), "UTF-8").trim();

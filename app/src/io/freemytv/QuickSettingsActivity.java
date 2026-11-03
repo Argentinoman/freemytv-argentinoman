@@ -141,7 +141,8 @@ public class QuickSettingsActivity extends Activity {
             Tile picture = new Tile("Imagen y sonido", "picture", () -> open(RemoteKeys.quickSettings(c)));
             picture.sub = "Brillo y modos";
             tiles.add(picture);
-            final Intent projection = HomeApps.projection(c.getPackageManager());
+            final Intent projection = Projector.SUPPORTED ? new Intent(c, ProjectionActivity.class)   // ours, in place of the vendor's
+                    : HomeApps.projection(c.getPackageManager());
             if (projection != null) {   // the projector's keystone, zoom and projection mode
                 Tile keystone = new Tile("Proyección", "keystone", () -> open(projection));
                 keystone.sub = "Trapezoide y zoom";

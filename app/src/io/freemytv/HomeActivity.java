@@ -61,6 +61,7 @@ public class HomeActivity extends Activity {
             return;
         }
         if (home != null) home.resume();
+        Projector.applySaved(this);   // HY300: the keystone again (moved while off?), as its vendor app did
     }
 
     @Override protected void onPause() {
