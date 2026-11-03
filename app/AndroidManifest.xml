@@ -38,6 +38,7 @@
         <package android:name="com.mediatek.wwtv.tvcenter" />
         <package android:name="com.sony.dtv.tvx" />
         <package android:name="com.softwinner.tcorrection" />
+        <package android:name="com.android.tv.settings" />
         <package android:name="com.amazon.avod.thirdpartyclient" />
         <intent>
             <action android:name="android.intent.action.MAIN" />

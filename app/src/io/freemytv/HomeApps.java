@@ -315,6 +315,11 @@ final class HomeApps {
     static Intent bluetoothSettings(Context c) {
         Intent tv = new Intent("com.android.tv.settings.ACCESSORIES_CONNECTED_DEVICES");
         if (tv.resolveActivity(c.getPackageManager()) != null) return tv;
+        // Android TV 13 without that action (HY300): the same page as a slice of the settings app.
+        Intent slice = new Intent("android.settings.SLICE_SETTINGS")
+                .putExtra("slice_uri", "content://com.android.tv.settings.accessories.sliceprovider/general")
+                .putExtra("slice_title", "Mandos y accesorios");
+        if (slice.resolveActivity(c.getPackageManager()) != null) return slice;
         return new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
     }
 
