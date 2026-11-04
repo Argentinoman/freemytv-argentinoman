@@ -111,7 +111,8 @@ final class RemoteKeys {
             // The TV's own live TV app: straight to the antenna's channels, as Home's Live TV does (opened plainly, it
             // goes back to the last source, often an HDMI).
             boolean live = java.util.Arrays.asList(HomeApps.LIVE_TV_APPS).contains(pkg);
-            Intent intent = live ? HomeApps.liveTv(c) : launchIntent(c.getPackageManager(), pkg);
+            Intent intent = pkg.equals(OPEN_HDMI) ? hdmi(c) : pkg.equals(OPEN_PROJECTION) ? new Intent(c, ProjectionActivity.class)
+                    : live ? HomeApps.liveTv(c) : launchIntent(c.getPackageManager(), pkg);
             AppLog.w("remote key " + e.getKeyCode() + " -> " + pkg + (intent == null ? " (not installed)" : ""));
             // The same quick fade through black as from Home: what's on screen fades out, the app (and its grey
             // loading window) fades in, instead of the grey cutting in.
@@ -136,6 +137,22 @@ final class RemoteKeys {
         }
         c.sendBroadcast(new Intent(Screensaver.END).setPackage(c.getPackageName()));
         MAIN.postDelayed(open, 250);
+    }
+
+    /** A button's choice that isn't an app (HY300): the HDMI input in our own view, or the projection panel. */
+    static final String OPEN_HDMI = "@hdmi", OPEN_PROJECTION = "@projection";
+
+    /** The first HDMI input (not a CEC device under it) in HdmiActivity; null without one. */
+    private static Intent hdmi(Context c) {
+        android.media.tv.TvInputManager tim = (android.media.tv.TvInputManager) c.getSystemService(Context.TV_INPUT_SERVICE);
+        if (tim == null) return null;
+        for (android.media.tv.TvInputInfo info : tim.getTvInputList()) {
+            if (info.getType() == android.media.tv.TvInputInfo.TYPE_HDMI && info.getParentId() == null) {
+                return new Intent(c, HdmiActivity.class).putExtra(HdmiActivity.EXTRA_INPUT, info.getId())
+                        .putExtra(HdmiActivity.EXTRA_LABEL, "HDMI");
+            }
+        }
+        return null;
     }
 
     /** The app's TV launcher, or its plain one (kept here, not in HomeApps, so the key process stays small). */

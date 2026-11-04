@@ -711,6 +711,12 @@ public class SettingsActivity extends Activity {
             appPkgs.add("");
             // On Sony, "nothing" leaves the key to the TV, which opens its usual app.
             appLabels.add(RemoteKeys.SONY ? Ui.tr("Sony default") : Ui.tr("Nothing"));
+            if (RemoteKeys.HY300) {   // the projector's own screens, before the apps
+                appPkgs.add(RemoteKeys.OPEN_HDMI);
+                appLabels.add("HDMI");
+                appPkgs.add(RemoteKeys.OPEN_PROJECTION);
+                appLabels.add("Proyección");
+            }
             for (String[] f : found) {
                 appPkgs.add(f[0]);
                 appLabels.add(f[1]);
