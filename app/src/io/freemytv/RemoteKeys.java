@@ -68,9 +68,24 @@ final class RemoteKeys {
         return new Intent(c, QuickSettingsActivity.class);
     }
 
+    /** Downs of a volume key since it was last let go (HY300). */
+    private static int volumeHeld;
+
     /** Opens the app for this key on its first press. True if the key is ours and in use (it is then consumed). */
     static boolean onKey(Context c, KeyEvent e) {
         if (!supported()) return false;
+        // The HY300's volume goes 0 to 100, one step a key: held, it gathers speed (the system still takes the key). The
+        // remote's repeats come as more downs without an up (repeat count 0 here), so they're counted.
+        if (HY300 && (e.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP || e.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN)) {
+            if (e.getAction() == KeyEvent.ACTION_UP) {
+                volumeHeld = 0;
+            } else {
+                int n = Math.max(++volumeHeld - 1, e.getRepeatCount());
+                if (n > 0) VolumeBar.boost(c, e.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP, n);
+                VolumeBar.show(c);   // also at 0 or 100, where the volume doesn't change and nothing announces it
+            }
+            return false;
+        }
         // BUTTON_3 is also a game controller's button: keys from a gamepad or a joystick are left alone.
         int source = e.getSource();
         if ((source & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD

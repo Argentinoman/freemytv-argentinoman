@@ -73,7 +73,20 @@ final class VolumeBar extends View {
         }
     }
 
-    private static void show(Context c) {
+    /**
+     * A volume key held down (its nth repeat): steps on top of the system's one, more the longer it's held, so
+     * 0 to 100 takes a couple of seconds instead of a hundred presses.
+     */
+    static void boost(Context c, boolean up, int repeat) {
+        int extra = Math.min(5, 1 + repeat / 2);
+        if (extra == 0) return;
+        AudioManager am = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+        int now = am.getStreamVolume(AudioManager.STREAM_MUSIC), max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        int to = Math.max(0, Math.min(max, now + (up ? extra : -extra)));
+        if (to != now) am.setStreamVolume(AudioManager.STREAM_MUSIC, to, 0);   // the change shows the bar
+    }
+
+    static void show(Context c) {
         if (view == null) {
             Ui.init(c);
             view = new VolumeBar(c);
@@ -158,8 +171,9 @@ final class VolumeBar extends View {
         c.drawRoundRect(r, rad, rad, rim);
         // The level on top, a hairline track below it, the speaker at the foot.
         int pct = Math.round(level * 100);
-        number.setAlpha(Math.round(255 * alpha));
-        c.drawText(muted ? "0" : String.valueOf(pct), w / 2, 62 * k, number);
+        boolean silent = muted || pct == 0;   // grey number, the speaker crossed out
+        number.setColor(Ui.alpha(silent ? 0x99FFFFFF : 0xFFFFFFFF, alpha));
+        c.drawText(silent ? "0" : String.valueOf(pct), w / 2, 62 * k, number);
         float tw = 6 * k, top = 104 * k, bottom = h - 104 * k;
         r.set(w / 2 - tw / 2, top, w / 2 + tw / 2, bottom);
         fill.setColor(Ui.alpha(0x40FFFFFF, alpha));
@@ -170,11 +184,11 @@ final class VolumeBar extends View {
             fill.setColor(Ui.alpha(0xFFFFFFFF, alpha));
             c.drawRoundRect(r, tw / 2, tw / 2, fill);
         }
-        drawSpeaker(c, w / 2, h - 54 * k, Ui.alpha(muted ? 0x66FFFFFF : 0xF2FFFFFF, alpha));
+        drawSpeaker(c, w / 2, h - 54 * k, Ui.alpha(silent ? 0xB3FFFFFF : 0xF2FFFFFF, alpha), silent);
     }
 
-    /** The speaker: a box and its cone, filled, with one sound wave (none when muted). */
-    private void drawSpeaker(Canvas c, float cx, float cy, int color) {
+    /** The speaker: a box and its cone, filled, with one sound wave, or a small cross when silent. */
+    private void drawSpeaker(Canvas c, float cx, float cy, int color, boolean silent) {
         float s = 15 * k;
         speaker.reset();
         speaker.moveTo(cx - s, cy - s * 0.42f);
@@ -186,11 +200,16 @@ final class VolumeBar extends View {
         speaker.close();
         fill.setColor(color);
         c.drawPath(speaker, fill);
-        if (muted) return;
         rim.setColor(color);
         rim.setStrokeWidth(3 * k);
-        r.set(cx - s * 0.35f, cy - s * 0.6f, cx + s * 0.85f, cy + s * 0.6f);
-        c.drawArc(r, -55, 110, false, rim);
+        if (silent) {
+            float x = cx + s * 0.75f, d = s * 0.38f;
+            c.drawLine(x - d, cy - d, x + d, cy + d, rim);
+            c.drawLine(x - d, cy + d, x + d, cy - d, rim);
+        } else {
+            r.set(cx - s * 0.35f, cy - s * 0.6f, cx + s * 0.85f, cy + s * 0.6f);
+            c.drawArc(r, -55, 110, false, rim);
+        }
         rim.setStrokeWidth(1.5f * k);
     }
 }
