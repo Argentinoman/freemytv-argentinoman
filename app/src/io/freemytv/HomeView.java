@@ -1710,8 +1710,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         // keeps its bottom edge, so with more apps it only gets lower.
         float tw = Math.min(L_TILE_H * 16f / 9 * k, (full - Math.max(0, n - 1) * gap) / Math.max(1, n));
         float th = tw * 9f / 16;
-        // On the right, its glass lined up with the buttons above (Entradas, the gear).
-        float width = n * tw + Math.max(0, n - 1) * gap, left = CONTENT_R * k - pad - width;
+        float width = n * tw + Math.max(0, n - 1) * gap, left = (w - width) / 2f;
         float top = (L_PLATTER_TOP + L_TILE_H) * k - th;
         platterRect.set(left - pad, top, left + width + pad, top + th + 2 * pad);
         float x = left, y = top + pad;
@@ -2122,7 +2121,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         float tw = Math.min(230 * k, (right - left - Math.max(0, n - groups) * gap - (groups - 1) * groupGap) / Math.max(1, n));
         float x = left, top = ROW_TOP * k;
         for (int i = 0; i < n; i++) {
-            if (i == drawerInputs && i > 0) x += groupGap - gap;
+            // The shortcuts (All apps, Settings, the store) against the right edge, the inputs on the left.
+            if (i == drawerInputs && i > 0) x = Math.max(x + groupGap - gap, right - (n - i) * tw - (n - i - 1) * gap);
             drawerRects[i].set(x, top, x + tw, top + ROW_H * k);
             x += tw + gap;
         }
