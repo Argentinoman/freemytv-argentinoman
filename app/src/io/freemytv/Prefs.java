@@ -133,17 +133,57 @@ final class Prefs {
         writeInt(c, "home-background-minutes.txt", minutes);
     }
 
-    /** Added to the background's turn: "Change now" moves it one picture on. */
-    static int homeBackgroundSkip(Context c) {
-        return readInt(c, "home-background-skip.txt", 0);
+    /**
+     * The home background's place in its list (taken modulo its length): one step on after `minutes` of the TV being
+     * on and on every start, and "Change now" moves it on, so the favourites go by in the order the person gave them.
+     * Not the wall clock: the projector starts before its clock is set, and the same hour always gave the same picture.
+     */
+    static synchronized long homeBackgroundStep(Context c) {
+        long now = android.os.SystemClock.elapsedRealtime();
+        int boot = bootCount(c);
+        long[] s = readStep(c);   // step, boot, since (elapsed)
+        if (s == null) {
+            saveStep(c, 0, boot, now);
+            return 0;
+        }
+        if (s[1] != boot || now - s[2] >= homeBackgroundMinutes(c) * 60_000L) {   // always one step: never one skipped
+            s[0]++;
+            saveStep(c, s[0], boot, now);
+        }
+        return s[0];
     }
 
-    static void setHomeBackgroundSkip(Context c, int skip) {
-        writeInt(c, "home-background-skip.txt", skip);
+    /** A step that lands on a given picture (the photo viewer, a new order); the time starts again. */
+    static synchronized void setHomeBackgroundStep(Context c, long step) {
+        saveStep(c, step, bootCount(c), android.os.SystemClock.elapsedRealtime());
+        c.sendBroadcast(new android.content.Intent(DIM_CHANGED).setPackage(c.getPackageName()));
     }
 
-    static void skipHomeBackground(Context c) {
-        writeInt(c, "home-background-skip.txt", homeBackgroundSkip(c) + 1);
+    static synchronized void skipHomeBackground(Context c) {
+        long[] s = readStep(c);
+        setHomeBackgroundStep(c, s == null ? 1 : s[0] + 1);
+    }
+
+    private static int bootCount(Context c) {
+        return android.provider.Settings.Global.getInt(c.getContentResolver(), android.provider.Settings.Global.BOOT_COUNT, 0);
+    }
+
+    private static long[] readStep(Context c) {
+        try {
+            String[] p = readString(c, "home-background-step.txt", "").split(" ");
+            return new long[] {Long.parseLong(p[0]), Long.parseLong(p[1]), Long.parseLong(p[2])};
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static void saveStep(Context c, long step, int boot, long since) {
+        try {   // no broadcast: Home reads it on its own tick
+            java.nio.file.Files.write(new File(c.getFilesDir(), "home-background-step.txt").toPath(),
+                    (step + " " + boot + " " + since).getBytes("UTF-8"));
+        } catch (Exception e) {
+            AppLog.w("home-background-step.txt: " + e.getMessage());
+        }
     }
 
     /** How long each screensaver photo stays, in seconds. */

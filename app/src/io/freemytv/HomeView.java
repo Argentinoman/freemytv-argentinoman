@@ -867,7 +867,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             }
             return;
         }
-        final long slot = System.currentTimeMillis() / (Prefs.homeBackgroundMinutes(ctx) * 60_000L) + Prefs.homeBackgroundSkip(ctx);
+        final long slot = Prefs.homeBackgroundStep(ctx);   // the list in its order, one step at a time
         final String key = kind + "|" + slot;
         if (key.equals(wallpaperKey) || wallpaperLoading) return;
         wallpaperLoading = true;
