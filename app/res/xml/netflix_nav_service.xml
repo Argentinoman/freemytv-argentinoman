@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Reads only Netflix's screen (its buttons and posters, to move between them with the arrows); no other app. -->
+<!-- Reads only Netflix's screen (its buttons and posters, to move between them with the arrows); no other app. Its
+     content and scroll events keep the service's copy of that screen current (else the ring used old positions). -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:packageNames="com.netflix.mediaclient"
-    android:accessibilityEventTypes="typeWindowStateChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewScrolled"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagRequestFilterKeyEvents|flagRetrieveInteractiveWindows"
     android:canRequestFilterKeyEvents="true"
