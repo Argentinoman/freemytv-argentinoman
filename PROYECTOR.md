@@ -147,6 +147,10 @@ Internet*), o Android borra la red.
   `io.github.jqssun.airplay`, código abierto, de F-Droid). Los dos quedan desactivados: elegir uno lo prende y lo
   abre, y al volver a la pantalla se fuerza a cerrar y se desactiva otra vez. AirPlay Server 0.0.36 instalado de
   F-Droid (firma del autor, `OU=jqssun`), solo la parte armeabi-v7a (`adb install --abi armeabi-v7a`).
+- **Navegador:** TV Bro 2.1.6 (`com.phlox.tvwebbrowser`, código abierto, de su GitHub; la versión sin Gecko, que usa
+  el WebView del sistema, 6,8 MB), con su bloqueador de publicidad. Lo abre el botón "Navegador" del cajón. El
+  WebView del sistema es el de AOSP 131 (de fines de 2024).
+- **Play Store:** sin botón en el cajón; aparece en "Todas las apps" como una más.
 - **Explorador propio** (`FilesActivity`): el botón USB del cajón. `com.droidlogic.FileBrower` desactivada.
 - **`com.softwinner.tcorrection` oculta** (`pm hide`; vuelve con `pm unhide`): es persistente y Android la levantaba
   en cada arranque aunque estuviera desactivada.

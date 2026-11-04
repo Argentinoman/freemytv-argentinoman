@@ -120,6 +120,7 @@ final class HomeApps {
             "com.tcl.guard",                        // TCL: Safety Guard
             "com.tcl.suspension",                   // TCL: Quick panel (the inputs panel; the quick settings open it)
             "com.tcl.browser",                      // TCL: BrowseHere (the drawer's "Navegador" opens it)
+            "com.phlox.tvwebbrowser",               // TV Bro (the drawer's "Navegador" opens it)
             "com.android.vending",                  // Google Play Store (the drawer's "Play Store" opens it)
             "com.homwee.factory",                   // Philco: factory menu
             "com.mstar.android.tv.disclaimercustomization",   // Philco: disclaimer
@@ -232,12 +233,15 @@ final class HomeApps {
         List<Item> items = new ArrayList<>();
         items.add(shortcut(ALL_APPS, "all", Ui.tr("All Apps"), "apps"));
         items.add(shortcut(ANDROID_SETTINGS, "tv-settings", Ui.tr("Settings"), "settings"));
-        if (launchIntent(c.getPackageManager(), BROWSER) != null) {   // hidden from All Apps, reached from here
-            Item browser = shortcut(APP, BROWSER, "Navegador", "globe");
-            browser.pkg = BROWSER;
+        for (String pkg : BROWSERS) {   // hidden from All Apps, reached from here: the first one installed
+            if (launchIntent(c.getPackageManager(), pkg) == null) continue;
+            Item browser = shortcut(APP, pkg, "Navegador", "globe");
+            browser.pkg = pkg;
             items.add(browser);
+            break;
         }
-        if (launchIntent(c.getPackageManager(), STORE) != null) {   // hidden from All Apps too
+        // Hidden from All Apps too; on the HY300 it's an app among the others instead (its TV banner as the card).
+        if (!RemoteKeys.HY300 && launchIntent(c.getPackageManager(), STORE) != null) {
             Item store = shortcut(APP, STORE, "Play Store", "store");
             store.pkg = STORE;
             items.add(store);
@@ -307,8 +311,8 @@ final class HomeApps {
         return null;
     }
 
-    /** TCL's browser (BrowseHere): a shortcut in the drawer when it's installed. */
-    static final String BROWSER = "com.tcl.browser";
+    /** The drawer's "Navegador": TCL's browser (BrowseHere), or TV Bro (open source, with its own ad blocker). */
+    static final String[] BROWSERS = {"com.tcl.browser", "com.phlox.tvwebbrowser"};
     static final String STORE = "com.android.vending";
 
     /** Android TV has no BLUETOOTH_SETTINGS screen: its "Remote & accessories" page holds the switch and the devices. */
@@ -497,6 +501,7 @@ final class HomeApps {
         skip.addAll(java.util.Arrays.asList(LIVE_TV_APPS));
         skip.add(c.getPackageName());
         skip.addAll(HIDDEN);
+        if (RemoteKeys.HY300) skip.remove(STORE);   // no drawer button for it there: listed here
         skip.add("com.android.tv.settings");   // the drawer's "Ajustes" opens it
         List<Item> items = new ArrayList<>();
         Set<String> seen = new HashSet<>();
