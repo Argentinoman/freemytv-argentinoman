@@ -14,7 +14,8 @@ import android.view.accessibility.AccessibilityEvent;
 /**
  * Sees the remote's keys before any app does, so the app buttons work from inside Netflix, Disney and the rest. The
  * system waits for it on every key (up to half a second), so it runs in a process of its own and does next to nothing.
- * It also draws the power-off animation (PowerOff), being always there and allowed to draw over everything.
+ * It also draws the power-off animation (PowerOff) and, on the HY300, the volume bar (VolumeBar), being always there
+ * and allowed to draw over everything.
  */
 public class RemoteKeyService extends AccessibilityService {
     /**
@@ -60,6 +61,7 @@ public class RemoteKeyService extends AccessibilityService {
         f.addAction(Intent.ACTION_SCREEN_ON);
         registerReceiver(screen, f);
         startPolling();
+        VolumeBar.start(this);
     }
 
     private static java.lang.reflect.Method getProp;
@@ -92,6 +94,7 @@ public class RemoteKeyService extends AccessibilityService {
         } catch (RuntimeException ignored) {
         }
         PowerOff.hide(this);
+        VolumeBar.stop(this);
         super.onDestroy();
     }
 

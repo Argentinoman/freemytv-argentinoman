@@ -136,6 +136,12 @@ Internet*), o Android borra la red.
 - **Protector de pantalla:** el firmware trae "apagar pantalla: nunca" (`screen_off_timeout` al máximo), así que
   nunca arranca solo. Medido a mano: unos 30-35 % de CPU sumando procesos y 22 MB más mientras anima. Sacado del
   panel rápido en el HY300.
+- **Volumen propio** (`VolumeBar`, dibujado por `RemoteKeyService`): una barra fina a la derecha. El sistema
+  arrancaba en cada tecla de volumen el círculo gigante de `com.droidlogic/.tvvolume.VolumeService`
+  (`PhoneWindowManager.dispatchDirectAudioEvent`); esa pieza sola quedó apagada con `pm disable` (vuelve con
+  `pm enable com.droidlogic/.tvvolume.VolumeService`). El volumen va de 0 a 100.
+- **Netflix y Flow:** no publican "continuar viendo"; el inicio anota lo que se reproduce ahí (como con Prime) y
+  guarda las notificaciones de Netflix (solo las de Netflix) como tarjetas por una semana.
 - **Explorador propio** (`FilesActivity`): el botón USB del cajón. `com.droidlogic.FileBrower` desactivada.
 - **`com.softwinner.tcorrection` oculta** (`pm hide`; vuelve con `pm unhide`): es persistente y Android la levantaba
   en cada arranque aunque estuviera desactivada.
