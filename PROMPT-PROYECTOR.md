@@ -6,6 +6,10 @@ CLI…). Abrí un chat nuevo en la carpeta de este repo (rama `proyector`) y peg
 
 ¿Sin asistente? Seguí [apk/LEEME.md](apk/LEEME.md): ahí están el APK listo y los pasos a mano.
 
+**Por qué hace falta:** [SEGURIDAD-HY300.md](SEGURIDAD-HY300.md) cuenta lo que encontramos en el software de fábrica
+(un instalador remoto que corre como root, el ADB abierto a la red y apps con permisos de micrófono, cámara e
+instalación).
+
 ---
 
 Vas a instalar Free My TV (rama `proyector` de este repo) en mi proyector HY300 y a dejarlo limpio y seguro. Antes de

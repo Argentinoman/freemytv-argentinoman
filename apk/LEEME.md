@@ -3,6 +3,10 @@
 `FreeMyTV-proyector.apk` es el inicio de Free My TV para el proyector **HY300** (Amlogic, Android 13), compilado de
 la rama `proyector`.
 
+> ⚠️ **Antes de usarlo así como viene, leé [SEGURIDAD-HY300.md](../SEGURIDAD-HY300.md):** el software de fábrica
+> tiene un instalador remoto que corre como root, el ADB abierto a toda la red y apps con permisos de micrófono, cámara
+> e instalación. Por eso este launcher reemplaza las apps del fabricante.
+
 - **Viene configurado para:** Buenos Aires, en °C y sin clave de TMDB. Sin esa clave no hay recomendaciones de
   películas; todo lo demás anda.
 - **La ciudad** se cambia en el proyector: Ajustes de inicio → Ciudad.

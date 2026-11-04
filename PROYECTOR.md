@@ -6,6 +6,9 @@ aparte de `master`: lo que se arregle allá se trae con `git merge master` (o `c
 Para instalarlo en otro HY300: [PROMPT-PROYECTOR.md](PROMPT-PROYECTOR.md) (con un asistente) o [apk/LEEME.md](apk/LEEME.md)
 (a mano, con el APK listo).
 
+> ⚠️ Lo que encontramos en el software de fábrica (instalador remoto como root, ADB abierto, permisos de micrófono y
+> cámara, servidores a los que se conectaba) está en [SEGURIDAD-HY300.md](SEGURIDAD-HY300.md).
+
 ## Qué tiene
 
 - Estante de apps, reloj y clima (con el pronóstico de 7 días en el cajón).
