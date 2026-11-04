@@ -137,7 +137,9 @@ public class QuickSettingsActivity extends Activity {
                 overridePendingTransition(0, 0);
             }));
             dream.sub = "Activar ahora";
-            tiles.add(dream);
+            // Not on the HY300: its screen never turns off, so the screensaver never starts by itself, and while it
+            // shows it takes a third of the CPU on a 1 GB board (no screen to protect on a projector).
+            if (!RemoteKeys.HY300) tiles.add(dream);
             Tile picture = new Tile("Imagen y sonido", "picture", () -> open(RemoteKeys.quickSettings(c)));
             picture.sub = "Brillo y modos";
             tiles.add(picture);
