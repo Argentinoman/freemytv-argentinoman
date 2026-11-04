@@ -19,9 +19,9 @@ import android.view.animation.DecelerateInterpolator;
 /**
  * The volume, as on Google TV: a slim smoked pane at the right edge with the level on top, a hairline filling up
  * from the bottom and the speaker at its foot; it fades away 1.5 s after the last change. On the HY300, in place of
- * the board's big round dialog
- * (com.droidlogic/.tvvolume.VolumeService, turned off: the system starts it on every volume key). Drawn by
- * RemoteKeyService, which is always there and may draw over every app; it only reacts to volume changes.
+ * the board's big round dialog (com.droidlogic/.tvvolume.VolumeService, turned off: the system starts it on every
+ * volume key). Drawn by RemoteKeyService, which is always there and may draw over every app; it only reacts to
+ * volume changes.
  */
 final class VolumeBar extends View {
     private static final String VOLUME_CHANGED = "android.media.VOLUME_CHANGED_ACTION",
