@@ -589,7 +589,7 @@ public class SettingsActivity extends Activity {
         private static final String[] HOME_MINUTES_NAMES = {"15 minutos", "30 minutos", "1 hora", "6 horas", "12 horas", "1 día", "1 semana"};
         private static final int[] PHOTO_SECONDS = {15, 30, 60, 300};
         private static final String[] PHOTO_SECONDS_NAMES = {"15 segundos", "30 segundos", "1 minuto", "5 minutos"};
-        private static final int CHANGE_NOW_ROW = 2, FAVORITE_ROW = 3, MY_FAVORITES_ROW = 6;
+        private static final int CHANGE_NOW_ROW = 2, FAVORITE_ROW = 3, MY_FAVORITES_ROW = 6, ORDER_ROW = 7;
 
         private static int indexOf(int[] values, int v) {
             for (int i = 0; i < values.length; i++) if (values[i] == v) return i;
@@ -598,7 +598,7 @@ public class SettingsActivity extends Activity {
 
         private String[] backgroundLabels() {
             return shownBackgrounds(new String[] {"Fondo del inicio", "Cambiar fondo cada", "Cambiar fondo ahora",
-                    "Fondo actual", "Protector de pantalla", "Cambiar foto cada", "Mis favoritas"});
+                    "Fondo actual", "Protector de pantalla", "Cambiar foto cada", "Mis favoritas", "Orden de las fotos"});
         }
 
         private String[] backgroundValues() {
@@ -606,7 +606,8 @@ public class SettingsActivity extends Activity {
             return shownBackgrounds(new String[] {pictureName(Prefs.homeBackground(c)),
                     HOME_MINUTES_NAMES[indexOf(HOME_MINUTES, Prefs.homeBackgroundMinutes(c))],
                     "OK", currentFavoriteText(c), pictureName(Prefs.screensaver(c)),
-                    PHOTO_SECONDS_NAMES[indexOf(PHOTO_SECONDS, Prefs.screensaverSeconds(c))], favoritesText(c)});
+                    PHOTO_SECONDS_NAMES[indexOf(PHOTO_SECONDS, Prefs.screensaverSeconds(c))], favoritesText(c),
+                    Prefs.homeBackgroundRandom(c) ? "Al azar" : "En orden"});
         }
 
         /** Backgrounds: rows 4 and 5 are the screensaver's, left out where it is (NO_SCREENSAVER). */
@@ -666,6 +667,9 @@ public class SettingsActivity extends Activity {
                 }
                 case MY_FAVORITES_ROW:   // the grid, to pause or take out each one
                     activity.startActivity(new android.content.Intent(c, FavoritesActivity.class));
+                    break;
+                case ORDER_ROW:   // in the favourites' order, or shuffled
+                    Prefs.setHomeBackgroundRandom(c, !Prefs.homeBackgroundRandom(c));
                     break;
                 default: {
                     int at = indexOf(PHOTO_SECONDS, Prefs.screensaverSeconds(c));

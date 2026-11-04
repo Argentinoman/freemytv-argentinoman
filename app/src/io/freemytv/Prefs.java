@@ -134,28 +134,50 @@ final class Prefs {
     }
 
     /**
-     * The home background's place in its list (taken modulo its length): one step on after `minutes` of the TV being
-     * on and on every start, and "Change now" moves it on, so the favourites go by in the order the person gave them.
-     * Not the wall clock: the projector starts before its clock is set, and the same hour always gave the same picture.
+     * The home background's place in its list (taken modulo its length): the first picture every time the TV starts
+     * or turns on, then one step on after each `minutes` of it being on ("Change now" moves it on too), so the
+     * favourites go by in the order the person gave them. Not the wall clock: the projector starts before its clock is
+     * set, and the same hour always gave the same picture.
      */
     static synchronized long homeBackgroundStep(Context c) {
         long now = android.os.SystemClock.elapsedRealtime();
         int boot = bootCount(c);
-        long[] s = readStep(c);   // step, boot, since (elapsed)
-        if (s == null) {
-            saveStep(c, 0, boot, now);
+        long[] s = readStep(c);   // step, boot, since (elapsed), seed (the shuffle, when random)
+        if (s == null || s[1] != boot) {   // a start: from the first one again
+            saveStep(c, 0, boot, now, new java.util.Random().nextLong());
             return 0;
         }
-        if (s[1] != boot || now - s[2] >= homeBackgroundMinutes(c) * 60_000L) {   // always one step: never one skipped
+        if (now - s[2] >= homeBackgroundMinutes(c) * 60_000L) {   // always one step: never one skipped
             s[0]++;
-            saveStep(c, s[0], boot, now);
+            saveStep(c, s[0], boot, now, s[3]);
         }
         return s[0];
     }
 
+    /** The TV turned off (the screen went dark): when it turns on, the first picture again (a new shuffle). */
+    static synchronized void restartHomeBackground(Context c) {
+        saveStep(c, 0, bootCount(c), android.os.SystemClock.elapsedRealtime(), new java.util.Random().nextLong());
+    }
+
+    /** The shuffle of this start, for "Al azar". */
+    static long homeBackgroundSeed(Context c) {
+        long[] s = readStep(c);
+        return s == null ? 0 : s[3];
+    }
+
+    /** "Orden de las fotos": the favourites in their order (false) or shuffled anew on every start (true). */
+    static boolean homeBackgroundRandom(Context c) {
+        return readInt(c, "home-background-random.txt", 0) == 1;
+    }
+
+    static void setHomeBackgroundRandom(Context c, boolean random) {
+        restartHomeBackground(c);   // from the start of the new order
+        writeInt(c, "home-background-random.txt", random ? 1 : 0);
+    }
+
     /** A step that lands on a given picture (the photo viewer, a new order); the time starts again. */
     static synchronized void setHomeBackgroundStep(Context c, long step) {
-        saveStep(c, step, bootCount(c), android.os.SystemClock.elapsedRealtime());
+        saveStep(c, step, bootCount(c), android.os.SystemClock.elapsedRealtime(), homeBackgroundSeed(c));
         c.sendBroadcast(new android.content.Intent(DIM_CHANGED).setPackage(c.getPackageName()));
     }
 
@@ -171,16 +193,17 @@ final class Prefs {
     private static long[] readStep(Context c) {
         try {
             String[] p = readString(c, "home-background-step.txt", "").split(" ");
-            return new long[] {Long.parseLong(p[0]), Long.parseLong(p[1]), Long.parseLong(p[2])};
+            return new long[] {Long.parseLong(p[0]), Long.parseLong(p[1]), Long.parseLong(p[2]),
+                    p.length > 3 ? Long.parseLong(p[3]) : 0};
         } catch (Exception e) {
             return null;
         }
     }
 
-    private static void saveStep(Context c, long step, int boot, long since) {
+    private static void saveStep(Context c, long step, int boot, long since, long seed) {
         try {   // no broadcast: Home reads it on its own tick
             java.nio.file.Files.write(new File(c.getFilesDir(), "home-background-step.txt").toPath(),
-                    (step + " " + boot + " " + since).getBytes("UTF-8"));
+                    (step + " " + boot + " " + since + " " + seed).getBytes("UTF-8"));
         } catch (Exception e) {
             AppLog.w("home-background-step.txt: " + e.getMessage());
         }

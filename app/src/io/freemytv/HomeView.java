@@ -717,6 +717,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private final android.content.BroadcastReceiver dimReceiver = new android.content.BroadcastReceiver() {
         @Override public void onReceive(Context context, android.content.Intent intent) {
+            // Turned off: the background starts again from the first picture when it turns on.
+            if (android.content.Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) Prefs.restartHomeBackground(context);
             applyDim();
             updateWallpaper();
         }
@@ -823,7 +825,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     @Override protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        getContext().registerReceiver(dimReceiver, new android.content.IntentFilter(Prefs.DIM_CHANGED));
+        android.content.IntentFilter dim = new android.content.IntentFilter(Prefs.DIM_CHANGED);
+        dim.addAction(android.content.Intent.ACTION_SCREEN_OFF);
+        getContext().registerReceiver(dimReceiver, dim);
         applyDim();
     }
 
@@ -868,34 +872,43 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             return;
         }
         final long slot = Prefs.homeBackgroundStep(ctx);   // the list in its order, one step at a time
-        final String key = kind + "|" + slot;
+        final String key = kind + "|" + slot + "|" + Prefs.homeBackgroundSeed(ctx);   // a new start, a new key
         if (key.equals(wallpaperKey) || wallpaperLoading) return;
         wallpaperLoading = true;
         LOADER.execute(() -> {
             Bitmap b = null;
+            Gallery.Item item = null;
+            String full = key;
+            try {   // the picture for this step (its url goes in the cache key: a new order, a new shuffle)
+                List<Gallery.Item> items = Gallery.list(ctx, kind);
+                if (!items.isEmpty()) {
+                    item = Gallery.pick(ctx, items, slot);
+                    full = key + "|" + item.url;
+                    Gallery.setCurrent(ctx, item);
+                }
+            } catch (Exception e) {
+                AppLog.w("wallpaper: " + e.getMessage());
+            }
             // The finished background (cropped, darkened) is kept on disk: back on Home after the TV closed it (an
             // input, a big app), it's read in a moment instead of being made again from the original.
             java.io.File cache = new java.io.File(ctx.getCacheDir(), "wallpaper.jpg");
             java.io.File cacheKey = new java.io.File(ctx.getCacheDir(), "wallpaper.key");
             try {
-                if (cache.exists() && key.equals(new String(java.nio.file.Files.readAllBytes(cacheKey.toPath()), "UTF-8"))) {
+                if (cache.exists() && full.equals(new String(java.nio.file.Files.readAllBytes(cacheKey.toPath()), "UTF-8"))) {
                     b = android.graphics.BitmapFactory.decodeFile(cache.getPath());
                     if (b != null) b = Backdrop.gpu(b);
                 }
             } catch (Exception ignored) {
             }
             try {
-                List<Gallery.Item> items = b != null ? java.util.Collections.emptyList() : Gallery.list(ctx, kind);
-                if (!items.isEmpty()) {
-                    Gallery.Item item = items.get((int) (slot % items.size()));
+                if (b == null && item != null) {
                     java.io.File f = Gallery.image(ctx, item);
-                    Gallery.setCurrent(ctx, item);
                     Bitmap[] im = Backdrop.photo(f, Backdrop.W, Backdrop.H, null);
                     im[1].recycle();
                     Bitmap made = withWallpaperScrims(im[0]);
                     try (java.io.FileOutputStream out = new java.io.FileOutputStream(cache)) {
                         made.compress(Bitmap.CompressFormat.JPEG, 92, out);
-                        java.nio.file.Files.write(cacheKey.toPath(), key.getBytes("UTF-8"));
+                        java.nio.file.Files.write(cacheKey.toPath(), full.getBytes("UTF-8"));
                     } catch (Exception e) {
                         AppLog.w("wallpaper cache: " + e.getMessage());
                     }

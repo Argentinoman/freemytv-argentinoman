@@ -170,8 +170,9 @@ Internet*), o Android borra la red.
   mantener OK abre un menú: **Cambiar de lugar** (las flechas la llevan; el orden se guarda en el archivo y lo siguen
   el fondo y el protector) o **Quitar de favoritas**. Con todas ocultas, el inicio usa los fondos del sistema.
 - **El fondo sigue el orden** (`Prefs.homeBackgroundStep`): un contador guardado en `home-background-step.txt`
-  ("paso arranque desde"), que avanza una foto cada N minutos de uso (`elapsedRealtime`) y una en cada arranque
-  (`BOOT_COUNT`). Antes salía de la hora del reloj, y el proyector arranca con el reloj sin poner: siempre la misma.
+  ("paso arranque desde semilla"): vuelve a la primera en cada arranque (`BOOT_COUNT`) y al apagarse la pantalla
+  (`HomeView`, `SCREEN_OFF`), y avanza una foto cada N minutos de uso (`elapsedRealtime`). Ajustes → Fondos →
+  "Orden de las fotos": En orden o Al azar (una mezcla nueva en cada arranque, con la semilla). Antes salía de la hora del reloj, y el proyector arranca con el reloj sin poner: siempre la misma.
 - **Explorador propio** (`FilesActivity`): el botón USB del cajón. `com.droidlogic.FileBrower` desactivada.
 - **Visor de fotos propio** (`ImageViewerActivity`): las fotos del explorador, y cualquier `content://` de imagen de otra
   app. ← → recorren la carpeta, OK muestra la barra, mantener OK la copia a `fondos-propios` y la deja de fondo. El
