@@ -6,6 +6,9 @@
 
     <!-- App options > Uninstall: the system's own uninstall dialog. -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <!-- The file explorer reads the pen drive (granted through the TV's ADB: appops on 11+, pm grant before). -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
     <!-- Quick settings: whether Bluetooth is on (a normal permission). -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -155,6 +158,22 @@
             android:excludeFromRecents="true"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
+        <!-- Our own file explorer (the USB button), in place of the board's. -->
+        <activity
+            android:name=".FilesActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
+        <!-- Hands the explorer's files to the app that opens them, read-only, one grant per open. -->
+        <provider
+            android:name=".FilesProvider"
+            android:authorities="io.freemytv.files"
+            android:exported="false"
+            android:grantUriPermissions="true" />
 
         <!-- The HY300's picture (keystone, zoom, projection mode): a panel over what's on screen, like the quick settings. -->
         <activity

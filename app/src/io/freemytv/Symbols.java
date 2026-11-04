@@ -60,6 +60,7 @@ final class Symbols {
         if (name.equals("usb")) return usb();
         if (name.equals("store")) return store();
         if (name.equals("lock")) return lock();
+        if (name.equals("file")) return file();
         boolean picture = name.equals("picture");
         boolean tv = picture || name.equals("live_tv") || name.equals("tv"), hdmi = name.equals("hdmi");
         if (!tv && !hdmi) return null;
@@ -137,6 +138,34 @@ final class Symbols {
         f.close();
         c.drawPath(f, p);
         c.drawLine(h2 + 4, 44, w - h2 - 4, 44, p);
+        b.setHasMipMap(true);
+        return b;
+    }
+
+    /** A file, for the explorer: a page with its top-right corner folded. */
+    private static Bitmap file() {
+        float sw = 13f, h2 = sw / 2, w = 112, h = 140, fold = 36;
+        Bitmap b = Bitmap.createBitmap((int) w, (int) h, Bitmap.Config.ALPHA_8);
+        Canvas c = new Canvas(b);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(sw);
+        p.setStrokeCap(Paint.Cap.ROUND);
+        p.setStrokeJoin(Paint.Join.ROUND);
+        android.graphics.Path f = new android.graphics.Path();
+        f.moveTo(w - h2 - fold, h2);
+        f.lineTo(h2 + 12, h2);
+        f.quadTo(h2, h2, h2, h2 + 12);
+        f.lineTo(h2, h - h2 - 12);
+        f.quadTo(h2, h - h2, h2 + 12, h - h2);
+        f.lineTo(w - h2 - 12, h - h2);
+        f.quadTo(w - h2, h - h2, w - h2, h - h2 - 12);
+        f.lineTo(w - h2, h2 + fold);
+        f.close();
+        f.moveTo(w - h2 - fold, h2);
+        f.lineTo(w - h2 - fold, h2 + fold);
+        f.lineTo(w - h2, h2 + fold);
+        c.drawPath(f, p);
         b.setHasMipMap(true);
         return b;
     }

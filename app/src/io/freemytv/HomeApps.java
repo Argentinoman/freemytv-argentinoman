@@ -242,18 +242,13 @@ final class HomeApps {
         return items;
     }
 
-    /** After the HDMI input, in the drawer's left-hand group: the pen drive, then the files. */
+    /** After the HDMI input, in the drawer's left-hand group: the pen drive, in our own explorer (FilesActivity). */
     static List<Item> drawerDevices(Context c) {
         List<Item> items = new ArrayList<>();
-        String files = fileManager(c.getPackageManager());
         Item usb = shortcut(USB, "usb", "USB", "usb");
-        usb.pkg = files;
         usb.uri = usbPath(c);
         usb.connected = usb.uri != null;
         items.add(usb);
-        Item explorer = shortcut(FILES, "files", "Explorador de archivos", "folder");
-        explorer.pkg = files;
-        items.add(explorer);
         return items;
     }
 
@@ -285,9 +280,6 @@ final class HomeApps {
         }
         return null;
     }
-
-    /** Amlogic's file explorer opens at a folder given as `cur_path`. */
-    private static final String AMLOGIC_FILES = "com.droidlogic.FileBrower";
 
     private static String fileManager(PackageManager pm) {
         for (String pkg : FILE_MANAGERS) if (launchIntent(pm, pkg) != null) return pkg;
@@ -569,12 +561,9 @@ final class HomeApps {
                 plain = new Intent(Settings.ACTION_SETTINGS);   // a projector without a Bluetooth page: its settings
                 break;
             case USB:
-                if (it.uri != null && AMLOGIC_FILES.equals(it.pkg)) {
-                    intent = new Intent(Intent.ACTION_MAIN).setClassName(AMLOGIC_FILES, AMLOGIC_FILES + ".FileBrower").putExtra("cur_path", it.uri);
-                    plain = launchIntent(a.getPackageManager(), it.pkg);
-                } else {
-                    intent = it.pkg != null ? launchIntent(a.getPackageManager(), it.pkg) : null;
-                }
+                // Without a pen drive: the list of drives (the projector's memory).
+                intent = new Intent(a, FilesActivity.class);
+                if (it.uri != null) intent.putExtra(FilesActivity.EXTRA_PATH, it.uri);
                 break;
             case PROJECTION:
                 intent = projection(a.getPackageManager());
