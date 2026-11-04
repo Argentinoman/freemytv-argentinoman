@@ -86,8 +86,8 @@ public class FilesActivity extends Activity {
     }
 
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
-    /** The folder on screen (null: the drives), and the one Back closes at. */
-    private File dir, top;
+    /** The folder on screen (null: the list of drives). */
+    private File dir;
     private String title = APP_NAME, symbol = "folder";
     private List<Entry> entries = Collections.emptyList();
     private final Map<String, Integer> focusIn = new HashMap<>();
@@ -116,7 +116,6 @@ public class FilesActivity extends Activity {
     private final BroadcastReceiver media = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
             if (dir != null && !dir.isDirectory()) {   // the pen drive went: back to the drives
-                top = null;
                 closeMenu();
                 selecting = false;
                 marked.clear();
@@ -152,7 +151,7 @@ public class FilesActivity extends Activity {
     private void start(Intent intent) {
         String path = intent.getStringExtra(EXTRA_PATH);
         File f = path == null ? null : new File(path);
-        top = f != null && f.isDirectory() ? f : null;
+        File top = f != null && f.isDirectory() ? f : null;
         focusIn.clear();
         status = null;
         selecting = false;
@@ -255,11 +254,6 @@ public class FilesActivity extends Activity {
             if (d.file.equals(folder)) return new String[] {d.name, d.symbol};
         }
         return new String[] {folder.getName(), "folder"};
-    }
-
-    private boolean driveRoot(File f) {
-        for (Entry d : drives(new String[2])) if (d.file.equals(f)) return true;
-        return false;
     }
 
     private List<Entry> list(File folder) {
@@ -698,22 +692,28 @@ public class FilesActivity extends Activity {
         view.invalidate();
     }
 
-    /** ← or Back: out of the selection, the folder above, the drives above a drive's root, and out at the top. */
-    private void up() {
+    /**
+     * ← or Back: out of the selection, else one level up: the folder above, the list of drives above a drive's root
+     * (also when the USB button opened the pen drive). The list of drives is the top: there ← stays, Back leaves.
+     */
+    private void up(boolean leave) {
         if (selecting) {
             endSelection();
             status = null;
             return;
         }
         status = clip.isEmpty() ? null : status;
-        if (dir == null || dir.equals(top)) {
-            finish();
+        if (dir == null) {
+            if (leave) finish();
             return;
         }
         File parent = dir.getParentFile();
-        File back = driveRoot(dir) || parent == null ? null : parent;
+        List<Entry> drives = drives(new String[2]);
+        int drive = -1;
+        for (int i = 0; i < drives.size(); i++) if (drives.get(i).file.equals(dir)) drive = i;
+        File back = drive >= 0 || parent == null ? null : parent;
         Integer at = focusIn.get(back == null ? "" : back.getPath());
-        show(back, at == null ? 0 : at);
+        show(back, at != null ? at : Math.max(0, drive));   // on the drive it came from
     }
 
     // MARK: - The remote
@@ -788,11 +788,11 @@ public class FilesActivity extends Activity {
         if (!down) return true;
         switch (code) {
             case KeyEvent.KEYCODE_BACK:
-                if (first && !loading) up();
+                if (first && !loading) up(true);
                 return true;
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 if (focus < 0 && barFocus > 0) barFocus--;
-                else if (first && !loading) up();
+                else if (first && !loading) up(false);
                 view.invalidate();
                 return true;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
@@ -944,7 +944,7 @@ public class FilesActivity extends Activity {
                     c.drawText("⌄  " + (entries.size() - first - rows) + " más", right - 160 * k, bottom + 30 * k, path);
                 }
             }
-            String foot = status != null ? status : dir == null ? "OK abre · ← sale"
+            String foot = status != null ? status : dir == null ? "OK abre · Atrás sale de la app"
                     : selecting ? "OK marca · mantené OK para las opciones · ← termina"
                     : "OK abre · mantené OK para más opciones · ← vuelve";
             hint.setColor(0xB3FFFFFF);
