@@ -3,6 +3,9 @@
 Una versión recortada de este fork para proyectores Android (los chinos), más liviana que la de la TCL. Se mantiene
 aparte de `master`: lo que se arregle allá se trae con `git merge master` (o `cherry-pick`).
 
+Para instalarlo en otro HY300: [PROMPT-PROYECTOR.md](PROMPT-PROYECTOR.md) (con un asistente) o [apk/LEEME.md](apk/LEEME.md)
+(a mano, con el APK listo).
+
 ## Qué tiene
 
 - Estante de apps, reloj y clima (con el pronóstico de 7 días en el cajón).
