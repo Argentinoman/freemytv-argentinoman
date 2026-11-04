@@ -82,6 +82,7 @@ final class HomeMode {
         // the vendor's settings layer (Android's own settings stay; it also saved the Wi-Fi: wifiOwners stops on that)
         "com.jm.jmlauncher", "com.master.apps", "com.htc.htcsettings",
         "com.softwinner.tcorrection",                                                 // its keystone app: ours (Projector) instead
+        "com.droidlogic.FileBrower",                                                  // Amlogic's file explorer: ours (FilesActivity) instead
     };
 
     /** The voice assistant, only with disable_assistant=true in config.properties (the mic button stops working). */
@@ -145,7 +146,7 @@ final class HomeMode {
         // updates, overlays
         "com.droidlogic", "com.droidlogic.tvinput", "com.droidlogic.android.tv",
         "com.droidlogic.tv.settings", "com.droidlogic.tv.settings.resoverlay", "com.droidlogic.droidlivetvsettings",
-        "com.droidlogic.inputmethod.remote", "com.droidlogic.FileBrower", "com.droidlogic.updater",
+        "com.droidlogic.inputmethod.remote", "com.droidlogic.updater",
         "com.droidlogic.appinstall", "com.droidlogic.overlay", "com.droidlogic.systemui.overlay", "com.droidlogic.wifion"));
 
     /**
