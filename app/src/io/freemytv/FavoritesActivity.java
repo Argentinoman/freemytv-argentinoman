@@ -24,8 +24,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Settings → Fondos → Mis favoritas: every favourite background in a grid. OK pauses one (kept, but the background
- * and the screensaver skip it) or shows it again; holding OK offers to take it out of the favourites.
+ * Settings → Fondos → Mis favoritas: every favourite background in a grid. OK hides one (still a favourite, but the
+ * background and the screensaver skip it) or shows it again; holding OK offers to take it out of the favourites.
  */
 public class FavoritesActivity extends Activity {
     private static final int COLUMNS = 4;
@@ -187,7 +187,7 @@ public class FavoritesActivity extends Activity {
             int paused = 0;
             for (Gallery.Item it : items) if (it.paused) paused++;
             c.drawText(items.isEmpty() ? "Todavía no hay ninguna" : items.size() + (items.size() == 1 ? " foto" : " fotos")
-                    + (paused > 0 ? " · " + paused + (paused == 1 ? " pausada" : " pausadas") : ""), x, 152 * k, sub);
+                    + (paused > 0 ? " · " + paused + (paused == 1 ? " oculta" : " ocultas") : ""), x, 152 * k, sub);
             if (items.isEmpty()) {
                 c.drawText("Desde el explorador: mantené OK en una foto y elegí «Sumar a fondos favoritos».", x, 240 * k, hint);
                 return;
@@ -224,7 +224,7 @@ public class FavoritesActivity extends Activity {
                     c.drawRoundRect(r, 18 * k, 18 * k, ring);
                 }
                 if (it.paused || i == armed) {
-                    String label = i == armed ? "¿Quitar? OK confirma" : "Pausada";
+                    String label = i == armed ? "¿Quitar? OK confirma" : "Oculta";
                     float bw = badge.measureText(label) + 32 * k;
                     pill.set(r.left + 14 * k, r.top + 14 * k, r.left + 14 * k + bw, r.top + 14 * k + 40 * k);
                     fill.setColor(i == armed ? 0xFFFF6961 : 0xE6F5F5F7);
@@ -236,8 +236,8 @@ public class FavoritesActivity extends Activity {
                 c.drawText(TextUtils.ellipsize(title, name, tw, TextUtils.TruncateAt.END).toString(), tx, ty + th + 42 * k, name);
             }
             String foot = armed >= 0 ? "OK la quita de favoritas · Atrás cancela"
-                    : items.get(focus).paused ? "OK la vuelve a mostrar · mantené OK para quitarla"
-                    : "OK la pausa (queda guardada) · mantené OK para quitarla";
+                    : items.get(focus).paused ? "OK: volver a mostrarla de fondo · Mantené OK: quitar de favoritas"
+                    : "OK: no mostrarla de fondo · Mantené OK: quitar de favoritas";
             c.drawText(foot, x, h - 56 * k, hint);
         }
     }

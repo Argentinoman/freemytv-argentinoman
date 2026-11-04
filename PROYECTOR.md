@@ -151,9 +151,9 @@ Internet*), o Android borra la red.
   el WebView del sistema, 6,8 MB), con su bloqueador de publicidad. Lo abre el botón "Navegador" del cajón. El
   WebView del sistema es el de AOSP 131 (de fines de 2024).
 - **Play Store:** sin botón en el cajón; aparece en "Todas las apps" como una más.
-- **Mis favoritas** (Ajustes → Fondos, `FavoritesActivity`): grilla de los fondos favoritos; OK pausa uno (queda
-  guardado pero el fondo y el protector lo saltean: `"paused"` en `gallery-favorites.json`) o lo vuelve a mostrar, y
-  mantener OK lo quita. Con todas pausadas, el inicio usa los fondos del sistema.
+- **Mis favoritas** (Ajustes → Fondos, `FavoritesActivity`): grilla de los fondos favoritos; OK oculta uno (sigue en favoritas
+  pero el fondo y el protector lo saltean: `"paused"` en `gallery-favorites.json`) o lo vuelve a mostrar, y
+  mantener OK lo quita. Con todas ocultas, el inicio usa los fondos del sistema.
 - **Explorador propio** (`FilesActivity`): el botón USB del cajón. `com.droidlogic.FileBrower` desactivada.
 - **`com.softwinner.tcorrection` oculta** (`pm hide`; vuelve con `pm unhide`): es persistente y Android la levantaba
   en cada arranque aunque estuviera desactivada.

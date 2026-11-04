@@ -600,13 +600,14 @@ public class SettingsActivity extends Activity {
             return Gallery.isFavorite(c, it.url) ? "♥ Favorita" : "Guardar en favoritas";
         }
 
-        /** "Mis favoritas": how many, and how many are paused. */
+        /** "Mis favoritas": how many, and how many are hidden from the background for now. */
         private String favoritesText(Context c) {
             List<Gallery.Item> all = Gallery.favorites(c);
-            int paused = 0;
-            for (Gallery.Item it : all) if (it.paused) paused++;
+            int hidden = 0;
+            for (Gallery.Item it : all) if (it.paused) hidden++;
             if (all.isEmpty()) return "Ninguna";
-            return all.size() + (all.size() == 1 ? " foto" : " fotos") + (paused > 0 ? " · " + paused + " en pausa" : "");
+            return all.size() + (all.size() == 1 ? " foto" : " fotos")
+                    + (hidden > 0 ? " · " + hidden + (hidden == 1 ? " oculta" : " ocultas") : "");
         }
 
         private void adjustBackgrounds(int dir) {
