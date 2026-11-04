@@ -50,9 +50,28 @@ public class RemoteKeyService extends AccessibilityService {
                 startPolling();
             } else {
                 stopPolling();
+                if (RemoteKeys.HY300) closeMusic();
             }
         }
     };
+
+    /**
+     * The HY300 turned off: Spotify is closed, so it neither plays on in the dark nor holds its memory until the next
+     * time. Through the projector's ADB, under a short wake lock so the board doesn't sleep halfway.
+     */
+    private void closeMusic() {
+        final PowerManager.WakeLock lock = power.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "freemytv:music");
+        lock.acquire(5000);
+        new Thread(() -> {
+            try (Adb adb = Adb.connect(this, 3000, null)) {
+                adb.shell("am force-stop com.spotify.tv.android");
+            } catch (java.io.IOException e) {
+                AppLog.w("music off: " + e.getMessage());
+            } finally {
+                if (lock.isHeld()) lock.release();
+            }
+        }, "music-off").start();
+    }
 
     @Override protected void onServiceConnected() {
         super.onServiceConnected();

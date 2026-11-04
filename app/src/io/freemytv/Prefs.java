@@ -94,6 +94,18 @@ final class Prefs {
         writeInt(c, "launcher-dim.txt", percent);
     }
 
+    /**
+     * HY300: whether the quick panel shows its "ADB por red" button (off unless chosen in Home Settings). Network ADB
+     * stays closed by the boot firewall either way. A file: the panel (:home) and the settings read it.
+     */
+    static boolean quickAdb(Context c) {
+        return readInt(c, "quick-adb.txt", 0) == 1;
+    }
+
+    static void setQuickAdb(Context c, boolean on) {
+        writeInt(c, "quick-adb.txt", on ? 1 : 0);
+    }
+
     /** The home screen's background: "black" or one of Gallery.KINDS (a file: the screensaver reads it too). */
     static String homeBackground(Context c) {
         String v = readString(c, "home-background.txt", Gallery.SYSTEM);

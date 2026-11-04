@@ -565,8 +565,8 @@ public class SettingsActivity extends Activity {
         // MARK: - Home Settings and Remote Buttons
 
         private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
-        /** Home Settings: language, temperature, theme, sounds, weather, city, Continue watching. */
-        private static final int CITY_ROW = 5, WATCH_ROW = 6;
+        /** Home Settings: language, units, theme, sounds, weather, city, Continue watching, ADB button (HY300). */
+        private static final int CITY_ROW = 5, WATCH_ROW = 6, ADB_ROW = 7;
         private static final String[] HOME_PICTURES = {"black", Gallery.SYSTEM, Gallery.MINE, Gallery.FAVORITES};
         private static final String[] SCREENSAVERS = {Gallery.SYSTEM, Gallery.MINE, Gallery.FAVORITES, "clock"};
         /** Backgrounds: how often the home one changes (minutes) and how long each screensaver photo stays (seconds). */
@@ -660,6 +660,7 @@ public class SettingsActivity extends Activity {
             l.add(Ui.tr("Weather widget"));
             l.add(Ui.tr("City"));
             l.add("Continuar viendo");
+            if (RemoteKeys.HY300) l.add("ADB por red en el panel");
             return l.toArray(new String[0]);
         }
 
@@ -676,6 +677,7 @@ public class SettingsActivity extends Activity {
             v[4] = onOff(Prefs.weather());
             v[CITY_ROW] = !cityStatus.isEmpty() ? cityStatus : Prefs.city().isEmpty() ? "—" : Prefs.city();
             v[WATCH_ROW] = onOff(Prefs.watchNext());
+            if (RemoteKeys.HY300) v[ADB_ROW] = onOff(Prefs.quickAdb(getContext()));
             return v;
         }
 
@@ -766,6 +768,7 @@ public class SettingsActivity extends Activity {
                 case 4: Prefs.setWeather(!Prefs.weather()); break;
                 case CITY_ROW: return;
                 case WATCH_ROW: Prefs.setWatchNext(!Prefs.watchNext()); break;
+                case ADB_ROW: Prefs.setQuickAdb(getContext(), !Prefs.quickAdb(getContext())); return;
                 default:
                     return;
             }

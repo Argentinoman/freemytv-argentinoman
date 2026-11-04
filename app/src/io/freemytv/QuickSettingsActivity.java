@@ -180,7 +180,9 @@ public class QuickSettingsActivity extends Activity {
             tiles.add(dim);
             Tile home = new Tile("Ajustes de inicio", "sparkles", () -> open(new Intent(c, SettingsActivity.class)));
             tiles.add(home);
-            if (RemoteKeys.HY300) {   // network ADB: closed by the boot firewall, opened here to work from a computer
+            // Network ADB: closed by the boot firewall, opened here to work from a computer. Shown only when Home
+            // Settings say so.
+            if (RemoteKeys.HY300 && Prefs.quickAdb(c)) {
                 final Tile adb = new Tile("ADB por red", "lock", null);
                 adb.sub = "…";
                 final Runnable show = () -> new Thread(() -> {
