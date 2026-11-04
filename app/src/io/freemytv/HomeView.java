@@ -2104,9 +2104,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         return list;
     }
 
-    /** "Entradas", on the left: the input, the pen drive and the files. */
+    /** "Entradas", on the left: the input, the pen drive and the wireless screen. */
     private static boolean leftGroup(int kind) {
-        return kind == HomeApps.INPUT || kind == HomeApps.LIVE_TV || kind == HomeApps.FILES || kind == HomeApps.USB || kind == HomeApps.SPEAKER;
+        return kind == HomeApps.INPUT || kind == HomeApps.LIVE_TV || kind == HomeApps.FILES || kind == HomeApps.USB
+                || kind == HomeApps.WIRELESS || kind == HomeApps.SPEAKER;
     }
 
     private void setDrawerItems(List<HomeApps.Item> list) {

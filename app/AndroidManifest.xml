@@ -36,6 +36,9 @@
         <package android:name="com.peacocktv.peacockandroid" />
         <package android:name="com.globo.globotv" />
         <package android:name="com.spotify.tv.android" />
+        <!-- The wireless screen's receivers (HY300): turned on only while in use. -->
+        <package android:name="io.github.jqssun.airplay" />
+        <package android:name="com.droidlogic.miracast" />
         <package android:name="com.tcl.tv" />
         <package android:name="com.google.android.tv" />
         <package android:name="com.mediatek.wwtv.tvcenter" />
@@ -165,6 +168,14 @@
             android:label="Explorador de archivos"
             android:exported="false"
             android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
+        <!-- The drawer's "Inalámbrica" (HY300): AirPlay or Miracast, each turned on only while in use. -->
+        <activity
+            android:name=".WirelessActivity"
+            android:exported="false"
             android:excludeFromRecents="true"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />

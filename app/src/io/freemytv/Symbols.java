@@ -62,6 +62,9 @@ final class Symbols {
         if (name.equals("lock")) return lock();
         if (name.equals("file")) return file();
         if (name.equals("image")) return image();
+        if (name.equals("cast")) return cast();
+        if (name.equals("apple")) return devices(true);
+        if (name.equals("android")) return devices(false);
         boolean picture = name.equals("picture");
         boolean tv = picture || name.equals("live_tv") || name.equals("tv"), hdmi = name.equals("hdmi");
         if (!tv && !hdmi) return null;
@@ -167,6 +170,65 @@ final class Symbols {
         f.lineTo(w - h2 - fold, h2 + fold);
         f.lineTo(w - h2, h2 + fold);
         c.drawPath(f, p);
+        b.setHasMipMap(true);
+        return b;
+    }
+
+    /** Wireless input: a screen whose bottom-left corner sends three arcs, the casting sign. */
+    private static Bitmap cast() {
+        float sw = 13f, h2 = sw / 2, w = 152, h = 120;
+        Bitmap b = Bitmap.createBitmap((int) w, (int) h, Bitmap.Config.ALPHA_8);
+        Canvas c = new Canvas(b);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(sw);
+        p.setStrokeCap(Paint.Cap.ROUND);
+        p.setStrokeJoin(Paint.Join.ROUND);
+        android.graphics.Path frame = new android.graphics.Path();
+        frame.moveTo(h2, 40);
+        frame.lineTo(h2, h2 + 12);
+        frame.quadTo(h2, h2, h2 + 12, h2);
+        frame.lineTo(w - h2 - 12, h2);
+        frame.quadTo(w - h2, h2, w - h2, h2 + 12);
+        frame.lineTo(w - h2, h - h2 - 12);
+        frame.quadTo(w - h2, h - h2, w - h2 - 12, h - h2);
+        frame.lineTo(76, h - h2);
+        c.drawPath(frame, p);
+        float ox = h2, oy = h - h2;
+        for (float r : new float[] {28, 52}) c.drawArc(new RectF(ox - r, oy - r, ox + r, oy + r), 270, 90, false, p);
+        p.setStyle(Paint.Style.FILL);
+        c.drawCircle(ox + 3, oy - 3, 9, p);
+        b.setHasMipMap(true);
+        return b;
+    }
+
+    /**
+     * The wireless screen's two choices: a phone beside a laptop (Android and Windows), or a phone beside a tablet with
+     * the round home button of Apple's devices.
+     */
+    private static Bitmap devices(boolean apple) {
+        float sw = 11f, h2 = sw / 2, w = 160, h = 120;
+        Bitmap b = Bitmap.createBitmap((int) w, (int) h, Bitmap.Config.ALPHA_8);
+        Canvas c = new Canvas(b);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(sw);
+        p.setStrokeCap(Paint.Cap.ROUND);
+        p.setStrokeJoin(Paint.Join.ROUND);
+        RectF phone = apple ? new RectF(h2, 34, 58, h - h2) : new RectF(h2, 44, 50, h - h2);
+        if (apple) {
+            c.drawRoundRect(new RectF(48, h2, w - h2, h - h2), 12, 12, p);     // the tablet
+        } else {
+            c.drawRoundRect(new RectF(40, h2, w - 18, 86), 8, 8, p);           // the laptop's screen
+            c.drawLine(24, h - h2 - 10, w - h2, h - h2 - 10, p);               // and its base
+        }
+        // The phone in front: what's behind it is cleared first, so the lines don't cross it.
+        Paint clear = new Paint(Paint.ANTI_ALIAS_FLAG);
+        clear.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR));
+        c.drawRoundRect(new RectF(phone.left - sw, phone.top - sw, phone.right + sw, phone.bottom + sw), 14, 14, clear);
+        c.drawRoundRect(phone, 10, 10, p);
+        p.setStyle(Paint.Style.FILL);
+        c.drawCircle(phone.centerX(), h - 22, 5, p);
         b.setHasMipMap(true);
         return b;
     }

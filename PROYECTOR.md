@@ -142,6 +142,10 @@ Internet*), o Android borra la red.
   `pm enable com.droidlogic/.tvvolume.VolumeService`). El volumen va de 0 a 100.
 - **Netflix y Flow:** no publican "continuar viendo"; el inicio anota lo que se reproduce ahí (como con Prime) y
   guarda las notificaciones de Netflix (solo las de Netflix) como tarjetas por una semana.
+- **Inalámbrica** (`WirelessActivity`, en Entradas): dos tarjetas, Android / Windows (el Miracast de Amlogic,
+  `com.droidlogic.miracast`, de 2014 y con uid de sistema) y Dispositivos Apple (AirPlay Server,
+  `io.github.jqssun.airplay`, código abierto, de F-Droid). Los dos quedan desactivados: elegir uno lo prende y lo
+  abre, y al volver a la pantalla se fuerza a cerrar y se desactiva otra vez.
 - **Explorador propio** (`FilesActivity`): el botón USB del cajón. `com.droidlogic.FileBrower` desactivada.
 - **`com.softwinner.tcorrection` oculta** (`pm hide`; vuelve con `pm unhide`): es persistente y Android la levantaba
   en cada arranque aunque estuviera desactivada.

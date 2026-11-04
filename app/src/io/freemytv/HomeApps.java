@@ -64,6 +64,8 @@ final class HomeApps {
     static final int PROJECTION = 10;
     /** The drawer's USB button: the pen drive in the file explorer, dimmed while none is plugged in. */
     static final int USB = 11;
+    /** The drawer's "Inalámbrica" (HY300): our screen to receive from Apple devices (AirPlay) or Android and Windows (Miracast). */
+    static final int WIRELESS = 12;
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -250,6 +252,11 @@ final class HomeApps {
         usb.uri = usbPath(c);
         usb.connected = usb.uri != null;
         items.add(usb);
+        if (RemoteKeys.HY300) {
+            Item wireless = shortcut(WIRELESS, "wireless", "Inalámbrica", "cast");
+            wireless.connected = true;
+            items.add(wireless);
+        }
         return items;
     }
 
@@ -567,6 +574,9 @@ final class HomeApps {
                 // Without a pen drive: the list of drives (the projector's memory).
                 intent = new Intent(a, FilesActivity.class);
                 if (it.uri != null) intent.putExtra(FilesActivity.EXTRA_PATH, it.uri);
+                break;
+            case WIRELESS:
+                intent = new Intent(a, WirelessActivity.class);
                 break;
             case PROJECTION:
                 intent = projection(a.getPackageManager());
