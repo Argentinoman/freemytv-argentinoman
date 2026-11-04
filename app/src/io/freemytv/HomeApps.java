@@ -489,6 +489,7 @@ final class HomeApps {
         skip.addAll(java.util.Arrays.asList(LIVE_TV_APPS));
         skip.add(c.getPackageName());
         skip.addAll(HIDDEN);
+        skip.add("com.android.tv.settings");   // the drawer's "Ajustes" opens it
         List<Item> items = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (String[] app : launchable(c)) {
@@ -508,7 +509,9 @@ final class HomeApps {
             if (ia >= 0 || ib >= 0) return ia < 0 ? 1 : ib < 0 ? -1 : ia - ib;
             return a.label.toLowerCase(Locale.ROOT).compareTo(b.label.toLowerCase(Locale.ROOT));
         });
-        // No "Free My TV" card here: its settings are already a drawer shortcut ("Home settings").
+        // No "Free My TV" card here: its settings are already a drawer shortcut ("Home settings"). Its file explorer
+        // is, last (the USB button opens it on the pen drive; from here, the list of drives).
+        items.add(special(c, USB, "files", "Explorador de archivos", "folder"));
         return items;
     }
 
