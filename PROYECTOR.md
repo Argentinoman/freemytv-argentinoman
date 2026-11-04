@@ -1,6 +1,6 @@
 # Rama `proyector`
 
-Una versión recortada de este fork para proyectores Android (los chinos), más liviana que la de la TCL. Se mantiene
+Free My TV recortado para proyectores Android (los chinos), liviano para 1 GB de RAM. Se mantiene
 aparte de `master`: lo que se arregle allá se trae con `git merge master` (o `cherry-pick`).
 
 Para instalarlo en otro HY300: [PROMPT-PROYECTOR.md](PROMPT-PROYECTOR.md) (con un asistente) o [apk/LEEME.md](apk/LEEME.md)
@@ -22,7 +22,7 @@ Para instalarlo en otro HY300: [PROMPT-PROYECTOR.md](PROMPT-PROYECTOR.md) (con u
   Store**, que ya no aparece en Todas las apps. Si el proyector tiene pantalla de proyección conocida (trapezoide, zoom,
   modo de proyección), también **Proyección**, que reemplaza a "TV en vivo" en la esquina (un proyector no tiene antena).
 - **Tus fondos**, en el inicio y en el protector de pantalla (con favoritas). Sin internet.
-- El cambio completo a Free My TV / Original, igual que en la tele.
+- El cambio completo a Free My TV / Original: *Original* devuelve todo como vino.
 
 ## Qué se sacó
 
@@ -54,11 +54,11 @@ Cada cuánto cambian: *Cambiar fondo cada* (inicio: de 15 minutos a 1 semana) y 
 segundos a 5 minutos), en la misma pantalla. Las opciones del inicio son Negro, Fondos del sistema, Fondos
 personalizados y Favoritas; las del protector, las mismas fotos o el Reloj.
 
-## Pendiente: adaptarlo al proyector
+## Otros proyectores
 
-El cambio de modo usa las listas de la TCL (`HomeMode.DEBLOAT` y `PROTECTED`, `HomeApps.SHELF`, `LIVE_TV_APPS` y
-`HIDDEN`). Antes de hacer el cambio en el proyector, hay que leer qué trae (ver *Adapting it to another TV* en
-`CLAUDE.md`) y completar esas listas con las apps de esa marca.
+Las listas del cambio de modo (`HomeMode.DEBLOAT` y `PROTECTED`) ya tienen las apps del HY300. Para otro
+proyector, primero hay que leer qué trae (*Adaptarlo a otro proyector* en `CLAUDE.md`) y completar esas listas, y
+`HomeApps.SHELF` y `HIDDEN`, con las apps de esa marca.
 
 ### HY300 (el de Eli)
 

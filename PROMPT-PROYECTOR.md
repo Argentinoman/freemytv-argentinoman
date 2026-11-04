@@ -181,7 +181,7 @@ El de referencia:
 
 - **`ro.product.device` distinto de `t950s_be311`:** la app no lo reconoce como HY300 (`RemoteKeys.HY300`), y las
   pantallas propias del proyector (Proyección, HDMI, Inalámbrica, volumen, sin protector) no aparecen. Avisame y
-  pará: hay que adaptar el código primero (*Adapting it to another TV* en `CLAUDE.md`).
+  pará: hay que adaptar el código primero (*Adaptarlo a otro proyector* en `CLAUDE.md`).
 - **Mismo equipo pero otro `display.id`:** seguí, pero comprobá cada cosa antes de usarla, y contame lo que difiera:
   - `/system/etc/init/ttyunos.rc` y la carpeta `/data/ttyunos`: el instalador remoto del firmware.
   - `/system/etc/init/preinstall.rc` y si corre `/data/local/agent.sh`. Sin esto, el firewall no arranca solo.
