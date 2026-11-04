@@ -32,12 +32,12 @@ public class NetflixNavService extends AccessibilityService {
     static final String NETFLIX = "com.netflix.mediaclient";
 
     /**
-     * Something the ring can land on: a clickable node, or a card Netflix doesn't expose (its "Continue Watching" row
-     * shows to accessibility as an empty list), placed where the posters of the other rows are; OK taps its centre.
+     * Something the ring can land on: a clickable thing on screen (a poster, a button), or the part of one above the
+     * buttons it holds (a "Continue Watching" card over its ⓘ and ⋮).
      */
     private static final class Target {
         final Rect r = new Rect();
-        AccessibilityNodeInfo node;   // null: a card worked out from the row's bounds
+        AccessibilityNodeInfo node;
         String label = "";   // what it shows (a title), to find it again once its list has moved
         boolean cut;   // peeking in at the top or bottom: shown whole once the ring lands on it
         boolean floating;   // outside every list: a bar floating over the page (it never scrolls)
@@ -108,25 +108,17 @@ public class NetflixNavService extends AccessibilityService {
     // MARK: - What the ring can land on
 
     /**
-     * The clickable things on screen (the innermost of each nested group: a poster, not its row), then the cards of
-     * any row Netflix hides, sized and spaced like the posters it does show.
+     * The clickable things on screen: the innermost of each nested group (a poster, not its row), and a card over its
+     * buttons as the part above them.
      */
     private List<Target> targets(AccessibilityNodeInfo root) {
         List<Target> out = new ArrayList<>();
-        List<Rect> hiddenRows = new ArrayList<>();
         screenWidth = getResources().getDisplayMetrics().widthPixels;
         screenHeight = getResources().getDisplayMetrics().heightPixels;
-        collect(root, out, hiddenRows, null, false);
-        // (Rows with nothing clickable even counting hidden cards: none left to work out since the real ones count.)
+        collect(root, out, null, false);
         return out;
     }
 
-    /**
-     * Walks the tree. Inside a row (`row`: its bounds) a card counts even when Netflix marks it not visible (its
-     * "Continue Watching" cards: real bounds and titles, but flagged hidden), as long as it's within the row. A
-     * clickable that holds other clickables (that card, with its ⓘ and ⋮ under the picture) counts too, as the part
-     * above them.
-     */
     private static int screenWidth, screenHeight;
 
     /** Cut off by a side of the screen: a card or button that only peeks in sideways doesn't count. */
@@ -139,8 +131,13 @@ public class NetflixNavService extends AccessibilityService {
         return (r.top <= 0 || r.bottom >= screenHeight - 1) && r.height() < screenHeight / 6;
     }
 
-    private static boolean collect(AccessibilityNodeInfo n, List<Target> out, List<Rect> hiddenRows, Rect row,
-            boolean inList) {
+    /**
+     * Walks the tree. Inside a row (`row`: its bounds) a card counts even when Netflix marks it not visible (its
+     * "Continue Watching" cards: real bounds and titles, but flagged hidden), as long as it's within the row. A
+     * clickable that holds other clickables (that card, with its ⓘ and ⋮ under the picture) counts too, as the part
+     * above them. `inList`: under a scrolling list (what isn't floats over the page, as its bars).
+     */
+    private static boolean collect(AccessibilityNodeInfo n, List<Target> out, Rect row, boolean inList) {
         if (n == null) return false;
         Rect r = new Rect();
         n.getBoundsInScreen(r);
@@ -152,7 +149,7 @@ public class NetflixNavService extends AccessibilityService {
         int from = out.size();
         boolean inner = false;
         boolean below = inList || n.isScrollable();
-        for (int i = 0; i < n.getChildCount(); i++) inner |= collect(n.getChild(i), out, hiddenRows, inRow, below);
+        for (int i = 0; i < n.getChildCount(); i++) inner |= collect(n.getChild(i), out, inRow, below);
         if (n.isClickable() && n.isEnabled() && r.width() > 8 && r.height() > 8) {
             Rect part = new Rect(r);
             if (inner) {   // only the part above what it holds, if that's most of it (a picture over its buttons)
@@ -174,8 +171,6 @@ public class NetflixNavService extends AccessibilityService {
                 return true;
             }
         }
-        // A row with nothing clickable inside it, even counting hidden ones: its cards are worked out.
-        if (!inner && list) hiddenRows.add(r);
         return inner;
     }
 
@@ -187,50 +182,6 @@ public class NetflixNavService extends AccessibilityService {
             if (c != null) s = c.getContentDescription() != null ? c.getContentDescription() : c.getText();
         }
         return s == null ? "" : s.toString();
-    }
-
-    /** The cards of the hidden rows, at the posters' width and spacing (worked out from the rows that show). */
-    private void addHiddenCards(List<Target> out, List<Rect> hiddenRows) {
-        int width = 0, pitch = 0, margin = 0;
-        List<Integer> widths = new ArrayList<>();
-        for (Target t : out) {
-            if (t.node != null && t.r.height() > t.r.width() && t.r.width() > 40) widths.add(t.r.width());
-        }
-        if (!widths.isEmpty()) {
-            Collections.sort(widths);
-            width = widths.get(widths.size() / 2);
-            for (Target a : out) {   // the gap between two posters side by side in a row
-                if (a.node == null || a.r.width() != width) continue;
-                for (Target b : out) {
-                    if (b != a && b.node != null && b.r.top == a.r.top && b.r.left > a.r.left
-                            && (pitch == 0 || b.r.left - a.r.left < pitch)) pitch = b.r.left - a.r.left;
-                }
-                if (margin == 0 || a.r.left < margin) margin = a.r.left;
-            }
-        }
-        int button = Math.round(getResources().getDisplayMetrics().heightPixels / 600f * 44);   // 44 px at 600 px tall
-        for (Rect row : hiddenRows) {
-            int w = width > 0 ? width : Math.round(row.height() * 0.57f);
-            int step = pitch > w ? pitch : Math.round(w * 1.04f);
-            int x = row.left + (margin > 0 ? margin : Math.round(w * 0.08f));
-            // The card as Netflix lays it out when it does expose it: the picture (2:2.8) on top, and under it the
-            // ⓘ (more info) and ⋮ (menu) buttons.
-            int imageBottom = Math.min(row.bottom, row.top + Math.round(w * 1.4f));
-            int buttons = row.bottom - imageBottom, size = Math.min(button, buttons - 4), cy = imageBottom + buttons / 2;
-            for (; x + w / 2 < row.right; x += step) {
-                Target t = new Target();
-                t.r.set(x, row.top, Math.min(x + w, row.right), imageBottom);
-                out.add(t);
-                if (size < 24) continue;
-                for (float at : new float[] {0.36f, 0.78f}) {
-                    int cx = x + Math.round(w * at);
-                    if (cx + size / 2 > row.right) continue;
-                    Target b = new Target();
-                    b.r.set(cx - size / 2, cy - size / 2, cx + size / 2, cy + size / 2);
-                    out.add(b);
-                }
-            }
-        }
     }
 
     /**
@@ -281,8 +232,6 @@ public class NetflixNavService extends AccessibilityService {
         focusLabel = t.label;
         focusFloating = t.floating;
         hasFocus = true;
-        AppLog.w("netflix nav: " + (t.node != null ? t.node.getClassName() : "hidden card") + " "
-                + focus.toShortString());   // TEMP: while tuning
         // Netflix slides a row a little after the ring moves in it: the ring follows once it has settled.
         main.removeCallbacks(resync);
         main.postDelayed(resync, 250);
@@ -305,7 +254,6 @@ public class NetflixNavService extends AccessibilityService {
             }
         }
         if (same == null || same.r.equals(focus)) return;
-        AppLog.w("netflix nav: resync " + focus.toShortString() + " -> " + same.r.toShortString());   // TEMP: while tuning
         focus.set(same.r);
         showRing();
     };
@@ -324,7 +272,6 @@ public class NetflixNavService extends AccessibilityService {
         beforeScroll = targets;
         AccessibilityNodeInfo list = scroller(root, dx != 0);
         boolean scrolled = list != null && scroll(list, dx, dy);
-        AppLog.w("netflix nav: scroll " + (list == null ? "none" : scrolled));   // TEMP: while tuning
         if (scrolled) {
             final int fx = dx, fy = dy;
             main.postDelayed(() -> afterScroll(fx, fy), fy != 0 ? 900 : 600);   // once Netflix's scroll has settled
@@ -337,7 +284,8 @@ public class NetflixNavService extends AccessibilityService {
     private static boolean scroll(AccessibilityNodeInfo list, int dx, int dy) {
         if (list.performAction(dx + dy > 0 ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
                 : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)) return true;
-        int id = dx > 0 ? android.R.id.accessibilityActionScrollRight : dx < 0 ? android.R.id.accessibilityActionScrollLeft
+        int id = dx > 0 ? android.R.id.accessibilityActionScrollRight
+                : dx < 0 ? android.R.id.accessibilityActionScrollLeft
                 : dy > 0 ? android.R.id.accessibilityActionScrollDown : android.R.id.accessibilityActionScrollUp;
         return list.performAction(id);
     }
@@ -482,12 +430,11 @@ public class NetflixNavService extends AccessibilityService {
         return sideways && scrolls && r.width() > r.height() ? n : null;
     }
 
-    /** OK: the thing under the ring clicks; a hidden card (or one that won't click) gets a tap at its centre. */
+    /** OK: the thing under the ring clicks; one that won't (a card Netflix flags hidden) gets a tap at its centre. */
     private void click(List<Target> targets) {
         for (Target t : targets) {
             if (!t.r.equals(focus) || t.node == null) continue;
             boolean clicked = t.node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-            AppLog.w("netflix nav: click " + focus.toShortString() + " -> " + clicked);   // TEMP: while tuning
             if (clicked) {
                 hasFocus = false;
                 main.postDelayed(this::refresh, 700);   // a new screen: the ring finds its first place
@@ -498,7 +445,6 @@ public class NetflixNavService extends AccessibilityService {
         p.moveTo(focus.centerX(), focus.centerY());
         dispatchGesture(new GestureDescription.Builder()
                 .addStroke(new GestureDescription.StrokeDescription(p, 0, 60)).build(), null, null);
-        AppLog.w("netflix nav: tap " + focus.toShortString());   // TEMP: while tuning
         hasFocus = false;
         main.postDelayed(this::refresh, 700);
     }

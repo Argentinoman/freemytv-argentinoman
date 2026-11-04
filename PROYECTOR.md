@@ -156,7 +156,10 @@ Internet*), o Android borra la red.
 - **Netflix con las flechas** (`NetflixNavService`, en `:keys`, prendido junto al de los botones por `HomeMode`): en
   la Netflix de celular, las flechas saltan entre lo que se puede tocar (como el buscador de foco de Android) y OK lo
   toca; un aro blanco marca dónde. Solo lee la pantalla de Netflix (`packageNames`); con el teclado abierto, las
-  flechas son del teclado. Reemplaza al "NetflixMouse" del fabricante.
+  flechas son del teclado. Reemplaza al "NetflixMouse" del fabricante. Netflix marca ocultas las tarjetas de
+  "Continuar viendo" (pero tienen posición y título reales: cuentan dentro de su fila); las barras flotantes se
+  distinguen por no estar dentro de una lista; lo que asoma abajo se trae con `ACTION_SHOW_ON_SCREEN`; y escuchar
+  los eventos de contenido y desplazamiento de Netflix es lo que mantiene al día la copia de su pantalla.
 - **Spotify se cierra al apagar el proyector** (`RemoteKeyService`, con la pantalla apagada: `am force-stop`).
 - **Nombre: "Irupé"** (2026-11-04): `settings global device_name` y `wifi_p2p_device_name` (Miracast; en vivo con
   `wpa_cli -p /data/vendor/wifi/wpa/sockets -i wlan0 set device_name`), Bluetooth (desde la pantalla de Android
