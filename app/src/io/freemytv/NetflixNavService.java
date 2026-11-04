@@ -114,7 +114,7 @@ public class NetflixNavService extends AccessibilityService {
         screenWidth = getResources().getDisplayMetrics().widthPixels;
         screenHeight = getResources().getDisplayMetrics().heightPixels;
         collect(root, out, hiddenRows, null);
-        if (!hiddenRows.isEmpty()) addHiddenCards(out, hiddenRows);
+        // (Rows with nothing clickable even counting hidden cards: none left to work out since the real ones count.)
         return out;
     }
 
@@ -310,6 +310,7 @@ public class NetflixNavService extends AccessibilityService {
         // until the page can't scroll any further; sideways, only what's on the same line, or the row scrolls.
         if (step(targets, dx, dy, true, dx != 0)) return;
         AccessibilityNodeInfo list = scroller(root, dx != 0);
+        beforeScroll = targets;
         boolean scrolled = list != null && scroll(list, dx, dy);
         AppLog.w("netflix nav: scroll " + (list == null ? "none" : scrolled));   // TEMP: while tuning
         if (scrolled) {
@@ -365,6 +366,32 @@ public class NetflixNavService extends AccessibilityService {
         return true;
     }
 
+    /** What was on screen when the last scroll started: to tell how far it went. */
+    private List<Target> beforeScroll = new ArrayList<>();
+
+    /** How far things moved (x, y): the middle of what the titles seen both times moved; null with none in common. */
+    private int[] shift(List<Target> before, List<Target> after) {
+        List<Integer> xs = new ArrayList<>(), ys = new ArrayList<>();
+        for (Target b : before) {
+            if (b.label.isEmpty() || inBar(b.r)) continue;   // the floating bars never move
+            Target match = null;
+            int count = 0;
+            for (Target a : after) {
+                if (a.label.equals(b.label)) {
+                    match = a;
+                    count++;
+                }
+            }
+            if (count != 1) continue;   // a title in two rows can't tell
+            xs.add(match.r.centerX() - b.r.centerX());
+            ys.add(match.r.centerY() - b.r.centerY());
+        }
+        if (ys.isEmpty()) return null;
+        Collections.sort(xs);
+        Collections.sort(ys);
+        return new int[] {xs.get(xs.size() / 2), ys.get(ys.size() / 2)};
+    }
+
     /**
      * After a scroll: the thing the ring was on, found again by what it shows where it moved to, and then the step
      * that way (so nothing in between is skipped, a poster's Share button under it say). Not found: the nearest thing
@@ -389,6 +416,16 @@ public class NetflixNavService extends AccessibilityService {
             if (same != null) {
                 pick(same);
                 step(targets, dx, dy, dy > 0, false);
+                showRing();
+                return;
+            }
+        }
+        // Gone off screen (Netflix scrolls a long way): how far the page moved, from the titles seen before and after,
+        // puts the ring where its thing went, and the step goes on from there (the next row isn't skipped).
+        int[] moved = shift(beforeScroll, targets);
+        if (moved != null) {
+            focus.offset(moved[0], moved[1]);
+            if (step(targets, dx, dy, true, dx != 0)) {
                 showRing();
                 return;
             }
