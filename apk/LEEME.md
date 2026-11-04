@@ -13,6 +13,30 @@ la rama `proyector`.
 |---|---|---|
 | `FreeMyTV-proyector.apk` | 2026-11-04, 1,7 MB | `348bccb8b48d15851364b3d8c90e2964413ee4c7efdb1f97942c84c4060cb172` |
 
+## Qué trae (reemplaza las apps del proyector)
+
+Todo viene dentro del APK. Lo que se ve distinto:
+
+- **Inicio:** apps, reloj, clima de 7 días, "Continuar viendo" (Netflix, Disney+, YouTube, Spotify, Prime, Flow),
+  tus fotos de fondo y Mis favoritas, con el orden que quieras, en orden o al azar. Reemplaza al launcher chino, que
+  hablaba con servidores del fabricante.
+- **Proyección:** trapecio automático con el sensor, ángulos a mano, tamaño y modo de proyección (frontal, trasera,
+  techo). Reemplaza a la app del fabricante, que mandaba datos afuera.
+- **HDMI:** la entrada a pantalla completa, con "Sin señal" cuando no llega nada.
+- **Inalámbrica:**
+  - Android/Windows (Miracast) y Dispositivos Apple (AirPlay Server, que se instala aparte).
+  - Cada uno se prende solo mientras lo usás.
+- **Explorador de archivos y visor de fotos propios:**
+  - el botón USB abre el pendrive;
+  - ← → pasan las fotos;
+  - mantener OK deja la foto de fondo.
+- **Barra de volumen** fina, en vez del círculo gigante.
+- **Netflix con las flechas:** la Netflix de celular, que es la única que anda acá, manejada con el control. Un aro
+  blanco marca dónde estás.
+- **Widget de música:** lo que suena en Spotify o YouTube.
+- **Panel rápido** (botón de opciones del control): brillo, Proyección, notificaciones y ADB por red.
+- **Ajustes:** fondos, parlante Bluetooth favorito, botones del control, ciudad e idioma.
+
 ## Antes de empezar
 
 1. **Fijate el firmware:** Ajustes → Preferencias del dispositivo → Información → Compilación. Se probó con
@@ -37,7 +61,16 @@ la rama `proyector`.
 5. Abrí **Free My TV** (en Todas las apps) → **Pantalla de inicio** → **Free My TV**. Si pregunta por la depuración
    USB, aceptá y tildá *Permitir siempre*.
 
-Con eso ya tenés el inicio nuevo. Lo de seguridad (camino B) necesita una computadora.
+Con eso ya tenés el inicio nuevo. Para el widget de música: Ajustes de Android → Apps → Acceso especial → Acceso a
+notificaciones → Free My TV. Si tu proyector no tiene esa pantalla, va por computadora (paso 4 del camino B).
+
+**Lo que este camino no arregla:**
+
+- El instalador remoto del fabricante sigue activo y puede volver a meter apps.
+- El ADB sigue abierto como root.
+- El audio Dolby de Disney+ sigue mudo.
+
+Eso es el camino B.
 
 ## Camino B: con computadora (recomendado)
 
@@ -83,7 +116,12 @@ adb shell cmd package compile -m speed -f io.freemytv
 adb shell cmd notification allow_listener io.freemytv/io.freemytv.NowPlayingListener
 ```
 
-La última es para el widget de música: solo lee qué se está reproduciendo.
+```bash
+adb shell appops set io.freemytv GET_USAGE_STATS allow
+```
+
+- El permiso de notificaciones es para el widget de música: solo lee qué se está reproduciendo.
+- El último es para la fila de las apps que usaste hace poco.
 
 ### 5. Apagá lo peligroso
 
@@ -149,6 +187,15 @@ en cada arranque, y:
 - neutraliza el instalador remoto del fabricante;
 - arregla el audio Dolby que sonaba mudo en Disney+.
 
+Por qué hace falta:
+
+- **El instalador remoto está en el firmware** (`ttyunos.rc`). En cada arranque baja scripts de servidores chinos y
+  los corre como root: así instaló apps solo, apenas se conectó al Wi-Fi. El firewall vacía esos scripts y bloquea
+  esos servidores.
+- **El audio:** el proyector dice soportar Dolby pero no tiene la librería, y ese audio sale mudo. El firewall hace
+  que las apps elijan la pista AAC.
+- **Es reversible:** todo queda en memoria. Borrando el archivo y reiniciando, vuelve como estaba.
+
 En Windows, bajalo con "Download raw file": tiene que quedar con fin de línea LF. Después:
 
 ```bash
@@ -158,6 +205,21 @@ adb push agent.sh /data/local/agent.sh
 ```bash
 adb shell "chown root:root /data/local/agent.sh; chmod 755 /data/local/agent.sh"
 ```
+
+Sonido envolvente codificado en "Nunca" (también para el audio de Disney+):
+
+```bash
+adb shell settings put global encoded_surround_output 1
+```
+
+Los restos de lo que bajó el instalador remoto se mueven a una carpeta aparte (no se borran):
+
+```bash
+adb shell 'mkdir -p /data/local/fmtv/cuarentena && cd /data/local && for f in com.master.jmsu_*.apk rule install push uninstall shell; do [ -e $f ] && mv $f fmtv/cuarentena/; done'
+```
+
+(Con comillas simples. Anda en PowerShell y en la Terminal de Mac o Linux; en el viejo "Símbolo del sistema" de
+Windows, no.)
 
 ```bash
 adb reboot

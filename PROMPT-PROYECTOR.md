@@ -28,6 +28,114 @@ el proyector, decime qué vas a hacer y esperá mi OK. Las teclas en el proyecto
 - No completes CAPTCHAs ni esquives verificaciones de sitios de descarga: si una página lo pide, bajo el archivo yo.
 - Nunca subas a git `config.properties`, claves, keystores, mis fotos ni los APK de terceros.
 
+## Qué trae este launcher
+
+El APK reemplaza las apps del fabricante. Todo esto ya viene adentro y se prende solo cuando
+`ro.product.device` es `t950s_be311` (`RemoteKeys.HY300`). Explicámelo antes del cambio, así sé qué voy a encontrar:
+
+| Lo del fabricante | Lo reemplaza | Qué hace distinto |
+|---|---|---|
+| Launcher chino `com.htc.htclauncherhighenglishd08`, más `com.jm.jmlauncher` y `com.master.apps` | El inicio de Free My TV (`HomeView`) | Estante de apps, reloj, clima de 7 días, "Continuar viendo" (Netflix, Disney+, YouTube, Spotify, Prime, Flow), fondos propios y Mis favoritas. Sin publicidad ni servidores chinos: el launcher original hablaba con `txy.jiumaoos.com` y mandaba errores a Umeng. |
+| Trapecio `com.softwinner.tcorrection` | **Proyección** (`Projector`, `ProjectionActivity`; en el panel rápido y en la esquina del inicio) | Trapecio automático con el acelerómetro, ángulos a mano, tamaño y modo de proyección (las 4 orientaciones: frontal, trasera, techo). Se reaplica al volver al inicio. La original mandaba datos afuera y tenía las llaves de los scripts root del firmware. |
+| App de TV de Amlogic `com.droidlogic.android.tv`, que se queda prendida pero sin internet | **HDMI** (`HdmiActivity`) | La entrada a pantalla completa, con "Sin señal" cuando no llega nada. Atrás vuelve al inicio. La placa dice tener dos HDMI y muestra uno solo. |
+| Miracast `com.droidlogic.miracast` y AirPlay `com.waxrain.airplayer2` | **Inalámbrica** (`WirelessActivity`) | Dos tarjetas: Android/Windows (el Miracast de la placa) y Dispositivos Apple (AirPlay Server, código abierto). Cada receptor se prende solo mientras se usa: al salir se apaga, y nada queda escuchando en la red. |
+| Explorador `com.droidlogic.FileBrower` | **Explorador propio** (`FilesActivity`; botón USB del cajón) | Abre el pendrive directo. Se da él mismo el permiso de archivos (`MANAGE_EXTERNAL_STORAGE`) por el ADB local. |
+| Visor de fotos `com.droidlogic.imageplayer` y galería `com.android.gallery3d` | **Visor propio** (`ImageViewerActivity`) | ← → recorren la carpeta. Mantener OK deja la foto de fondo del inicio. También abre imágenes de otras apps. |
+| Capa de ajustes `com.htc.htcsettings` | **Ajustes de Free My TV** y los de Android | Fondos, Mis favoritas, orden de las fotos (en orden o al azar), parlante favorito, botones del control, ADB por red, ciudad e idioma. "Ajustes del TV" abre los ajustes de Android. |
+| Círculo gigante de volumen `com.droidlogic/.tvvolume.VolumeService` | **Barra de volumen** (`VolumeBar`) | Fina, a la derecha, de 0 a 100. Solo se apaga ese componente, no la app `com.droidlogic`. |
+| "NetflixMouse" `com.master.accessibility` | **Netflix con las flechas** (`NetflixNavService`) | Las flechas saltan entre lo que se puede tocar en la Netflix de celular, con un aro blanco, y OK lo toca. Solo lee la pantalla de Netflix. |
+| — | **Widget de música** y "Vistos recientemente" (`NowPlayingListener`, `MediaHistory`) | Lo que suena en Spotify o YouTube, arriba a la derecha. Netflix y Flow no publican "continuar viendo": el inicio anota lo que se reproduce y guarda las notificaciones de Netflix como tarjetas por una semana. |
+| — | **Panel rápido** (`QuickSettingsActivity`; botón de opciones del control) | Brillo del inicio, Proyección, notificaciones y el botón **ADB por red**. |
+| — | **Apagado** (`PowerOff`, `RemoteKeyService`) | Animación al apagar y prender. Al apagar el proyector cierra Spotify, así no sigue sonando a oscuras ni ocupa memoria (el equipo tiene 1 GB). |
+| Navegador | **TV Bro** (aparte, paso 8) | Se abre desde el botón "Navegador" del cajón. |
+
+Detalles del firmware que el launcher ya resuelve:
+
+- **El inicio que se pide no es el de siempre.** Cuando el inicio predeterminado no es el del fabricante, el sistema
+  no pide la categoría `HOME` sino `android.intent.category.HOME.JM`. Solo le contestaba `FallbackHome`, una pantalla
+  vacía con el logo. `HomeActivity` declara también `HOME.JM`.
+- **Sin protector de pantalla.** El firmware trae "apagar pantalla: nunca", así que el protector nunca arranca solo.
+  Probado a mano, usaba un 30-35 % de CPU y 22 MB más. En el HY300 no aparece en los ajustes ni en el panel.
+- **La Play Store** está en Todas las apps, como una más.
+- **Nombre del equipo** (opcional, preguntame cuál quiero). En el de referencia es "Irupé":
+  - `settings put global device_name <nombre>` y `wifi_p2p_device_name` (Miracast);
+  - Bluetooth: desde la pantalla `android.settings.DEVICE_NAME` de Android; editar `bt_config.conf` no alcanza;
+  - AirPlay Server: desde su propia app.
+
+  El modelo (`HY300`) es de fábrica y no cambia.
+
+## Por qué cada arreglo del sistema
+
+Esto es lo que se encontró en el de referencia. Usalo para revisar este proyector, no lo des por hecho.
+
+**El instalador remoto, para que no vuelva nada:**
+
+- **El responsable era el firmware:** `/system/etc/init/ttyunos.rc`. En cada arranque copia `ttyunos.sh`,
+  `v9ying.sh` y `custom.sh` a `/data/ttyunos`, una carpeta con permisos 777: cualquier app podía cambiarlos. Después
+  los corre como root.
+- **Qué hacían esos scripts:**
+  - bajaban por HTTP más scripts de `jm.v7ying.com`, `jm.v9ying.com` o lo que diga `persist.sys.jm.url`;
+  - mandaban MAC, serie, modelo y país a `123.207.77.74`;
+  - traían "reglas" (`/data/local/rule/`) y ejecutaban lo que dijeran.
+- **Pasó apenas se conectó al Wi-Fi** (2026-11-03, 22:15): bajó de `apk.v8ying.com` e instaló como root `TvMarket`,
+  otra versión de `com.htc.htcsettings` y Netflix de celular, y desinstaló otras apps. El registro quedó en
+  `/data/local/install/script.log`. También dejó un paquete cifrado, `/data/local/com.master.jmsu_*.apk`.
+- **`com.fb` hacía lo mismo desde una app:** instalaba en silencio desde `aliyun.v9ying.cn`.
+- **`/system/etc/init/preinstall.rc`:** al arrancar, instala como root lo que haya en `/data/preinstall` y no esté
+  anotado en `/data/local/tmp/preinstalled`. También corre `/data/local/agent.sh` si existe: ese es el lugar del
+  firewall.
+- **Por pendrive** (servicio de `com.softwinner.tcorrection`, `vendor.jm.usb.upgrade`): un pendrive con una carpeta
+  `jm` hace que el firmware instale sus APK y corra `jm/jm.sh` como root. Por eso esa app va apagada **y** oculta: es
+  persistente, y Android la levantaba en cada arranque aunque estuviera desactivada. También existe
+  `vendor.jm.apk.install`.
+- **Contra todo esto:** `agent.sh` vacía los scripts de `/data/ttyunos` en cada arranque y los deja de root, apunta
+  `persist.sys.jm.url` a 127.0.0.1 y bloquea las IP de esos servidores (`8.138.18.183`, `115.126.61.77`,
+  `123.207.77.74`). Lo demás se cubre apagando `com.fb` y `com.softwinner.tcorrection` y moviendo los restos a
+  cuarentena (paso 6).
+- **Si los dominios del fabricante apuntan a otras IP en este proyector**, sumalas al bloqueo y contámelo. Se ven con
+  `ping` o `nslookup` desde la computadora.
+
+**El ADB:**
+
+- Viene abierto en la red, como root y sin pedir autorización. `service.adb.tcp.port` está en `/vendor/build.prop`, y
+  el 5555 es el único puerto abierto.
+- Cualquier app del propio proyector podía conectarse a 127.0.0.1:5555 y tener root. Así trabajaba el instalador.
+- El firewall deja el puerto solo para el propio proyector, y adentro solo para Free My TV, root y shell. Free My TV
+  necesita ese ADB local para el cambio de modo, la Proyección, el explorador y el modo de proyección (`NetworkAdb`).
+
+**Audio mudo en Disney+ (Dolby):**
+
+- La placa dice soportar AC3/E-AC3: tiene una salida "compress offload" y dos decodificadores
+  `c2.amlogic.audio.decoder.ac3` y `.eac3`. Pero le falta la librería de Dolby: el log dice
+  `libms12: pls load lib first`.
+- Resultado: ese audio sonaba mudo en los episodios y las publicidades de Disney+, y en cualquier contenido en Dolby.
+- `agent.sh` monta encima la variante del fabricante sin formatos crudos (`audio_policy_configuration_default.xml`) y
+  una lista vacía sobre `media_codecs_amlogic_audio_ddp.xml`. Después reinicia audioserver y mediaserver, y las apps
+  eligen la pista AAC.
+- Además va `settings put global encoded_surround_output 1`: sonido envolvente codificado en "Nunca".
+- Son solo montajes: un reinicio sin el script devuelve todo.
+
+**Netflix:**
+
+- La de TV (`com.netflix.ninja`) pide un equipo certificado, y este no lo es. Va la de celular
+  (`com.netflix.mediaclient`), que en un proyector sin pantalla táctil no se puede manejar: por eso
+  `NetflixNavService`.
+- Cómo se resolvió (si algo falla en otra versión de Netflix, empezá por acá):
+  - Netflix marca ocultas las tarjetas de "Continuar viendo", pero tienen posición y título reales.
+  - Las barras flotantes se distinguen porque no están dentro de una lista.
+  - Lo que asoma abajo se trae con `ACTION_SHOW_ON_SCREEN`.
+  - Escuchar los eventos de contenido y desplazamiento de Netflix mantiene al día la copia de su pantalla.
+  - Con el teclado abierto, las flechas son del teclado.
+- Widevine es L3: Netflix, Prime y Disney+ se ven en SD. No tiene arreglo.
+
+**Lo que no se toca y por qué:**
+
+- `com.droidlogic.android.tv` tiene `TV_INPUT_HARDWARE`. Apagada, el HDMI puede dejar de andar para siempre. Queda
+  prendida, sin internet: solo traía un cliente de Freeview británico.
+- `com.htc.htcsettings` guardó el Wi-Fi: apagarla sin reconectar desde Android borra la red (paso 7).
+- El `su` sigue en `/system/xbin` y SELinux está apagado: el sistema es de solo lectura y no se arregla sin otro
+  firmware.
+
 ## 1. Preguntame primero
 
 1. La IP del proyector (Ajustes → Red, o Acerca de) y mi ciudad (para el clima).
@@ -85,7 +193,7 @@ El de referencia:
 Antes de cambiar nada, guardá en `proyector-<serie>.txt`:
 
 - `adb shell pm list packages -s` (sistema), `-3` (instaladas) y `-d` (ya apagadas).
-- `adb shell settings get secure enabled_accessibility_services`.
+- `adb shell settings get secure enabled_accessibility_services` y `adb shell settings get global encoded_surround_output`.
 - El inicio actual: `adb shell cmd package resolve-activity -a android.intent.action.MAIN -c android.intent.category.HOME`.
 
 Con esto todo se puede volver atrás.
@@ -96,7 +204,13 @@ Con esto todo se puede volver atrás.
 adb install -r apk/FreeMyTV-proyector.apk      # o FreeMyTV.apk si compilaste el tuyo
 adb shell cmd package compile -m speed -f io.freemytv
 adb shell cmd notification allow_listener io.freemytv/io.freemytv.NowPlayingListener
+adb shell appops set io.freemytv GET_USAGE_STATS allow
 ```
+
+- `GET_USAGE_STATS` es para la fila "Seguir en…": las apps usadas en los últimos 14 días. Sin este permiso la fila no
+  aparece.
+- El permiso de archivos del explorador y los servicios de accesibilidad los pone la app sola. Si no aparecen,
+  revisalos en el paso 7.
 
 - Avisame que instalar sobre el inicio lo cierra un momento, y no compiles mientras abro una app: usa el procesador
   unos segundos.
@@ -192,6 +306,24 @@ adb shell "chown root:root /data/local/agent.sh; chmod 755 /data/local/agent.sh"
   **ADB por red** lo abre hasta el próximo reinicio.
 - Para sacarlo: `adb shell rm /data/local/agent.sh` y reiniciar.
 
+**Además del firewall** (cada cosa con mi OK):
+
+1. **Restos del instalador remoto, a cuarentena.** Se mueven, no se borran:
+   ```bash
+   adb shell "mkdir -p /data/local/fmtv/cuarentena && cd /data/local && for f in com.master.jmsu_*.apk rule install push uninstall shell; do [ -e \$f ] && mv \$f fmtv/cuarentena/; done; ls fmtv/cuarentena"
+   ```
+   Antes, mostrame `/data/local/install/script.log` si existe: ahí se ve qué instaló el fabricante por su cuenta.
+2. **Lo que esperaría instalarse:** `adb shell ls -la /data/preinstall /data/local/tmp/preinstalled`. Contame qué hay.
+   Si hay APK que no conozco, también van a cuarentena.
+3. **Audio:** `adb shell settings put global encoded_surround_output 1`.
+4. **Comprobá después de reiniciar**, con el ADB reabierto desde el panel:
+   - `adb shell iptables -S | grep fmtv`: las reglas `fmtv_adb`, `fmtv_adb_apps` y `fmtv_vendor`;
+   - `adb shell cat /data/ttyunos/ttyunos.sh`: tiene que decir "neutralizado";
+   - `adb shell getprop persist.sys.jm.url`: tiene que ser `http://127.0.0.1`;
+   - `adb shell mount | grep -E "audio_policy|ddp"`: los dos montajes del audio;
+   - `adb shell pm list packages -d`: que lo apagado siga apagado.
+5. **Probá el audio:** pedime que ponga un episodio de Disney+ y confirme que se escucha.
+
 ## 7. El cambio de modo (lo hago yo)
 
 1. **Antes, el Wi-Fi:** la red la guardó `com.htc.htcsettings`, que el cambio apaga. Hay que olvidar la red y volver
@@ -210,6 +342,15 @@ adb shell "chown root:root /data/local/agent.sh; chmod 755 /data/local/agent.sh"
    Si faltan, ponelos con
    `adb shell settings put secure enabled_accessibility_services io.freemytv/io.freemytv.RemoteKeyService:io.freemytv/io.freemytv.NetflixNavService`
    y `adb shell settings put secure accessibility_enabled 1`.
+5. Pedime que pruebe, uno por uno, y anotá lo que falle:
+   - **HDMI**, con algo enchufado y sin nada: tiene que decir "Sin señal".
+   - **Proyección:** trapecio automático y modo de proyección.
+   - **Inalámbrica:** que se prenda y, al salir, se apague.
+   - **El explorador** con un pendrive, y **una foto** abierta en el visor.
+   - **El volumen:** la barra fina, no el círculo.
+   - **Netflix con las flechas.**
+   - **El widget de música** con Spotify.
+   - **Apagar y prender:** que el fondo arranque de la primera foto.
 
 ## 8. Apps de streaming (opcional; de dónde se bajaron)
 
@@ -266,8 +407,10 @@ desarrollador.
    - `adb shell pm enable <paquete>`;
    - `adb shell pm unhide com.softwinner.tcorrection`;
    - `adb shell pm enable com.droidlogic/.tvvolume.VolumeService`.
-3. Sacá el firewall: `adb shell rm /data/local/agent.sh` y reiniciar.
-4. Recién ahí, si quiero, `adb uninstall io.freemytv`.
+3. Sacá el firewall: `adb shell rm /data/local/agent.sh` y reiniciar. El audio vuelve solo.
+4. `encoded_surround_output` al valor anotado en el paso 3. Lo de `/data/local/fmtv/cuarentena` vuelve a
+   `/data/local` solo si lo pido: es lo del instalador remoto.
+5. Recién ahí, si quiero, `adb uninstall io.freemytv`.
 
 Al terminar, dame un resumen corto: qué quedó instalado, qué se apagó (y qué apps decidí conservar), dónde está
 `proyector-<serie>.txt` y cómo abrir el ADB por red la próxima vez.
