@@ -38,10 +38,12 @@ public class NetflixNavService extends AccessibilityService {
     private static final class Target {
         final Rect r = new Rect();
         AccessibilityNodeInfo node;   // null: a card worked out from the row's bounds
+        String label = "";   // what it shows (a title), to find it again once its list has moved
     }
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Rect focus = new Rect();
+    private String focusLabel = "";
     private boolean hasFocus;
     private Ring ring;
 
@@ -109,29 +111,68 @@ public class NetflixNavService extends AccessibilityService {
     private List<Target> targets(AccessibilityNodeInfo root) {
         List<Target> out = new ArrayList<>();
         List<Rect> hiddenRows = new ArrayList<>();
-        collect(root, out, hiddenRows);
+        screenWidth = getResources().getDisplayMetrics().widthPixels;
+        screenHeight = getResources().getDisplayMetrics().heightPixels;
+        collect(root, out, hiddenRows, null);
         if (!hiddenRows.isEmpty()) addHiddenCards(out, hiddenRows);
         return out;
     }
 
-    private static boolean collect(AccessibilityNodeInfo n, List<Target> out, List<Rect> hiddenRows) {
-        if (n == null || !n.isVisibleToUser()) return false;
-        boolean inner = false;
-        for (int i = 0; i < n.getChildCount(); i++) inner |= collect(n.getChild(i), out, hiddenRows);
+    /**
+     * Walks the tree. Inside a row (`row`: its bounds) a card counts even when Netflix marks it not visible (its
+     * "Continue Watching" cards: real bounds and titles, but flagged hidden), as long as it's within the row. A
+     * clickable that holds other clickables (that card, with its ⓘ and ⋮ under the picture) counts too, as the part
+     * above them.
+     */
+    private static int screenWidth, screenHeight;
+
+    /** Cut off by the screen's edge: a card or button that only peeks in (a sliver at a side or the bottom). */
+    private static boolean peeking(Rect r) {
+        return ((r.left <= 0 || r.right >= screenWidth - 1) && r.width() * 2 < r.height())
+                || ((r.top <= 0 || r.bottom >= screenHeight - 1) && r.height() < screenHeight / 12);
+    }
+
+    private static boolean collect(AccessibilityNodeInfo n, List<Target> out, List<Rect> hiddenRows, Rect row) {
+        if (n == null) return false;
         Rect r = new Rect();
         n.getBoundsInScreen(r);
-        if (!inner && n.isClickable() && n.isEnabled() && r.width() > 8 && r.height() > 8) {
-            Target t = new Target();
-            t.r.set(r);
-            t.node = n;
-            out.add(t);
-            return true;
+        if (row == null ? !n.isVisibleToUser() : !Rect.intersects(row, r) || r.width() <= 0) return false;
+        boolean list = n.isScrollable() && r.width() > r.height() && r.height() > r.width() / 6;   // a row, not a bar
+        Rect inRow = list ? r : row;
+        int from = out.size();
+        boolean inner = false;
+        for (int i = 0; i < n.getChildCount(); i++) inner |= collect(n.getChild(i), out, hiddenRows, inRow);
+        if (n.isClickable() && n.isEnabled() && r.width() > 8 && r.height() > 8) {
+            Rect part = new Rect(r);
+            if (inner) {   // only the part above what it holds, if that's most of it (a picture over its buttons)
+                int top = r.bottom;
+                for (int i = from; i < out.size(); i++) top = Math.min(top, out.get(i).r.top);
+                part.bottom = top;
+                if (part.height() < r.height() * 4 / 10) part.setEmpty();
+            }
+            if (row != null) part.intersect(row);
+            if (!part.isEmpty() && part.width() > 8 && part.height() > 8 && !peeking(part)) {
+                Target t = new Target();
+                t.r.set(part);
+                t.node = n;
+                t.label = label(n);
+                out.add(t);
+                return true;
+            }
         }
-        // A list wider than tall with nothing clickable inside it: a row whose cards Netflix doesn't expose.
-        if (!inner && n.isScrollable() && r.width() > r.height() && r.height() > 40) {
-            hiddenRows.add(r);
-        }
+        // A row with nothing clickable inside it, even counting hidden ones: its cards are worked out.
+        if (!inner && list) hiddenRows.add(r);
         return inner;
+    }
+
+    /** What a node shows: its own description or text, or its first child's (Netflix puts a poster's title there). */
+    private static String label(AccessibilityNodeInfo n) {
+        CharSequence s = n.getContentDescription() != null ? n.getContentDescription() : n.getText();
+        for (int i = 0; (s == null || s.length() == 0) && i < n.getChildCount(); i++) {
+            AccessibilityNodeInfo c = n.getChild(i);
+            if (c != null) s = c.getContentDescription() != null ? c.getContentDescription() : c.getText();
+        }
+        return s == null ? "" : s.toString();
     }
 
     /** The cards of the hidden rows, at the posters' width and spacing (worked out from the rows that show). */
@@ -223,6 +264,7 @@ public class NetflixNavService extends AccessibilityService {
 
     private void pick(Target t) {
         focus.set(t.r);
+        focusLabel = t.label;
         hasFocus = true;
         AppLog.w("netflix nav: " + (t.node != null ? t.node.getClassName() : "hidden card") + " "
                 + focus.toShortString());   // TEMP: while tuning
@@ -236,12 +278,34 @@ public class NetflixNavService extends AccessibilityService {
      * the ring finds the nearest once it has moved.
      */
     private void move(List<Target> targets, int dx, int dy, AccessibilityNodeInfo root) {
+        // The bars floating over the page (Downloads and Notifications on top, Home, Clips, Search at the bottom) wait
+        // until the page can't scroll any further; sideways, only what's on the same line, or the row scrolls.
+        if (step(targets, dx, dy, true, dx != 0)) return;
+        AccessibilityNodeInfo list = scroller(root, dx != 0);
+        if (list != null && list.performAction(dx + dy > 0 ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+                : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)) {
+            final int fx = dx, fy = dy;
+            main.postDelayed(() -> afterScroll(fx, fy), 600);   // once Netflix's scroll has settled
+        } else {
+            step(targets, dx, dy, false, false);
+        }
+    }
+
+    /** A bar floating over the page: short things in the screen's first sixteenth or last eighth. */
+    private boolean inBar(Rect r) {
+        int h = getResources().getDisplayMetrics().heightPixels;
+        boolean bottom = r.top > h * 7 / 8 - r.height() && r.centerY() > h * 7 / 8 && r.height() < h / 8;
+        return bottom || (r.top < h / 16 && r.height() < h / 8);
+    }
+
+    /** One step that way among what's on screen; false when there's nothing that way. */
+    private boolean step(List<Target> targets, int dx, int dy, boolean skipBar, boolean beamOnly) {
         Target best = null;
         long bestScore = Long.MAX_VALUE;
         boolean bestInBeam = false;
         for (Target t : targets) {
             Rect r = t.r;
-            if (r.equals(focus)) continue;
+            if (r.equals(focus) || (skipBar && inBar(r) && !inBar(focus))) continue;
             boolean ahead = dx > 0 ? r.left >= focus.centerX() : dx < 0 ? r.right <= focus.centerX()
                     : dy > 0 ? r.top >= focus.centerY() : r.bottom <= focus.centerY();
             if (!ahead) continue;
@@ -250,6 +314,7 @@ public class NetflixNavService extends AccessibilityService {
             long minor = dx != 0 ? r.centerY() - focus.centerY() : r.centerX() - focus.centerX();
             boolean inBeam = dx != 0 ? r.bottom > focus.top && r.top < focus.bottom
                     : r.right > focus.left && r.left < focus.right;
+            if (beamOnly && !inBeam) continue;
             long score = 13 * major * major + minor * minor;
             if ((inBeam && !bestInBeam) || (inBeam == bestInBeam && score < bestScore)) {
                 bestScore = score;
@@ -257,24 +322,39 @@ public class NetflixNavService extends AccessibilityService {
                 best = t;
             }
         }
-        if (best != null) {
-            pick(best);
-            return;
-        }
-        AccessibilityNodeInfo list = scroller(root, dx != 0);
-        if (list != null && list.performAction(dx + dy > 0 ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
-                : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)) {
-            final int fx = dx, fy = dy;
-            main.postDelayed(() -> afterScroll(fx, fy), 350);
-        }
+        if (best == null) return false;
+        pick(best);
+        return true;
     }
 
-    /** After a scroll: the nearest thing to where the ring was, a step that way if there is one. */
+    /**
+     * After a scroll: the thing the ring was on, found again by what it shows where it moved to, and then the step
+     * that way (so nothing in between is skipped, a poster's Share button under it say). Not found: the nearest thing
+     * to where the ring was, a step that way.
+     */
     private void afterScroll(int dx, int dy) {
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null || !NETFLIX.contentEquals(root.getPackageName())) return;
         List<Target> targets = targets(root);
         if (targets.isEmpty()) return;
+        if (!focusLabel.isEmpty()) {   // the same title may be in two rows: the one nearest to where the ring was
+            Target same = null;
+            long sameD = Long.MAX_VALUE;
+            for (Target t : targets) {
+                if (!t.label.equals(focusLabel)) continue;
+                long ddx = t.r.centerX() - focus.centerX(), ddy = t.r.centerY() - focus.centerY();
+                if (ddx * ddx + ddy * ddy < sameD) {
+                    sameD = ddx * ddx + ddy * ddy;
+                    same = t;
+                }
+            }
+            if (same != null) {
+                pick(same);
+                step(targets, dx, dy, dy > 0, false);
+                showRing();
+                return;
+            }
+        }
         int cx = focus.centerX() + dx * focus.width() / 2, cy = focus.centerY() + dy * focus.height() / 2;
         Target best = null;
         long bestD = Long.MAX_VALUE;
