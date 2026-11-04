@@ -25,10 +25,12 @@ el proyector, decime qué vas a hacer y esperá mi OK. Las teclas en el proyecto
 - **Ninguna app de streaming o IPTV se apaga sin preguntarme**, aunque sea pirata o sospechosa. Mucha gente usa este
   proyector justamente con esas apps. Explicame qué encontraste y qué riesgo ves, y la decisión es mía (ver el paso 5).
 - **Nunca apagar la app que guardó la red Wi-Fi** (en el HY300 es `com.htc.htcsettings`): Android borra la red. Primero
-  hay que olvidar la red y conectarse otra vez desde los ajustes de Android (paso 7).
+  hay que olvidar la red y conectarse otra vez desde los ajustes de Android (paso 6).
 - **Nunca `am force-stop io.freemytv`**: apaga sus servicios de accesibilidad (los botones del control y Netflix con
   las flechas). Si pasa, se vuelven a prender (paso 4).
 - El cambio de modo (Free My TV / Original) lo hago yo en el proyector, no vos desde la computadora.
+- **El firewall del ADB (paso 8) es siempre lo último**, y antes de prenderlo me avisás: después ya no vas a poder
+  entrar desde la computadora hasta que yo abra el ADB por red desde el panel rápido.
 - No completes CAPTCHAs ni esquives verificaciones de sitios de descarga: si una página lo pide, bajo el archivo yo.
 - Nunca subas a git `config.properties`, claves, keystores, mis fotos ni los APK de terceros.
 
@@ -51,7 +53,7 @@ El APK reemplaza las apps del fabricante. Todo esto ya viene adentro y se prende
 | — | **Widget de música** y "Vistos recientemente" (`NowPlayingListener`, `MediaHistory`) | Lo que suena en Spotify o YouTube, arriba a la derecha. Netflix y Flow no publican "continuar viendo": el inicio anota lo que se reproduce y guarda las notificaciones de Netflix como tarjetas por una semana. |
 | — | **Panel rápido** (`QuickSettingsActivity`; botón de opciones del control) | Brillo del inicio, Proyección, notificaciones y el botón **ADB por red**. |
 | — | **Apagado** (`PowerOff`, `RemoteKeyService`) | Animación al apagar y prender. Al apagar el proyector cierra Spotify, así no sigue sonando a oscuras ni ocupa memoria (el equipo tiene 1 GB). |
-| Navegador | **TV Bro** (aparte, paso 8) | Se abre desde el botón "Navegador" del cajón. |
+| Navegador | **TV Bro** (aparte, paso 7) | Se abre desde el botón "Navegador" del cajón. |
 
 Detalles del firmware que el launcher ya resuelve:
 
@@ -95,7 +97,7 @@ Esto es lo que se encontró en el de referencia. Usalo para revisar este proyect
 - **Contra todo esto:** `agent.sh` vacía los scripts de `/data/ttyunos` en cada arranque y los deja de root, apunta
   `persist.sys.jm.url` a 127.0.0.1 y bloquea las IP de esos servidores (`8.138.18.183`, `115.126.61.77`,
   `123.207.77.74`). Lo demás se cubre apagando `com.fb` y `com.softwinner.tcorrection` y moviendo los restos a
-  cuarentena (paso 6).
+  cuarentena (paso 8).
 - **Si los dominios del fabricante apuntan a otras IP en este proyector**, sumalas al bloqueo y contámelo. Se ven con
   `ping` o `nslookup` desde la computadora.
 
@@ -136,7 +138,7 @@ Esto es lo que se encontró en el de referencia. Usalo para revisar este proyect
 
 - `com.droidlogic.android.tv` tiene `TV_INPUT_HARDWARE`. Apagada, el HDMI puede dejar de andar para siempre. Queda
   prendida, sin internet: solo traía un cliente de Freeview británico.
-- `com.htc.htcsettings` guardó el Wi-Fi: apagarla sin reconectar desde Android borra la red (paso 7).
+- `com.htc.htcsettings` guardó el Wi-Fi: apagarla sin reconectar desde Android borra la red (paso 6).
 - El `su` sigue en `/system/xbin` y SELinux está apagado: el sistema es de solo lectura y no se arregla sin otro
   firmware.
 
@@ -149,8 +151,9 @@ Esto es lo que se encontró en el de referencia. Usalo para revisar este proyect
 3. **Qué apps uso** para ver cosas: Netflix, YouTube, Disney+, Prime, Spotify, Flow, y también si uso alguna app de
    IPTV, películas o fútbol "gratis" que vino instalada o que instalé. Antes de apagar nada, que quede claro cuáles
    quiero conservar.
-4. Si quiero el firewall del ADB (`tools/proyector/agent.sh`, paso 6). Recomendado, pero cierra el ADB por red: para
-   volver a entrar desde una computadora hay que abrirlo desde el panel rápido del proyector.
+4. Si quiero el firewall del ADB (`tools/proyector/agent.sh`, paso 8). Recomendado. Va **al final de todo**, y antes de
+   prenderlo me avisás: cierra el ADB por red, y para volver a entrar desde una computadora hay que abrirlo desde el
+   panel rápido del proyector.
 
 ## 2. Revisá el firmware antes de tocar nada
 
@@ -214,7 +217,7 @@ adb shell appops set io.freemytv GET_USAGE_STATS allow
 - `GET_USAGE_STATS` es para la fila "Seguir en…": las apps usadas en los últimos 14 días. Sin este permiso la fila no
   aparece.
 - El permiso de archivos del explorador y los servicios de accesibilidad los pone la app sola. Si no aparecen,
-  revisalos en el paso 7.
+  revisalos en el paso 6.
 
 - Avisame que instalar sobre el inicio lo cierra un momento, y no compiles mientras abro una app: usa el procesador
   unos segundos.
@@ -247,7 +250,7 @@ quién lo instaló), y presentámelo por grupos. Lo que se hizo en el de referen
 
 **c) Recepción inalámbrica:** `com.waxrain.airplayer2` (AirPlay del fabricante) y `com.droidlogic.miracast`. Free My
 TV tiene su pantalla *Inalámbrica*, que prende Miracast o AirPlay Server solo mientras se usa. El AirPlay del
-fabricante se reemplaza con AirPlay Server (código abierto, paso 8).
+fabricante se reemplaza con AirPlay Server (código abierto, paso 7).
 
 **d) Streaming e IPTV no oficiales: SIEMPRE PREGUNTAR, una por una.**
 
@@ -260,14 +263,14 @@ fabricante se reemplaza con AirPlay Server (código abierto, paso 8).
 - Para cada una, decime el nombre, el paquete y lo que veas: si tiene nombre falso, si arranca sola o si habla con
   servidores raros (`dumpsys package <p>`: permisos y receptores de arranque). Sé honesto con el riesgo, sin sermones:
   la decisión es mía.
-- Si la conservo, queda como está, y el firewall del paso 6 no la afecta. Si la apago, va con `pm disable-user` y
+- Si la conservo, queda como está, y el firewall del paso 8 no la afecta. Si la apago, va con `pm disable-user` y
   queda anotada para volverla.
 
 **e) Se apagan solas con el cambio de modo** (`HomeMode.DEBLOAT`; *Original* las devuelve), no las toques a mano:
 
 - el launcher `com.htc.htclauncherhighenglishd08`;
 - `com.jm.jmlauncher` y `com.master.apps`;
-- `com.htc.htcsettings`, la que guarda el Wi-Fi: ver el paso 7;
+- `com.htc.htcsettings`, la que guarda el Wi-Fi: ver el paso 6;
 - `com.droidlogic.FileBrower`: lo reemplaza el explorador propio.
 
 **f) No tocar nunca:**
@@ -280,55 +283,7 @@ Extra, con mi OK: el círculo gigante de volumen del sistema se apaga como compo
 dibuja su propia barra):
 `adb shell pm disable com.droidlogic/.tvvolume.VolumeService`.
 
-## 6. Firewall del ADB (`agent.sh`)
-
-Qué hace:
-
-- **El ADB por red:** el firmware lo deja abierto, como root y sin pedir permiso. Cualquiera en la red, y cualquier
-  app del proyector vía 127.0.0.1, tenía root. `agent.sh` lo deja solo para el propio proyector, y adentro solo para
-  Free My TV, root y shell.
-- **El instalador remoto** (`ttyunos.rc`): en cada arranque bajaba scripts del fabricante y los corría como root,
-  después de mandar MAC, serie y país. `agent.sh` vacía esos scripts, apunta `persist.sys.jm.url` a 127.0.0.1 y
-  bloquea los servidores del fabricante.
-- **La app de TV de Amlogic** se queda sin internet.
-- **Audio Dolby mudo:** si existen los archivos del paso 2, monta la configuración de audio sin Dolby, y las apps
-  eligen la pista AAC.
-
-Es solo montajes y reglas en memoria: borrando el archivo y reiniciando, vuelve todo.
-
-Comprobá primero las rutas del paso 2. Si algo no existe en este firmware, contámelo antes de seguir. Después:
-
-```bash
-adb push tools/proyector/agent.sh /data/local/agent.sh
-adb shell "chown root:root /data/local/agent.sh; chmod 755 /data/local/agent.sh"
-```
-
-- El archivo tiene que quedar con fin de línea LF. En Windows con Git Bash, revisá que no tenga CRLF. Además, Git Bash
-  cambia las rutas que empiezan con `/`: usá `MSYS_NO_PATHCONV=1` delante de `adb push`.
-- Avisame antes de reiniciar o de correrlo a mano: después de eso, el ADB por red queda cerrado. Para volver a entrar:
-  Ajustes de inicio → **ADB por red en el panel**. Después, en el panel rápido, el botón
-  **ADB por red** lo abre hasta el próximo reinicio.
-- Para sacarlo: `adb shell rm /data/local/agent.sh` y reiniciar.
-
-**Además del firewall** (cada cosa con mi OK):
-
-1. **Restos del instalador remoto, a cuarentena.** Se mueven, no se borran:
-   ```bash
-   adb shell "mkdir -p /data/local/fmtv/cuarentena && cd /data/local && for f in com.master.jmsu_*.apk rule install push uninstall shell; do [ -e \$f ] && mv \$f fmtv/cuarentena/; done; ls fmtv/cuarentena"
-   ```
-   Antes, mostrame `/data/local/install/script.log` si existe: ahí se ve qué instaló el fabricante por su cuenta.
-2. **Lo que esperaría instalarse:** `adb shell ls -la /data/preinstall /data/local/tmp/preinstalled`. Contame qué hay.
-   Si hay APK que no conozco, también van a cuarentena.
-3. **Audio:** `adb shell settings put global encoded_surround_output 1`.
-4. **Comprobá después de reiniciar**, con el ADB reabierto desde el panel:
-   - `adb shell iptables -S | grep fmtv`: las reglas `fmtv_adb`, `fmtv_adb_apps` y `fmtv_vendor`;
-   - `adb shell cat /data/ttyunos/ttyunos.sh`: tiene que decir "neutralizado";
-   - `adb shell getprop persist.sys.jm.url`: tiene que ser `http://127.0.0.1`;
-   - `adb shell mount | grep -E "audio_policy|ddp"`: los dos montajes del audio;
-   - `adb shell pm list packages -d`: que lo apagado siga apagado.
-5. **Probá el audio:** pedime que ponga un episodio de Disney+ y confirme que se escucha.
-
-## 7. El cambio de modo (lo hago yo)
+## 6. El cambio de modo (lo hago yo)
 
 1. **Antes, el Wi-Fi:** la red la guardó `com.htc.htcsettings`, que el cambio apaga. Hay que olvidar la red y volver
    a conectarse desde los ajustes **de Android**, no los del fabricante. Free My TV frena el cambio y lo avisa si
@@ -356,7 +311,7 @@ adb shell "chown root:root /data/local/agent.sh; chmod 755 /data/local/agent.sh"
    - **El widget de música** con Spotify.
    - **Apagar y prender:** que el fondo arranque de la primera foto.
 
-## 8. Apps de streaming (opcional; de dónde se bajaron)
+## 7. Apps de streaming (opcional; de dónde se bajaron)
 
 En el de referencia se instalaron estas versiones (2026-11-03).
 
@@ -395,26 +350,99 @@ desarrollador.
 - Para compilar: JDK 17 (<https://adoptium.net/>) y los command-line tools del SDK de Android
   (<https://developer.android.com/studio#command-line-tools-only>). Ver `CLAUDE.md`.
 
+## 8. Firewall del ADB (`agent.sh`): siempre lo último, y con aviso
+
+**Va al final de todo, cuando ya está todo instalado, probado y anotado.** Apenas el firewall arranca, el ADB por red
+se cierra, y desde la computadora ya no se puede hacer nada hasta que yo lo vuelva a abrir en el proyector. Si
+falta algo de los pasos anteriores, hacelo antes.
+
+Qué hace:
+
+- **El ADB por red:** el firmware lo deja abierto, como root y sin pedir permiso. Cualquiera en la red, y cualquier
+  app del proyector vía 127.0.0.1, tenía root. `agent.sh` lo deja solo para el propio proyector, y adentro solo para
+  Free My TV, root y shell.
+- **El instalador remoto** (`ttyunos.rc`): en cada arranque bajaba scripts del fabricante y los corría como root,
+  después de mandar MAC, serie y país. `agent.sh` vacía esos scripts, apunta `persist.sys.jm.url` a 127.0.0.1 y
+  bloquea los servidores del fabricante.
+- **La app de TV de Amlogic** se queda sin internet.
+- **Audio Dolby mudo:** si existen los archivos del paso 2, monta la configuración de audio sin Dolby, y las apps
+  eligen la pista AAC.
+
+Es solo montajes y reglas en memoria: borrando el archivo y reiniciando, vuelve todo.
+
+### Antes del firewall, con el ADB todavía abierto (cada cosa con mi OK)
+
+1. **Restos del instalador remoto, a cuarentena.** Antes, mostrame `/data/local/install/script.log` si existe: ahí se
+   ve qué instaló el fabricante por su cuenta. Se mueven, no se borran:
+   ```bash
+   adb shell "mkdir -p /data/local/fmtv/cuarentena && cd /data/local && for f in com.master.jmsu_*.apk rule install push uninstall shell; do [ -e \$f ] && mv \$f fmtv/cuarentena/; done; ls fmtv/cuarentena"
+   ```
+2. **Lo que esperaría instalarse:** `adb shell ls -la /data/preinstall /data/local/tmp/preinstalled`. Contame qué hay.
+   Si hay APK que no conozco, también van a cuarentena.
+3. **Audio:** `adb shell settings put global encoded_surround_output 1`.
+4. **Las rutas del paso 2:** comprobalas otra vez. Si algo no existe en este firmware, contámelo antes de seguir.
+5. **Que tenga cómo volver a entrar:** pedime que prenda Free My TV → Ajustes de inicio → **ADB por red en el
+   panel**, y que confirme que veo el botón **ADB por red** en el panel rápido.
+
+### Avisame antes de prenderlo
+
+Decime, con estas palabras o parecidas:
+
+> "Último paso: el firewall. Cuando reinicie el proyector, el ADB por red se cierra y no voy a poder hacer nada más
+> desde la computadora. Si alguna vez hace falta volver a entrar, abrís el panel rápido y tocás **ADB por red**: queda
+> abierto hasta el próximo reinicio. ¿Lo prendo?"
+
+Esperá mi OK.
+
+### Prenderlo
+
+```bash
+adb push tools/proyector/agent.sh /data/local/agent.sh
+adb shell "chown root:root /data/local/agent.sh; chmod 755 /data/local/agent.sh"
+adb reboot
+```
+
+- El archivo tiene que quedar con fin de línea LF. En Windows con Git Bash, revisá que no tenga CRLF. Además, Git Bash
+  cambia las rutas que empiezan con `/`: usá `MSYS_NO_PATHCONV=1` delante de `adb push`.
+- No lo corras a mano sin reiniciar: cierra el ADB igual, a mitad de camino.
+
+### Después del reinicio
+
+1. Preguntame si quiero que compruebes que quedó bien. Para eso tengo que abrir **ADB por red** desde el panel
+   rápido, y vos te reconectás con `adb connect <IP>:5555`. Si no quiero, terminamos acá.
+2. Si sí, comprobá:
+   - `adb shell iptables -S | grep fmtv`: las reglas `fmtv_adb`, `fmtv_adb_apps` y `fmtv_vendor`;
+   - `adb shell cat /data/ttyunos/ttyunos.sh`: tiene que decir "neutralizado";
+   - `adb shell getprop persist.sys.jm.url`: tiene que ser `http://127.0.0.1`;
+   - `adb shell mount | grep -E "audio_policy|ddp"`: los dos montajes del audio;
+   - `adb shell pm list packages -d`: que lo apagado siga apagado.
+3. **Probá el audio:** pedime que ponga un episodio de Disney+ y confirme que se escucha.
+4. Recordame que el ADB se vuelve a cerrar solo en el próximo reinicio, o tocando otra vez **ADB por red**.
+5. Para sacarlo algún día: abrir **ADB por red**, `adb shell rm /data/local/agent.sh` y reiniciar.
+
 ## 9. Lo que no tiene arreglo (contámelo al final)
 
 - SELinux apagado, firmware `userdebug/test-keys` y bootloader abierto. Solo se arreglan con otro firmware, y no hay
   uno oficial confiable.
 - **Actualizaciones del fabricante:** no las instales. Pueden traer de vuelta todo lo que se apagó. Si alguna vez se
-  actualiza, repetí los pasos 2, 5 y 6.
+  actualiza, repetí los pasos 2, 5 y 8.
 - El protector de pantalla no arranca solo: el firmware trae "apagar pantalla: nunca". Free My TV lo saca de sus
   ajustes en el HY300.
 
 ## 10. Cómo volver todo atrás
+
+Si está el firewall, primero pedime que abra **ADB por red** en el panel rápido, y conectate.
 
 1. En el proyector: Free My TV → Pantalla de inicio → **Original**.
 2. Volvé a prender lo que se apagó a mano, desde `proyector-<serie>.txt`:
    - `adb shell pm enable <paquete>`;
    - `adb shell pm unhide com.softwinner.tcorrection`;
    - `adb shell pm enable com.droidlogic/.tvvolume.VolumeService`.
-3. Sacá el firewall: `adb shell rm /data/local/agent.sh` y reiniciar. El audio vuelve solo.
-4. `encoded_surround_output` al valor anotado en el paso 3. Lo de `/data/local/fmtv/cuarentena` vuelve a
+3. `encoded_surround_output` al valor anotado en el paso 3. Lo de `/data/local/fmtv/cuarentena` vuelve a
    `/data/local` solo si lo pido: es lo del instalador remoto.
-5. Recién ahí, si quiero, `adb uninstall io.freemytv`.
+4. Si quiero, `adb uninstall io.freemytv`.
+5. **Último, el firewall:** `adb shell rm /data/local/agent.sh` y reiniciar. El ADB por red y el audio vuelven a como
+   vinieron de fábrica.
 
 Al terminar, dame un resumen corto: qué quedó instalado, qué se apagó (y qué apps decidí conservar), dónde está
 `proyector-<serie>.txt` y cómo abrir el ADB por red la próxima vez.

@@ -20,9 +20,9 @@ Seguí [PROMPT-PROYECTOR.md](PROMPT-PROYECTOR.md) de punta a punta:
 3. Foto del estado de fábrica.
 4. Instalación.
 5. Apps, por grupos.
-6. Firewall.
-7. Cambio de modo.
-8. Apps de streaming.
+6. Cambio de modo.
+7. Apps de streaming.
+8. Firewall: siempre lo último, y avisándole antes a la persona (después el ADB por red queda cerrado).
 
 Para compilar uno propio en vez de usar `apk/FreeMyTV-proyector.apk`:
 

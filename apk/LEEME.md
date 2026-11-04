@@ -182,7 +182,17 @@ Las dos últimas reciben pantalla del celular. Free My TV las prende solo mientr
 las usás, dejalas. Si no, se apagan igual que las de arriba. No toques nunca `com.droidlogic.android.tv`: sin esa,
 el HDMI puede dejar de andar.
 
-### 6. El firewall del ADB (opcional, recomendado)
+### 6. El cambio de modo
+
+Igual que en los pasos 4 y 5 del camino A: primero el Wi-Fi desde los ajustes de Android, después Free My TV →
+Pantalla de inicio → Free My TV.
+
+Si vas a instalar apps de streaming (ver más abajo), hacelo ahora, antes del firewall.
+
+### 7. El firewall del ADB: siempre lo último (opcional, recomendado)
+
+> ⚠️ **Dejalo para el final**, cuando ya tengas todo instalado y probado. Después de reiniciar con el firewall, el ADB
+> por red queda cerrado, y desde la computadora no vas a poder hacer nada hasta que lo abras desde el proyector.
 
 El archivo es [`tools/proyector/agent.sh`](../tools/proyector/agent.sh) de este repo. El firmware lo corre como root
 en cada arranque, y:
@@ -200,7 +210,26 @@ Por qué hace falta:
   que las apps elijan la pista AAC.
 - **Es reversible:** todo queda en memoria. Borrando el archivo y reiniciando, vuelve como estaba.
 
-En Windows, bajalo con "Download raw file": tiene que quedar con fin de línea LF. Después:
+**Primero, mientras el ADB sigue abierto:**
+
+1. Prendé la forma de volver a entrar: en el proyector, Free My TV → Ajustes de inicio → **ADB por red en el panel**.
+   Fijate que en el panel rápido (botón de opciones del control) aparezca el botón **ADB por red**.
+2. Sonido envolvente codificado en "Nunca" (también para el audio de Disney+):
+
+   ```bash
+   adb shell settings put global encoded_surround_output 1
+   ```
+
+3. Los restos de lo que bajó el instalador remoto se mueven a una carpeta aparte (no se borran):
+
+   ```bash
+   adb shell 'mkdir -p /data/local/fmtv/cuarentena && cd /data/local && for f in com.master.jmsu_*.apk rule install push uninstall shell; do [ -e $f ] && mv $f fmtv/cuarentena/; done'
+   ```
+
+   (Con comillas simples. Anda en PowerShell y en la Terminal de Mac o Linux; en el viejo "Símbolo del sistema" de
+   Windows, no.)
+
+**Después, el firewall.** En Windows, bajá `agent.sh` con "Download raw file": tiene que quedar con fin de línea LF.
 
 ```bash
 adb push agent.sh /data/local/agent.sh
@@ -210,34 +239,13 @@ adb push agent.sh /data/local/agent.sh
 adb shell "chown root:root /data/local/agent.sh; chmod 755 /data/local/agent.sh"
 ```
 
-Sonido envolvente codificado en "Nunca" (también para el audio de Disney+):
-
-```bash
-adb shell settings put global encoded_surround_output 1
-```
-
-Los restos de lo que bajó el instalador remoto se mueven a una carpeta aparte (no se borran):
-
-```bash
-adb shell 'mkdir -p /data/local/fmtv/cuarentena && cd /data/local && for f in com.master.jmsu_*.apk rule install push uninstall shell; do [ -e $f ] && mv $f fmtv/cuarentena/; done'
-```
-
-(Con comillas simples. Anda en PowerShell y en la Terminal de Mac o Linux; en el viejo "Símbolo del sistema" de
-Windows, no.)
-
 ```bash
 adb reboot
 ```
 
-**Después del reinicio, el ADB por red queda cerrado.** Para volver a entrar desde la computadora:
-
-1. Free My TV → Ajustes de inicio → **ADB por red en el panel**.
-2. En el panel rápido, el botón **ADB por red** lo abre hasta el próximo reinicio.
-
-### 7. El cambio de modo
-
-Igual que en los pasos 4 y 5 del camino A: primero el Wi-Fi desde los ajustes de Android, después Free My TV →
-Pantalla de inicio → Free My TV.
+**Listo: después del reinicio, el ADB por red queda cerrado.** Si alguna vez necesitás volver a entrar desde la
+computadora, abrí el panel rápido y tocá **ADB por red**. Queda abierto hasta el próximo reinicio o hasta que lo
+toques otra vez.
 
 ## Apps de streaming
 
@@ -250,8 +258,10 @@ Las que andan bien en este proyector, y de dónde se bajaron: la tabla del paso 
 
 ## Volver todo atrás
 
+Si pusiste el firewall, primero abrí **ADB por red** en el panel rápido y conectate (`adb connect <IP>:5555`).
+
 1. Free My TV → Pantalla de inicio → **Original**.
 2. Volvé a prender lo que apagaste: `adb shell pm enable <paquete>`, y además
    `adb shell pm unhide com.softwinner.tcorrection`.
-3. Sacá el firewall: `adb shell rm /data/local/agent.sh` y reiniciá.
-4. Si querés, desinstalá Free My TV: `adb uninstall io.freemytv`.
+3. Si querés, desinstalá Free My TV: `adb uninstall io.freemytv`.
+4. **Último, el firewall:** `adb shell rm /data/local/agent.sh` y reiniciá.
