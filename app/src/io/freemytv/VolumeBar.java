@@ -17,8 +17,9 @@ import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
 
 /**
- * The volume, in the quick panel's look: a slim glass bar at the right edge, filling up from the bottom, with the level
- * on top; it fades away 1.5 s after the last change. On the HY300, in place of the board's big round dialog
+ * The volume, as on Google TV: a slim smoked pane at the right edge with the level on top, a hairline filling up
+ * from the bottom and the speaker at its foot; it fades away 1.5 s after the last change. On the HY300, in place of
+ * the board's big round dialog
  * (com.droidlogic/.tvvolume.VolumeService, turned off: the system starts it on every volume key). Drawn by
  * RemoteKeyService, which is always there and may draw over every app; it only reacts to volume changes.
  */
@@ -35,6 +36,7 @@ final class VolumeBar extends View {
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), rim = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final TextPaint number;
     private final RectF r = new RectF();
+    private final android.graphics.Path speaker = new android.graphics.Path();
     private float alpha, level;
     private boolean muted;
     private ValueAnimator fade, slide;
@@ -77,13 +79,13 @@ final class VolumeBar extends View {
             view = new VolumeBar(c);
             float k = view.k;
             WindowManager.LayoutParams p = new WindowManager.LayoutParams(
-                    Math.round(76 * k), Math.round(400 * k),
+                    Math.round(96 * k), Math.round(500 * k),
                     WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                     WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                             | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                     PixelFormat.TRANSLUCENT);
             p.gravity = Gravity.END | Gravity.CENTER_VERTICAL;
-            p.x = Math.round(48 * k);
+            p.x = Math.round(64 * k);
             try {
                 ((WindowManager) c.getSystemService(Context.WINDOW_SERVICE)).addView(view, p);
             } catch (RuntimeException e) {
@@ -99,7 +101,7 @@ final class VolumeBar extends View {
         super(c);
         audio = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
         k = c.getResources().getDisplayMetrics().heightPixels / 1080f;
-        number = new TextPaint(Ui.numbers(Ui.medium, 26 * k, 0xFFFFFFFF));
+        number = new TextPaint(Ui.numbers(Ui.semibold, 34 * k, 0xFFFFFFFF));
         number.setTextAlign(Paint.Align.CENTER);
         rim.setStyle(Paint.Style.STROKE);
         rim.setStrokeWidth(1.5f * k);
@@ -147,27 +149,48 @@ final class VolumeBar extends View {
     @Override
     protected void onDraw(Canvas c) {
         if (alpha <= 0.01f) return;
-        float w = getWidth(), h = getHeight(), rad = w / 2;
-        // The glass, as the quick panel's.
+        float w = getWidth(), h = getHeight(), rad = 12 * k;
+        // A smoked pane with softly rounded corners, the picture showing through it.
         r.set(0, 0, w, h);
-        fill.setColor(Ui.alpha(0xF01B1B1E, alpha));
+        fill.setColor(Ui.alpha(0xA6141416, alpha));
         c.drawRoundRect(r, rad, rad, fill);
-        rim.setColor(Ui.alpha(0x1FFFFFFF, alpha));
+        rim.setColor(Ui.alpha(0x14FFFFFF, alpha));
         c.drawRoundRect(r, rad, rad, rim);
-        // The level on top, the track below it, the speaker at the foot.
+        // The level on top, a hairline track below it, the speaker at the foot.
         int pct = Math.round(level * 100);
         number.setAlpha(Math.round(255 * alpha));
-        c.drawText(muted ? "—" : String.valueOf(pct), w / 2, 46 * k, number);
-        float tw = 14 * k, top = 70 * k, bottom = h - 74 * k;
+        c.drawText(muted ? "0" : String.valueOf(pct), w / 2, 62 * k, number);
+        float tw = 6 * k, top = 104 * k, bottom = h - 104 * k;
         r.set(w / 2 - tw / 2, top, w / 2 + tw / 2, bottom);
-        fill.setColor(Ui.alpha(0x26FFFFFF, alpha));
+        fill.setColor(Ui.alpha(0x40FFFFFF, alpha));
         c.drawRoundRect(r, tw / 2, tw / 2, fill);
         float filled = (bottom - top) * level;
         if (filled > 0.5f) {
             r.set(w / 2 - tw / 2, bottom - Math.max(tw, filled), w / 2 + tw / 2, bottom);
-            fill.setColor(Ui.alpha(0xFFF5F5F7, alpha));
+            fill.setColor(Ui.alpha(0xFFFFFFFF, alpha));
             c.drawRoundRect(r, tw / 2, tw / 2, fill);
         }
-        Symbols.draw(getContext(), c, "speaker", w / 2, h - 38 * k, 26 * k, Ui.alpha(muted ? 0x66FFFFFF : 0xD9FFFFFF, alpha));
+        drawSpeaker(c, w / 2, h - 54 * k, Ui.alpha(muted ? 0x66FFFFFF : 0xF2FFFFFF, alpha));
+    }
+
+    /** The speaker: a box and its cone, filled, with one sound wave (none when muted). */
+    private void drawSpeaker(Canvas c, float cx, float cy, int color) {
+        float s = 15 * k;
+        speaker.reset();
+        speaker.moveTo(cx - s, cy - s * 0.42f);
+        speaker.lineTo(cx - s * 0.45f, cy - s * 0.42f);
+        speaker.lineTo(cx + s * 0.15f, cy - s);
+        speaker.lineTo(cx + s * 0.15f, cy + s);
+        speaker.lineTo(cx - s * 0.45f, cy + s * 0.42f);
+        speaker.lineTo(cx - s, cy + s * 0.42f);
+        speaker.close();
+        fill.setColor(color);
+        c.drawPath(speaker, fill);
+        if (muted) return;
+        rim.setColor(color);
+        rim.setStrokeWidth(3 * k);
+        r.set(cx - s * 0.35f, cy - s * 0.6f, cx + s * 0.85f, cy + s * 0.6f);
+        c.drawArc(r, -55, 110, false, rim);
+        rim.setStrokeWidth(1.5f * k);
     }
 }
