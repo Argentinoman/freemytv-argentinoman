@@ -62,6 +62,7 @@ public class HomeActivity extends Activity {
         }
         if (home != null) home.resume();
         Projector.applySaved(this);   // HY300: the keystone again (moved while off?), as its vendor app did
+        WirelessActivity.offIfOn(this);   // HY300: a receiver left with Home instead of Back goes off too
     }
 
     @Override protected void onPause() {

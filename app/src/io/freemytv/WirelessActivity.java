@@ -104,6 +104,32 @@ public class WirelessActivity extends Activity {
         }, "wireless-on").start();
     }
 
+    /** Back on Home: AirPlay or Miracast still on (left with Home, not Back) is closed and turned off. */
+    static void offIfOn(Context c) {
+        if (!RemoteKeys.HY300) return;
+        final Context app = c.getApplicationContext();
+        StringBuilder cmd = new StringBuilder();
+        for (String pkg : new String[] {MIRACAST, AIRPLAY}) {
+            int state;
+            try {
+                state = app.getPackageManager().getApplicationEnabledSetting(pkg);
+            } catch (IllegalArgumentException notInstalled) {
+                continue;
+            }
+            if (state != PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER) {
+                cmd.append("am force-stop ").append(pkg).append("; pm disable-user --user 0 ").append(pkg).append("; ");
+            }
+        }
+        if (cmd.length() == 0) return;
+        new Thread(() -> {
+            try (Adb adb = Adb.connect(app, 3000, null)) {
+                adb.shell(cmd.toString());
+            } catch (IOException e) {
+                AppLog.w("wireless: " + e.getMessage());
+            }
+        }, "wireless-off").start();
+    }
+
     private boolean shell(String cmd) {
         try (Adb adb = Adb.connect(this, 3000, null)) {
             adb.shell(cmd);
