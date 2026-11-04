@@ -316,7 +316,7 @@ public class NetflixNavService extends AccessibilityService {
             final int fx = dx, fy = dy;
             main.postDelayed(() -> afterScroll(fx, fy), 600);   // once Netflix's scroll has settled
         } else {
-            step(targets, dx, dy, false, false);
+            step(targets, dx, dy, false, dx != 0);   // sideways it stays on its line: at a row's end it stays put
         }
     }
 
