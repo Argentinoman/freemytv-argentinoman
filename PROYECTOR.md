@@ -58,8 +58,14 @@ El cambio de modo usa las listas de la TCL (`HomeMode.DEBLOAT` y `PROTECTED`, `H
 
 Amlogic T950S, Android 13, 1 GB de RAM, Mali-450 (OpenGL ES 2.0), pantalla de 1024×600 a 30 Hz. El foco es la rueda
 del costado; la pantalla de proyección es `com.softwinner.tcorrection/.projection.ProjectionSettingActivity`
-(`HomeApps.PROJECTION_SCREENS`). Prime Video es la versión de celular (`com.amazon.avod.thirdpartyclient`).
-El ADB por red viene abierto, sin autorización y como root.
+(`HomeApps.PROJECTION_SCREENS`). El ADB por red viene abierto, sin autorización y como root.
+
+Apps de streaming (2026-11-03, de APKMirror, firmas verificadas con `apksigner`; las de los `.apkm` con
+`adb install-multiple` de base + `armeabi_v7a` + densidad + `es` + `en`): YouTube para Android TV 7.31.302, Prime
+Video para Android TV 6.24.13 (reemplaza a la de celular, `com.amazon.avod.thirdpartyclient`, desinstalada), Disney+
+para Android TV 26.20.0, Netflix de celular 9.90.1 (la de TV, `com.netflix.ninja`, pide un equipo certificado),
+Spotify para Android TV 9.1.94 y Flow Android TV 4.112.1 (`ar.com.flow.androidtv`; no "Flow Box", que es para el deco).
+Compiladas con `cmd package compile -m speed -f`. Widevine es L3: Netflix, Prime y Disney+ van en SD.
 
 Desactivadas con `pm disable-user` (se vuelven con `pm enable`): `com.android.mgstv` (IPTV disfrazada),
 `com.gecen.store`, `com.master.tv.market`, `com.overseas.store.appstore`, `com.android.camera2`,
@@ -124,3 +130,13 @@ Internet*), o Android borra la red.
 - **HDMI propio** (`HdmiActivity`): el botón HDMI abre una vista a pantalla completa (un `TvView` con la entrada), con
   "Sin señal" en nuestro estilo; Atrás vuelve al inicio. La app de TV de Amlogic (`com.droidlogic.android.tv`) queda
   prendida porque tiene `TV_INPUT_HARDWARE`, pero `agent.sh` le corta internet.
+- **Explorador propio** (`FilesActivity`): el botón USB y "Todas las apps". `com.droidlogic.FileBrower` desactivada.
+- **`com.softwinner.tcorrection` oculta** (`pm hide`; vuelve con `pm unhide`): es persistente y Android la levantaba
+  en cada arranque aunque estuviera desactivada.
+- **Sin Dolby:** la placa anuncia AC3/E-AC3 (una salida "compress offload" y dos decodificadores
+  `c2.amlogic.audio.decoder.ac3`/`.eac3`) pero le falta la librería de Dolby (`libms12: pls load lib first`): ese
+  audio sonaba mudo (en Disney+, los episodios y las publicidades). `agent.sh` monta encima la variante del
+  fabricante sin formatos crudos (`audio_policy_configuration_default.xml`) y una lista vacía sobre
+  `media_codecs_amlogic_audio_ddp.xml`, y reinicia audioserver y mediaserver: las apps eligen la pista AAC. Solo
+  montajes; también `encoded_surround_output=1` (Nunca).
+- **Ojo al probar `agent.sh` a mano:** vuelve a cerrar el ADB por red (hay que reabrirlo desde el panel).

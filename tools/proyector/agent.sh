@@ -40,3 +40,17 @@ for ip in 8.138.18.183 115.126.61.77 123.207.77.74; do iptables -A fmtv_vendor -
 # carried a British Freeview client. Free My TV's own HDMI view is what the HDMI button opens.
 LIVETV=$(stat -c %u /data/data/com.droidlogic.android.tv 2>/dev/null)
 [ -n "$LIVETV" ] && for t in iptables ip6tables; do $t -A fmtv_vendor -m owner --uid-owner $LIVETV ! -o lo -j REJECT; done
+
+# Dolby: the board claims it (an audio output that takes AC3/E-AC3, decoders for both) but lacks Dolby's library, so
+# that audio plays as silence (Disney+ episodes and ads). The vendor's own config without the raw formats goes over the
+# one in use, and an empty list over the Dolby decoders: apps then pick the AAC track. Only mounted: a restart without
+# this script brings it all back. The audio and media services restart to read them.
+POLICY=/vendor/etc/audio_policy_configuration.xml DDP=/vendor/etc/media_codecs_amlogic_audio_ddp.xml
+if [ -f /vendor/etc/audio_policy_configuration_default.xml ] && ! grep -q "Free My TV" $DDP 2>/dev/null; then
+  mkdir -p /data/local/fmtv
+  printf '<?xml version="1.0" encoding="utf-8" ?>\n<!-- Free My TV: no Dolby decoders (no Dolby library: they play silence) -->\n<Included>\n    <Decoders>\n    </Decoders>\n</Included>\n' > /data/local/fmtv/media_codecs_amlogic_audio_ddp.xml
+  chmod 644 /data/local/fmtv/media_codecs_amlogic_audio_ddp.xml
+  mount --bind /vendor/etc/audio_policy_configuration_default.xml $POLICY
+  mount --bind /data/local/fmtv/media_codecs_amlogic_audio_ddp.xml $DDP
+  killall audioserver mediaserver 2>/dev/null
+fi
