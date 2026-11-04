@@ -39,11 +39,14 @@ public class NetflixNavService extends AccessibilityService {
         final Rect r = new Rect();
         AccessibilityNodeInfo node;   // null: a card worked out from the row's bounds
         String label = "";   // what it shows (a title), to find it again once its list has moved
+        boolean cut;   // peeking in at the top or bottom: shown whole once the ring lands on it
+        boolean floating;   // outside every list: a bar floating over the page (it never scrolls)
     }
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Rect focus = new Rect();
     private String focusLabel = "";
+    private boolean focusFloating;
     private boolean hasFocus;
     private Ring ring;
 
@@ -113,7 +116,7 @@ public class NetflixNavService extends AccessibilityService {
         List<Rect> hiddenRows = new ArrayList<>();
         screenWidth = getResources().getDisplayMetrics().widthPixels;
         screenHeight = getResources().getDisplayMetrics().heightPixels;
-        collect(root, out, hiddenRows, null);
+        collect(root, out, hiddenRows, null, false);
         // (Rows with nothing clickable even counting hidden cards: none left to work out since the real ones count.)
         return out;
     }
@@ -126,13 +129,18 @@ public class NetflixNavService extends AccessibilityService {
      */
     private static int screenWidth, screenHeight;
 
-    /** Cut off by the screen's edge: a card or button that only peeks in (a sliver at a side or the bottom). */
+    /** Cut off by a side of the screen: a card or button that only peeks in sideways doesn't count. */
     private static boolean peeking(Rect r) {
-        return ((r.left <= 0 || r.right >= screenWidth - 1) && r.width() * 2 < r.height())
-                || ((r.top <= 0 || r.bottom >= screenHeight - 1) && r.height() < screenHeight / 12);
+        return (r.left <= 0 || r.right >= screenWidth - 1) && r.width() * 2 < r.height();
     }
 
-    private static boolean collect(AccessibilityNodeInfo n, List<Target> out, List<Rect> hiddenRows, Rect row) {
+    /** Cut by the top or bottom (the next row peeking in): reachable going up or down, then shown whole. */
+    private static boolean cut(Rect r) {
+        return (r.top <= 0 || r.bottom >= screenHeight - 1) && r.height() < screenHeight / 6;
+    }
+
+    private static boolean collect(AccessibilityNodeInfo n, List<Target> out, List<Rect> hiddenRows, Rect row,
+            boolean inList) {
         if (n == null) return false;
         Rect r = new Rect();
         n.getBoundsInScreen(r);
@@ -143,7 +151,8 @@ public class NetflixNavService extends AccessibilityService {
         Rect inRow = list ? r : row;
         int from = out.size();
         boolean inner = false;
-        for (int i = 0; i < n.getChildCount(); i++) inner |= collect(n.getChild(i), out, hiddenRows, inRow);
+        boolean below = inList || n.isScrollable();
+        for (int i = 0; i < n.getChildCount(); i++) inner |= collect(n.getChild(i), out, hiddenRows, inRow, below);
         if (n.isClickable() && n.isEnabled() && r.width() > 8 && r.height() > 8) {
             Rect part = new Rect(r);
             if (inner) {   // only the part above what it holds, if that's most of it (a picture over its buttons)
@@ -159,6 +168,8 @@ public class NetflixNavService extends AccessibilityService {
                 t.r.set(part);
                 t.node = n;
                 t.label = label(n);
+                t.cut = cut(part);
+                t.floating = !inList;
                 out.add(t);
                 return true;
             }
@@ -268,6 +279,7 @@ public class NetflixNavService extends AccessibilityService {
     private void pick(Target t) {
         focus.set(t.r);
         focusLabel = t.label;
+        focusFloating = t.floating;
         hasFocus = true;
         AppLog.w("netflix nav: " + (t.node != null ? t.node.getClassName() : "hidden card") + " "
                 + focus.toShortString());   // TEMP: while tuning
@@ -309,13 +321,13 @@ public class NetflixNavService extends AccessibilityService {
         // The bars floating over the page (Downloads and Notifications on top, Home, Clips, Search at the bottom) wait
         // until the page can't scroll any further; sideways, only what's on the same line, or the row scrolls.
         if (step(targets, dx, dy, true, dx != 0)) return;
-        AccessibilityNodeInfo list = scroller(root, dx != 0);
         beforeScroll = targets;
+        AccessibilityNodeInfo list = scroller(root, dx != 0);
         boolean scrolled = list != null && scroll(list, dx, dy);
         AppLog.w("netflix nav: scroll " + (list == null ? "none" : scrolled));   // TEMP: while tuning
         if (scrolled) {
             final int fx = dx, fy = dy;
-            main.postDelayed(() -> afterScroll(fx, fy), 600);   // once Netflix's scroll has settled
+            main.postDelayed(() -> afterScroll(fx, fy), fy != 0 ? 900 : 600);   // once Netflix's scroll has settled
         } else {
             step(targets, dx, dy, false, dx != 0);   // sideways it stays on its line: at a row's end it stays put
         }
@@ -344,7 +356,7 @@ public class NetflixNavService extends AccessibilityService {
         boolean bestInBeam = false;
         for (Target t : targets) {
             Rect r = t.r;
-            if (r.equals(focus) || (skipBar && inBar(r) && !inBar(focus))) continue;
+            if (r.equals(focus) || (skipBar && t.floating && inBar(r) && !focusFloating)) continue;
             boolean ahead = dx > 0 ? r.left >= focus.centerX() : dx < 0 ? r.right <= focus.centerX()
                     : dy > 0 ? r.top >= focus.centerY() : r.bottom <= focus.centerY();
             if (!ahead) continue;
@@ -354,6 +366,7 @@ public class NetflixNavService extends AccessibilityService {
             boolean inBeam = dx != 0 ? r.bottom > focus.top && r.top < focus.bottom
                     : r.right > focus.left && r.left < focus.right;
             if (beamOnly && !inBeam) continue;
+            if (dx != 0 && t.cut) continue;   // a row peeking in is for going up or down
             long score = 13 * major * major + minor * minor;
             if ((inBeam && !bestInBeam) || (inBeam == bestInBeam && score < bestScore)) {
                 bestScore = score;
@@ -363,6 +376,10 @@ public class NetflixNavService extends AccessibilityService {
         }
         if (best == null) return false;
         pick(best);
+        // Peeking in: Netflix brings it on screen by just enough (no jump), and the ring follows it there (resync).
+        if (best.cut && best.node != null) {
+            best.node.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SHOW_ON_SCREEN.getId());
+        }
         return true;
     }
 
@@ -373,7 +390,7 @@ public class NetflixNavService extends AccessibilityService {
     private int[] shift(List<Target> before, List<Target> after) {
         List<Integer> xs = new ArrayList<>(), ys = new ArrayList<>();
         for (Target b : before) {
-            if (b.label.isEmpty() || inBar(b.r)) continue;   // the floating bars never move
+            if (b.label.isEmpty() || b.floating) continue;   // the floating bars never move
             Target match = null;
             int count = 0;
             for (Target a : after) {
@@ -415,13 +432,13 @@ public class NetflixNavService extends AccessibilityService {
             }
             if (same != null) {
                 pick(same);
-                step(targets, dx, dy, dy > 0, false);
+                step(targets, dx, dy, true, dx != 0);
                 showRing();
                 return;
             }
         }
-        // Gone off screen (Netflix scrolls a long way): how far the page moved, from the titles seen before and after,
-        // puts the ring where its thing went, and the step goes on from there (the next row isn't skipped).
+        // Gone off screen: how far the page moved (from the titles seen before and after) puts the ring where its
+        // thing went, and the step goes on from there (the next row isn't skipped).
         int[] moved = shift(beforeScroll, targets);
         if (moved != null) {
             focus.offset(moved[0], moved[1]);
@@ -433,9 +450,9 @@ public class NetflixNavService extends AccessibilityService {
         int cx = focus.centerX() + dx * focus.width() / 2, cy = focus.centerY() + dy * focus.height() / 2;
         Target best = null;
         long bestD = Long.MAX_VALUE;
-        boolean fromBar = inBar(focus);
+        boolean fromBar = focusFloating;
         for (Target t : targets) {
-            if (!fromBar && inBar(t.r)) continue;   // not onto a bar floating over the page
+            if (!fromBar && t.floating && inBar(t.r)) continue;   // not onto a bar floating over the page
             long ddx = t.r.centerX() - cx, ddy = t.r.centerY() - cy;
             long d = ddx * ddx + ddy * ddy;
             if (d < bestD) {
