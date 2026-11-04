@@ -568,7 +568,7 @@ public class SettingsActivity extends Activity {
         private static final String[] HOME_MINUTES_NAMES = {"1 hora", "6 horas", "12 horas", "1 día", "1 semana"};
         private static final int[] PHOTO_SECONDS = {15, 30, 60, 300};
         private static final String[] PHOTO_SECONDS_NAMES = {"15 segundos", "30 segundos", "1 minuto", "5 minutos"};
-        private static final int CHANGE_NOW_ROW = 2, FAVORITE_ROW = 3, MY_FAVORITES_ROW = 7;
+        private static final int CHANGE_NOW_ROW = 2, FAVORITE_ROW = 3, MY_FAVORITES_ROW = 7, ORDER_ROW = 8;
         private static final String[] THEME_CHOICES = {"off", Gallery.HALLOWEEN, Gallery.CHRISTMAS, Gallery.NEW_YEAR,
                 Gallery.CARNIVAL, Gallery.EASTER, Gallery.BIRTHDAY};
 
@@ -579,7 +579,8 @@ public class SettingsActivity extends Activity {
 
         private String[] backgroundLabels() {
             return new String[] {"Fondo del inicio", "Cambiar fondo cada", "Cambiar fondo ahora", "Fondo actual",
-                    "Protector de pantalla", "Cambiar foto cada", "Tema de temporada", "Mis favoritas"};
+                    "Protector de pantalla", "Cambiar foto cada", "Tema de temporada", "Mis favoritas",
+                    "Orden de las fotos"};
         }
 
         private String[] backgroundValues() {
@@ -589,7 +590,7 @@ public class SettingsActivity extends Activity {
                     "OK", currentFavoriteText(c), pictureName(Prefs.screensaver(c)),
                     PHOTO_SECONDS_NAMES[indexOf(PHOTO_SECONDS, Prefs.screensaverSeconds(c))],
                     Gallery.photos(Prefs.seasonalTheme(c)) ? Gallery.name(Prefs.seasonalTheme(c)) : "Desactivado",
-                    favoritesText(c)};
+                    favoritesText(c), Prefs.homeBackgroundRandom(c) ? "Al azar" : "En orden"};
         }
 
         private String currentFavoriteText(Context c) {
@@ -641,6 +642,9 @@ public class SettingsActivity extends Activity {
                 }
                 case MY_FAVORITES_ROW:   // the grid, to hide or take out each one
                     activity.startActivity(new android.content.Intent(c, FavoritesActivity.class));
+                    break;
+                case ORDER_ROW:   // in the favourites' order, or shuffled
+                    Prefs.setHomeBackgroundRandom(c, !Prefs.homeBackgroundRandom(c));
                     break;
                 default: {   // the seasonal theme: off, then each theme
                     int at = java.util.Arrays.asList(THEME_CHOICES).indexOf(Prefs.seasonalTheme(c));

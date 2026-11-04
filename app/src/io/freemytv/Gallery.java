@@ -372,10 +372,36 @@ final class Gallery {
         for (int i = 0; i < list.size(); i++) if (list.get(i).url.equals(item.url)) index = i;
         // The home screen shows picture step % count: the step that lands on this one, never the step it's on now
         // (the same step would keep the background it already made).
-        long now = Prefs.homeBackgroundStep(c), n = list.size(), wanted = now - Math.floorMod(now, n) + index;
+        long now = Prefs.homeBackgroundStep(c), n = list.size(), wanted = now - Math.floorMod(now, n) + place(c, (int) n, index);
         if (wanted == now && Prefs.homeBackground(c).equals(FAVORITES)) wanted += n;
         Prefs.setHomeBackgroundStep(c, wanted);
         Prefs.setHomeBackground(c, FAVORITES);
+    }
+
+    /** The background for this step: the list in its order, or this start's shuffle of it ("Al azar"). */
+    static Item pick(Context c, List<Item> items, long step) {
+        return items.get(order(c, items.size())[(int) Math.floorMod(step, (long) items.size())]);
+    }
+
+    /** Step's place to picture's index: itself in order; at random, a shuffle that stays the same all through a start. */
+    private static int[] order(Context c, int n) {
+        int[] o = new int[n];
+        for (int i = 0; i < n; i++) o[i] = i;
+        if (!Prefs.homeBackgroundRandom(c)) return o;
+        java.util.Random r = new java.util.Random(Prefs.homeBackgroundSeed(c));
+        for (int i = n - 1; i > 0; i--) {
+            int j = r.nextInt(i + 1), t = o[i];
+            o[i] = o[j];
+            o[j] = t;
+        }
+        return o;
+    }
+
+    /** The place among the steps where picture `index` comes. */
+    private static int place(Context c, int n, int index) {
+        int[] o = order(c, n);
+        for (int p = 0; p < n; p++) if (o[p] == index) return p;
+        return 0;
     }
 
     /** After a new order: the step that keeps the picture on Home now, so the next ones follow the new order. */
@@ -385,7 +411,7 @@ final class Gallery {
         List<Item> list = list(c, FAVORITES);   // the list Home goes through
         for (int i = 0; i < list.size(); i++) {
             if (!list.get(i).url.equals(cur.url)) continue;
-            long now = Prefs.homeBackgroundStep(c), wanted = now - Math.floorMod(now, (long) list.size()) + i;
+            long now = Prefs.homeBackgroundStep(c), wanted = now - Math.floorMod(now, (long) list.size()) + place(c, list.size(), i);
             if (wanted != now) Prefs.setHomeBackgroundStep(c, wanted);
             return;
         }
