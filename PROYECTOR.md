@@ -130,6 +130,11 @@ Internet*), o Android borra la red.
 - **HDMI propio** (`HdmiActivity`): el botón HDMI abre una vista a pantalla completa (un `TvView` con la entrada), con
   "Sin señal" en nuestro estilo; Atrás vuelve al inicio. La app de TV de Amlogic (`com.droidlogic.android.tv`) queda
   prendida porque tiene `TV_INPUT_HARDWARE`, pero `agent.sh` le corta internet.
+- **Widget de música** (arriba a la derecha): necesita el acceso a notificaciones de `NowPlayingListener`, dado una
+  vez con `adb shell cmd notification allow_listener io.freemytv/io.freemytv.NowPlayingListener` (solo mira las
+  sesiones de reproducción).
+- **Protector de pantalla:** el firmware trae "apagar pantalla: nunca" (`screen_off_timeout` al máximo), así que
+  nunca arranca solo. Medido a mano: unos 30-35 % de CPU sumando procesos y 22 MB más mientras anima.
 - **Explorador propio** (`FilesActivity`): el botón USB y "Todas las apps". `com.droidlogic.FileBrower` desactivada.
 - **`com.softwinner.tcorrection` oculta** (`pm hide`; vuelve con `pm unhide`): es persistente y Android la levantaba
   en cada arranque aunque estuviera desactivada.
