@@ -89,6 +89,7 @@ final class HomeApps {
      */
     private static final String[][] SHELF = {
         {"netflix", "Netflix", "com.netflix.ninja", "E50914", "", "1"},
+        {"netflix", "Netflix", "com.netflix.mediaclient", "E50914", "", "1"},   // the phone build (HY300: no certified TV build)
         {"youtube", "YouTube", "com.google.android.youtube.tv", "FF0033", "play", "1"},
         {"prime", "Prime Video", "com.amazon.amazonvideo.livingroom", "1A98FF", "tint", "0.96"},
         {"prime", "Prime Video", "com.amazon.avod.thirdpartyclient", "1A98FF", "tint", "0.96"},   // the phone build (HY300)
@@ -718,6 +719,8 @@ final class HomeApps {
                 out = brandTile(c, "youtube", false, 0xFFF4F4F4, 0.64f, w, h);
             } else if (pkg.equals("com.amazon.amazonvideo.livingroom")) {
                 out = brandTile(c, "prime_line", true, 0xFF0F79FF, 0.62f, w, h);
+            } else if (pkg.equals("com.netflix.mediaclient")) {   // the phone build has no TV banner: the TV one's look
+                out = brandTile(c, "netflix", false, 0xFF000000, 0.62f, w, h);
             } else {
                 Drawable d = bannerDrawable(c, pkg);
                 if (d instanceof android.graphics.drawable.BitmapDrawable) {
