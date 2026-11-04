@@ -1710,7 +1710,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         // keeps its bottom edge, so with more apps it only gets lower.
         float tw = Math.min(L_TILE_H * 16f / 9 * k, (full - Math.max(0, n - 1) * gap) / Math.max(1, n));
         float th = tw * 9f / 16;
-        float width = n * tw + Math.max(0, n - 1) * gap, left = (w - width) / 2f;
+        // On the right, its glass lined up with the buttons above (Entradas, the gear).
+        float width = n * tw + Math.max(0, n - 1) * gap, left = CONTENT_R * k - pad - width;
         float top = (L_PLATTER_TOP + L_TILE_H) * k - th;
         platterRect.set(left - pad, top, left + width + pad, top + th + 2 * pad);
         float x = left, y = top + pad;

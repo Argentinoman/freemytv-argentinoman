@@ -162,6 +162,7 @@
         <!-- Our own file explorer (the USB button), in place of the board's. -->
         <activity
             android:name=".FilesActivity"
+            android:label="Explorador de archivos"
             android:exported="false"
             android:launchMode="singleTask"
             android:excludeFromRecents="true"

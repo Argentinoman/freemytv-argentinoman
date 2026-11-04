@@ -61,6 +61,7 @@ final class Symbols {
         if (name.equals("store")) return store();
         if (name.equals("lock")) return lock();
         if (name.equals("file")) return file();
+        if (name.equals("image")) return image();
         boolean picture = name.equals("picture");
         boolean tv = picture || name.equals("live_tv") || name.equals("tv"), hdmi = name.equals("hdmi");
         if (!tv && !hdmi) return null;
@@ -166,6 +167,30 @@ final class Symbols {
         f.lineTo(w - h2 - fold, h2 + fold);
         f.lineTo(w - h2, h2 + fold);
         c.drawPath(f, p);
+        b.setHasMipMap(true);
+        return b;
+    }
+
+    /** A photo, for the explorer: a frame with a sun and two hills. */
+    private static Bitmap image() {
+        float sw = 13f, h2 = sw / 2, w = 152, h = 120;
+        Bitmap b = Bitmap.createBitmap((int) w, (int) h, Bitmap.Config.ALPHA_8);
+        Canvas c = new Canvas(b);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(sw);
+        p.setStrokeJoin(Paint.Join.ROUND);
+        c.drawRoundRect(new RectF(h2, h2, w - h2, h - h2), 16, 16, p);
+        p.setStyle(Paint.Style.FILL);
+        c.drawCircle(104, 40, 11, p);
+        android.graphics.Path hills = new android.graphics.Path();
+        hills.moveTo(h2 + 6, h - h2 - 6);
+        hills.lineTo(52, 54);
+        hills.lineTo(84, 86);
+        hills.lineTo(104, 68);
+        hills.lineTo(w - h2 - 6, h - h2 - 6);
+        hills.close();
+        c.drawPath(hills, p);
         b.setHasMipMap(true);
         return b;
     }

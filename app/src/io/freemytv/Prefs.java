@@ -126,6 +126,10 @@ final class Prefs {
         return readInt(c, "home-background-skip.txt", 0);
     }
 
+    static void setHomeBackgroundSkip(Context c, int skip) {
+        writeInt(c, "home-background-skip.txt", skip);
+    }
+
     static void skipHomeBackground(Context c) {
         writeInt(c, "home-background-skip.txt", homeBackgroundSkip(c) + 1);
     }
