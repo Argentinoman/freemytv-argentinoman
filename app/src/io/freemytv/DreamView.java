@@ -187,6 +187,12 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         galleryNext = readNext();   // where it left off: that photo was downloaded while the last one showed
         data.addListener(this);
         recs.addListener(this);
+        if (nowPlaying == null) nowPlaying = new NowPlaying(getContext(), () -> {
+            dirty = true;          // the clock-only screen redraws its recording
+            chromeDirty = true;    // and so does the photo corner
+            invalidate();
+        });
+        nowPlaying.start();
         data.refreshIfStale();
         recs.refreshIfStale();
         recs.prefetchAll();
@@ -436,6 +442,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         handler.removeCallbacks(tick);
         data.removeListener(this);
         recs.removeListener(this);
+        if (nowPlaying != null) nowPlaying.stop();
         // The photos stay in GPU memory until the garbage collector runs: release them now (after the last frame).
         final java.util.Set<Bitmap> gone = new java.util.HashSet<>();
         for (Slide s : new Slide[] {current, incoming, prepared}) {
@@ -871,6 +878,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
                 cornerClock.getTextBounds(clock, 0, clock.length(), ink);
                 c.drawText(clock, right - ink.right, CLOCK_TOP * k - ink.top, cornerClock);
             }
+            drawMusicCorner(c);
         } finally {
             chrome.endRecording();
         }
@@ -1110,6 +1118,9 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
             x += weatherPaint.measureText(now) + 18 * k;
             c.drawText(range, x, base, weatherDim);
         }
+
+        // What's playing, under the weather.
+        drawCenteredMusic(c, cx, clockBase + 200 * k);
     }
 
     private boolean gallerySource() {
@@ -1134,6 +1145,8 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
             }
         }
         float right = RIGHT * k, base = META_BASE * k;
+        NowPlaying np = nowPlaying;
+        boolean music = np != null && np.playingVisible();
         float dateBase = base, clockBase = dateBase - 36 * k;
 
         c.drawText(clock, right, clockBase, ambientClock);
@@ -1146,5 +1159,141 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
             c.drawText(HomeData.degrees(wx.temp), x - sw - 12 * k, clockBase, ambientTemp);
         }
         c.drawText(date, right, dateBase, ambientDate);
+        float top = 56 * k, art = 62 * k;
+        if (music) drawAmbientMusic(c, right, top + art - 6 * k, np);
+    }
+
+    /**
+     * The clock screen's song, in the photos' style: no capsule, the cover with the title and the artist beside it,
+     * the pair centred on `cx`, its second line at `base`.
+     */
+    private void drawCenteredMusic(Canvas c, float cx, float base) {
+        NowPlaying np = nowPlaying;
+        if (np == null || !np.playingVisible() || captionTitle == null) return;
+        float art = 62 * k, gap = 18 * k, max = 520 * k;
+        String t = TextUtils.ellipsize(np.title, captionTitle, max, TextUtils.TruncateAt.END).toString();
+        String a = TextUtils.ellipsize(np.artist, captionAuthor, max, TextUtils.TruncateAt.END).toString();
+        float text = Math.max(captionTitle.measureText(t), captionAuthor.measureText(a));
+        float left = cx - ((np.art != null ? art + gap : 0) + text) / 2;
+        if (np.art != null) {
+            android.graphics.RectF cover = new android.graphics.RectF(left, base - art + 6 * k, left + art, base + 6 * k);
+            BitmapShader sh = new BitmapShader(np.art, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+            Matrix m = new Matrix();
+            m.setScale(art / np.art.getWidth(), art / np.art.getHeight());
+            m.postTranslate(cover.left, cover.top);
+            sh.setLocalMatrix(m);
+            musicArt.setShader(sh);
+            musicArt.clearShadowLayer();   // on black a glow around the cover only looks blurry
+            c.drawRoundRect(cover, 10 * k, 10 * k, musicArt);
+            left += art + gap;
+        }
+        captionTitle.setAlpha(np.playing ? 235 : 150);
+        c.drawText(t, left, base - 28 * k, captionTitle);
+        c.drawText(a, left, base, captionAuthor);
+        captionTitle.setAlpha(235);
+    }
+
+    /** The song under the time: the cover and, beside it, the title and the artist (two lines ending at `base`). */
+    private void drawAmbientMusic(Canvas c, float right, float base, NowPlaying np) {
+        float art = 62 * k, max = 460 * k;
+        android.graphics.RectF cover = new android.graphics.RectF(right - art, base - art + 6 * k, right, base + 6 * k);
+        if (np.art != null) {
+            BitmapShader sh = new BitmapShader(np.art, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+            Matrix m = new Matrix();
+            m.setScale(art / np.art.getWidth(), art / np.art.getHeight());
+            m.postTranslate(cover.left, cover.top);
+            sh.setLocalMatrix(m);
+            musicArt.setShader(sh);
+            musicArt.clearShadowLayer();   // the cover crisp, without a glow
+            c.drawRoundRect(cover, 10 * k, 10 * k, musicArt);
+        }
+        float tx = np.art != null ? cover.left - 18 * k : right;
+        captionTitle.setTextAlign(Paint.Align.RIGHT);
+        captionAuthor.setTextAlign(Paint.Align.RIGHT);
+        captionTitle.setAlpha(np.playing ? 235 : 150);
+        c.drawText(TextUtils.ellipsize(np.title, captionTitle, max, TextUtils.TruncateAt.END).toString(), tx, base - 28 * k, captionTitle);
+        c.drawText(TextUtils.ellipsize(np.artist, captionAuthor, max, TextUtils.TruncateAt.END).toString(), tx, base, captionAuthor);
+        captionTitle.setAlpha(235);
+        captionTitle.setTextAlign(Paint.Align.LEFT);
+        captionAuthor.setTextAlign(Paint.Align.LEFT);
+    }
+
+    // MARK: - Now playing
+
+    /**
+     * Over the photos, the song as a credit like the picture's (bottom right, mirroring it): the cover, and beside it
+     * "Sonando", the title and the artist, small, with a soft shadow instead of a capsule.
+     */
+    private void drawMusicCorner(Canvas c) {
+        NowPlaying np = nowPlaying;
+        if (np == null || !np.playingVisible() || captionTitle == null) return;
+        float right = RIGHT * k, base = META_BASE * k, art = 84 * k, max = 520 * k;
+        android.graphics.RectF cover = new android.graphics.RectF(right - art, base - art + 4 * k, right, base + 4 * k);
+        if (np.art != null) {
+            BitmapShader sh = new BitmapShader(np.art, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+            Matrix m = new Matrix();
+            m.setScale(art / np.art.getWidth(), art / np.art.getHeight());
+            m.postTranslate(cover.left, cover.top);
+            sh.setLocalMatrix(m);
+            musicArt.setShader(sh);
+            musicArt.clearShadowLayer();   // the cover crisp, without a glow
+            c.drawRoundRect(cover, 12 * k, 12 * k, musicArt);
+        }
+        float tx = np.art != null ? cover.left - 22 * k : right;
+        for (Paint p : new Paint[] {captionLabel, captionTitle, captionAuthor}) p.setTextAlign(Paint.Align.RIGHT);
+        c.drawText(np.playing ? "SONANDO" : "EN PAUSA", tx, base - 62 * k, captionLabel);
+        c.drawText(TextUtils.ellipsize(np.title, captionTitle, max, TextUtils.TruncateAt.END).toString(), tx, base - 28 * k, captionTitle);
+        c.drawText(TextUtils.ellipsize(np.artist, captionAuthor, max, TextUtils.TruncateAt.END).toString(), tx, base, captionAuthor);
+        for (Paint p : new Paint[] {captionLabel, captionTitle, captionAuthor}) p.setTextAlign(Paint.Align.LEFT);
+    }
+
+    private NowPlaying nowPlaying;
+    private final Paint musicFill = new Paint(Paint.ANTI_ALIAS_FLAG), musicRim = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint musicArt = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    private android.text.TextPaint musicTitle, musicArtist;
+
+    /**
+     * The song playing (Spotify, YouTube Music...), as on the home screen: a smoked-glass capsule with the cover, the
+     * title and the artist. align: 0 centres it on x, 1 ends it at x. Drawn into the recorded layers, so it costs
+     * nothing per frame; a new song or play/pause records them again.
+     */
+    private void drawMusic(Canvas c, float x, float top, int align) {
+        NowPlaying np = nowPlaying;
+        if (np == null || !np.playingVisible()) return;
+        if (musicTitle == null) {
+            musicTitle = new android.text.TextPaint(Ui.text(Ui.displaySemibold, 24 * k, 0xF2FFFFFF));
+            musicArtist = new android.text.TextPaint(Ui.text(Ui.regular, 19 * k, 0x99FFFFFF));
+            musicRim.setStyle(Paint.Style.STROKE);
+            musicRim.setStrokeWidth(1.5f * k);
+        }
+        float h = 70 * k, pad = 10 * k, art = h - 2 * pad, gap = 16 * k, max = 420 * k;
+        CharSequence t = android.text.TextUtils.ellipsize(np.title, musicTitle, max, android.text.TextUtils.TruncateAt.END);
+        CharSequence a = android.text.TextUtils.ellipsize(np.artist, musicArtist, max, android.text.TextUtils.TruncateAt.END);
+        float text = Math.max(musicTitle.measureText(t, 0, t.length()), musicArtist.measureText(a, 0, a.length()));
+        float width = pad + art + gap + text + h * 0.5f;
+        float left = align == 0 ? x - width / 2 : x - width;
+        android.graphics.RectF r = new android.graphics.RectF(left, top, left + width, top + h);
+        musicFill.setColor(0x2EFFFFFF);
+        c.drawRoundRect(r, h / 2, h / 2, musicFill);
+        musicRim.setColor(0x33FFFFFF);
+        c.drawRoundRect(r, h / 2, h / 2, musicRim);
+        android.graphics.RectF cover = new android.graphics.RectF(left + pad, top + pad, left + pad + art, top + pad + art);
+        if (np.art != null) {
+            android.graphics.BitmapShader sh = new android.graphics.BitmapShader(np.art, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+            Matrix m = new Matrix();
+            m.setScale(art / np.art.getWidth(), art / np.art.getHeight());
+            m.postTranslate(cover.left, cover.top);
+            sh.setLocalMatrix(m);
+            musicArt.setShader(sh);
+            c.drawRoundRect(cover, art * 0.28f, art * 0.28f, musicArt);
+        } else {
+            musicFill.setColor(0x24FFFFFF);
+            c.drawRoundRect(cover, art * 0.28f, art * 0.28f, musicFill);
+        }
+        float tx = cover.right + gap, t1 = Ui.cap(musicTitle), t2 = Ui.cap(musicArtist), block = t1 + 11 * k + t2;
+        float b1 = r.centerY() - block / 2 + t1;
+        musicTitle.setAlpha(np.playing ? 242 : 160);
+        c.drawText(t, 0, t.length(), tx, b1, musicTitle);
+        c.drawText(a, 0, a.length(), tx, b1 + 11 * k + t2, musicArtist);
     }
 }
