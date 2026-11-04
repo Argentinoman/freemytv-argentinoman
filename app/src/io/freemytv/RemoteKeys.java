@@ -82,9 +82,9 @@ final class RemoteKeys {
                 || keyCode == KeyEvent.KEYCODE_BUTTON_9)) {
             keyCode = Prefs.SONY_KEY + e.getScanCode();
         }
-        // The HY300 sends F11 for its arrows button and its own MOUSE key (the pointer) for the next one: the scan code
-        // keeps them apart from a keyboard's F11.
-        if (HY300 && (e.getScanCode() == 87 || e.getScanCode() == 637)) keyCode = Prefs.HY_KEY + e.getScanCode();
+        // The HY300 sends F10 for its two-boxes button and F11 for its box-with-arrow one: the scan code
+        // keeps them apart from a keyboard's F10 and F11.
+        if (HY300 && (e.getScanCode() == 68 || e.getScanCode() == 87)) keyCode = Prefs.HY_KEY + e.getScanCode();
         // The gear and the profile keys (and the HY300's Options button, which opened the vendor's settings): fixed, the
         // stock home screen's own jobs.
         if ((TCL && keyCode == KEY_TCL_SETTINGS) || (HY300 && keyCode == KeyEvent.KEYCODE_MENU)

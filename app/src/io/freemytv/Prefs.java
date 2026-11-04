@@ -50,12 +50,12 @@ final class Prefs {
     static final int KEY_KTC_TABII = KeyEvent.KEYCODE_BUTTON_8;
     /** Sony's app buttons, as SONY_KEY + scan code (read from a BRAVIA's log; the key codes are shared). */
     static final int SONY_KEY = 100_000;
-    /** The HY300's arrows (F11, scan 87) and mouse (scan 637) buttons, as HY_KEY + scan code. */
-    static final int HY_KEY = 200_000, KEY_HY_ARROWS = HY_KEY + 87, KEY_HY_MOUSE = HY_KEY + 637;
+    /** The HY300's two-boxes (F10, scan 68) and box-with-arrow (F11, scan 87) buttons, as HY_KEY + scan code. */
+    static final int HY_KEY = 200_000, KEY_HY_BOXES = HY_KEY + 68, KEY_HY_ARROW = HY_KEY + 87;
     static final int KEY_SONY_CORE = SONY_KEY + 496, KEY_SONY_NETFLIX = SONY_KEY + 583, KEY_SONY_DISNEY = SONY_KEY + 491,
             KEY_SONY_PRIME = SONY_KEY + 490, KEY_SONY_YOUTUBE = SONY_KEY + 485, KEY_SONY_CRUNCHYROLL = SONY_KEY + 507,
             KEY_SONY_PLAY = SONY_KEY + 587;   // the Google Play button of older remotes: BUTTON_8 (BRAVIA 4K UR3, Android 10)
-    static final int[] KEYS = RemoteKeys.HY300 ? new int[] {KEY_HY_ARROWS, KEY_HY_MOUSE}
+    static final int[] KEYS = RemoteKeys.HY300 ? new int[] {KEY_HY_BOXES, KEY_HY_ARROW}
             : RemoteKeys.SONY
             ? new int[] {KEY_SONY_CORE, KEY_SONY_NETFLIX, KEY_SONY_DISNEY, KEY_SONY_PRIME, KEY_SONY_YOUTUBE, KEY_SONY_CRUNCHYROLL,
                     KEY_SONY_PLAY}
