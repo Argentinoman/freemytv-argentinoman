@@ -214,7 +214,8 @@ public class SettingsActivity extends Activity {
                     }
                     String[] names = {Ui.tr("Screensaver, preview"), Ui.tr("Home Settings"), "Fondos",
                             Ui.tr("Shelf"), Ui.tr("Remote Buttons"), Ui.tr("TV Settings")};
-                    return row - 1 < names.length ? names[row - 1] : "";
+                    int m = mainRow(row);
+                    return m - 1 < names.length ? names[m - 1] : "";
                 }
                 case HOME_CHOICE: {
                     String name = row == 0 ? "Free My TV, " + Ui.tr("no ads, with the new screensaver")
@@ -339,9 +340,21 @@ public class SettingsActivity extends Activity {
             return HomeMode.FREE.equals(state.optString("mode")) && !state.optBoolean("homeReverted");
         }
 
+        /** HY300: no screensaver row (no screen to protect on a projector, and its screen never sleeps). */
+        private static final boolean NO_SCREENSAVER = RemoteKeys.HY300;
+
+        /** The main screen's row behind a shown one (they differ by the screensaver row where it's left out). */
+        private static int mainRow(int shown) {
+            return NO_SCREENSAVER && shown >= 1 ? shown + 1 : shown;
+        }
+
+        private static int shownRow(int main) {
+            return NO_SCREENSAVER && main >= 1 ? main - 1 : main;
+        }
+
         private int rowCount() {
             switch (screen) {
-                case MAIN: return 7;
+                case MAIN: return NO_SCREENSAVER ? 6 : 7;
                 case HOME_CHOICE: return 2;
                 case HOME_SETTINGS: return settingLabels().length;
                 case BACKGROUNDS: return backgroundLabels().length;
@@ -388,19 +401,20 @@ public class SettingsActivity extends Activity {
                     Ui.tr("Home Settings"), "Fondos", Ui.tr("Shelf"),
                     Ui.tr("Remote Buttons"), Ui.tr("TV Settings")};
             String[] values = {working ? "" : mode, Ui.tr("Preview"), "", "", "", "", ""};
-            for (int i = 0; i < labels.length; i++) {
+            for (int i = 0; i < rowCount(); i++) {
+                int m = mainRow(i);
                 float y = (LIST_TOP + i * (ROW_H + ROW_GAP)) * k;
                 rowRect.set(LIST_X * k, y, LIST_R * k, y + ROW_H * k);
                 float f = drawRowBackground(c, i);
                 int ink = blend(0xF2FFFFFF, INK, f);
                 rowLabel.setColor(ink);
                 float base = rowRect.centerY() + Ui.halfCap(rowLabel);
-                c.drawText(labels[i], rowRect.left + 30 * k, base, rowLabel);
+                c.drawText(labels[m], rowRect.left + 30 * k, base, rowLabel);
                 float right = rowRect.right - 30 * k;
-                if (i >= 2) {
+                if (m >= 2) {
                     float cw = Symbols.width(getContext(), "chevron_right", 22 * k);
                     Symbols.draw(getContext(), c, "chevron_right", right - cw / 2, rowRect.centerY(), 22 * k, blend(0x66FFFFFF, 0x991C1C1E, f));
-                } else if (i == 0 && working) {
+                } else if (m == 0 && working) {
                     // Switching: the current step in place of the value, with the spinning arc.
                     String text = busyText.isEmpty() ? Ui.tr("Starting…") : busyText;
                     rowValue.setColor(blend(0xB3FFFFFF, 0xB31C1C1E, f));
@@ -411,7 +425,7 @@ public class SettingsActivity extends Activity {
                     Ui.spinner(c, sx, rowRect.centerY(), 12 * k, seconds * 1.3f, spinner);
                 } else {
                     rowValue.setColor(blend(0x8CFFFFFF, 0x8C1C1C1E, f));
-                    c.drawText(values[i], right, base, rowValue);
+                    c.drawText(values[m], right, base, rowValue);
                 }
             }
 
@@ -518,8 +532,9 @@ public class SettingsActivity extends Activity {
                         moveShelfApp(e.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : -1);
                         invalidate();
                     } else if (down && (screen == HOME_SETTINGS || screen == REMOTE_KEYS
-                            || (screen == BACKGROUNDS && focus != CHANGE_NOW_ROW && focus != FAVORITE_ROW
-                                    && focus != MY_FAVORITES_ROW))) {
+                            || (screen == BACKGROUNDS && backgroundRow(focus) != CHANGE_NOW_ROW
+                                    && backgroundRow(focus) != FAVORITE_ROW
+                                    && backgroundRow(focus) != MY_FAVORITES_ROW))) {
                         adjust(e.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : -1);
                         invalidate();
                     }
@@ -547,8 +562,8 @@ public class SettingsActivity extends Activity {
                                 focus = pickFor - 1;
                                 screen = REMOTE_KEYS;
                             } else {
-                                focus = screen == HOME_SETTINGS ? 2 : screen == BACKGROUNDS ? 3 : screen == SHELF_EDIT ? 4
-                                        : screen == REMOTE_KEYS ? 5 : 0;
+                                focus = shownRow(screen == HOME_SETTINGS ? 2 : screen == BACKGROUNDS ? 3
+                                        : screen == SHELF_EDIT ? 4 : screen == REMOTE_KEYS ? 5 : 0);
                                 screen = MAIN;
                             }
                         }
@@ -582,16 +597,29 @@ public class SettingsActivity extends Activity {
         }
 
         private String[] backgroundLabels() {
-            return new String[] {"Fondo del inicio", "Cambiar fondo cada", "Cambiar fondo ahora", "Fondo actual",
-                    "Protector de pantalla", "Cambiar foto cada", "Mis favoritas"};
+            return shownBackgrounds(new String[] {"Fondo del inicio", "Cambiar fondo cada", "Cambiar fondo ahora",
+                    "Fondo actual", "Protector de pantalla", "Cambiar foto cada", "Mis favoritas"});
         }
 
         private String[] backgroundValues() {
             Context c = getContext();
-            return new String[] {pictureName(Prefs.homeBackground(c)),
+            return shownBackgrounds(new String[] {pictureName(Prefs.homeBackground(c)),
                     HOME_MINUTES_NAMES[indexOf(HOME_MINUTES, Prefs.homeBackgroundMinutes(c))],
                     "OK", currentFavoriteText(c), pictureName(Prefs.screensaver(c)),
-                    PHOTO_SECONDS_NAMES[indexOf(PHOTO_SECONDS, Prefs.screensaverSeconds(c))], favoritesText(c)};
+                    PHOTO_SECONDS_NAMES[indexOf(PHOTO_SECONDS, Prefs.screensaverSeconds(c))], favoritesText(c)});
+        }
+
+        /** Backgrounds: rows 4 and 5 are the screensaver's, left out where it is (NO_SCREENSAVER). */
+        private static String[] shownBackgrounds(String[] all) {
+            if (!NO_SCREENSAVER) return all;
+            String[] out = new String[all.length - 2];
+            for (int i = 0, j = 0; i < all.length; i++) if (i != 4 && i != 5) out[j++] = all[i];
+            return out;
+        }
+
+        /** The Backgrounds row behind a shown one. */
+        private static int backgroundRow(int shown) {
+            return NO_SCREENSAVER && shown >= 4 ? shown + 2 : shown;
         }
 
         private String currentFavoriteText(Context c) {
@@ -612,7 +640,7 @@ public class SettingsActivity extends Activity {
 
         private void adjustBackgrounds(int dir) {
             Context c = getContext();
-            switch (focus) {
+            switch (backgroundRow(focus)) {
                 case 0: {
                     int at = java.util.Arrays.asList(HOME_PICTURES).indexOf(Prefs.homeBackground(c));
                     Prefs.setHomeBackground(c, HOME_PICTURES[(Math.max(0, at) + dir + HOME_PICTURES.length) % HOME_PICTURES.length]);
@@ -980,7 +1008,9 @@ public class SettingsActivity extends Activity {
             Paint hint = Ui.text(Ui.regular, 23 * k, 0x8CFFFFFF);
             float hy = (LIST_TOP + 20 + labels.length * (LIST_ROW_H + LIST_ROW_GAP) + 36) * k;
             c.drawText(Ui.tr("OK or the arrows change the value."), LIST_X * k + 30 * k, hy, hint);
-            if (backgrounds) c.drawText("En el protector: ↑ favorita · ↓ cambiar fondos · ← → otra foto.", LIST_X * k + 30 * k, hy + 38 * k, hint);
+            if (backgrounds && !NO_SCREENSAVER) {
+                c.drawText("En el protector: ↑ favorita · ↓ cambiar fondos · ← → otra foto.", LIST_X * k + 30 * k, hy + 38 * k, hint);
+            }
             if (!backgrounds && !keys) {   // Eli's projector, signed
                 c.drawText("Ajustado en base al criterio del buen Mati.", LIST_X * k + 30 * k, hy + 38 * k, hint);
                 c.drawText("Conseguime sueldo en dólares, Eliana.", LIST_X * k + 30 * k, hy + 76 * k, hint);
@@ -998,6 +1028,7 @@ public class SettingsActivity extends Activity {
 
         private void activate() {
             Context c = getContext();
+            int m = mainRow(focus);   // the main screen's row
             if (screen == HOME_CHOICE) {
                 boolean wantFree = focus == 0;
                 boolean already = wantFree ? freeActive() : HomeMode.ORIGINAL.equals(state.optString("mode", HomeMode.ORIGINAL));
@@ -1041,22 +1072,22 @@ public class SettingsActivity extends Activity {
                 adjust(1);
                 invalidate();
                 return;
-            } else if (focus == 0) {
+            } else if (m == 0) {
                 if (busy()) return;
                 screen = HOME_CHOICE;
                 focus = freeActive() ? 0 : 1;
-            } else if (focus == 1) {
+            } else if (m == 1) {
                 pause();
                 activity.showPreview();
-            } else if (focus == 2) {
+            } else if (m == 2) {
                 screen = HOME_SETTINGS;
                 focus = 0;
-            } else if (focus == 3) {
+            } else if (m == 3) {
                 screen = BACKGROUNDS;
                 focus = 0;
-            } else if (focus == 4) {
+            } else if (m == 4) {
                 openShelfEditor();
-            } else if (focus == 5) {
+            } else if (m == 5) {
                 HomeMode.ensureRemoteService(c, 0);   // the buttons work from inside other apps through this service
                 loadApps();
                 screen = REMOTE_KEYS;

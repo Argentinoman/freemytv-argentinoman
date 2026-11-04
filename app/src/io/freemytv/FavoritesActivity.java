@@ -25,7 +25,8 @@ import java.util.concurrent.Executors;
 
 /**
  * Settings → Fondos → Mis favoritas: every favourite background in a grid. OK hides one (still a favourite, but the
- * background and the screensaver skip it) or shows it again; holding OK offers to take it out of the favourites.
+ * background and the screensaver skip it) or shows it again; holding OK offers to move it (the order the background
+ * follows) or take it out of the favourites.
  */
 public class FavoritesActivity extends Activity {
     private static final int COLUMNS = 4;
@@ -36,6 +37,12 @@ public class FavoritesActivity extends Activity {
     /** The favourite waiting for "OK otra vez" to be taken out (-1: none). */
     private int armed = -1;
     private boolean swallowOk;
+    /** Holding OK: the options for the focused picture are open, and the one marked. */
+    private static final String[] OPTIONS = {"Cambiar de lugar", "Quitar de favoritas", "Cancelar"};
+    private boolean menu;
+    private int choice;
+    /** Changing its place: the arrows carry the focused picture through the grid. */
+    private boolean moving;
     private final Map<String, Bitmap> thumbs = new HashMap<>();
     private final ExecutorService loader = Executors.newSingleThreadExecutor();
 
@@ -106,6 +113,13 @@ public class FavoritesActivity extends Activity {
         view.invalidate();
     }
 
+    /** Done changing its place: the new order is saved. */
+    private void endMove() {
+        moving = false;
+        Gallery.setOrder(this, items);
+        view.invalidate();
+    }
+
     @Override
     public boolean dispatchKeyEvent(KeyEvent e) {
         int code = e.getKeyCode();
@@ -113,7 +127,9 @@ public class FavoritesActivity extends Activity {
         boolean down = e.getAction() == KeyEvent.ACTION_DOWN;
         if (code == KeyEvent.KEYCODE_BACK) {
             if (!down) {
-                if (armed >= 0) armed = -1;
+                if (menu) menu = false;
+                else if (moving) endMove();
+                else if (armed >= 0) armed = -1;
                 else finish();
                 view.invalidate();
             }
@@ -121,11 +137,14 @@ public class FavoritesActivity extends Activity {
         }
         if (ok) {
             if (items.isEmpty()) return true;
-            // A tap acts on release; held, it offers to take the picture out (the release is swallowed).
+            // A tap acts on release; held, the options open (the release is swallowed).
             if (down) {
-                if (!swallowOk && e.getRepeatCount() > 0 && ((e.getFlags() & KeyEvent.FLAG_LONG_PRESS) != 0 || e.getRepeatCount() >= 10)) {
+                if (!swallowOk && !menu && !moving && e.getRepeatCount() > 0
+                        && ((e.getFlags() & KeyEvent.FLAG_LONG_PRESS) != 0 || e.getRepeatCount() >= 10)) {
                     swallowOk = true;
-                    armed = focus;
+                    menu = true;
+                    choice = 0;
+                    armed = -1;
                     view.invalidate();
                 }
                 return true;
@@ -134,17 +153,36 @@ public class FavoritesActivity extends Activity {
                 swallowOk = false;
                 return true;
             }
-            if (armed == focus) remove();
-            else togglePause();
+            if (menu) {
+                menu = false;
+                if (choice == 0) moving = true;
+                else if (choice == 1) armed = focus;
+                view.invalidate();
+            } else if (moving) {
+                endMove();
+            } else if (armed == focus) {
+                remove();
+            } else {
+                togglePause();
+            }
             return true;
         }
         int dx = code == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : code == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : 0;
         int dy = code == KeyEvent.KEYCODE_DPAD_UP ? -1 : code == KeyEvent.KEYCODE_DPAD_DOWN ? 1 : 0;
         if (dx == 0 && dy == 0) return super.dispatchKeyEvent(e);
         if (!down || items.isEmpty()) return true;
+        if (menu) {
+            if (dy != 0) choice = Math.max(0, Math.min(OPTIONS.length - 1, choice + dy));
+            view.invalidate();
+            return true;
+        }
         int next = focus + dx + dy * COLUMNS;
         if (dx != 0 && next / COLUMNS != focus / COLUMNS) return true;   // not off the row's ends
         if (next >= 0 && next < items.size()) {
+            if (moving) {   // the picture goes along: it takes the next place, the others close up
+                Gallery.Item it = items.remove(focus);
+                items.add(next, it);
+            }
             focus = next;
             armed = -1;
             view.invalidate();
@@ -219,15 +257,16 @@ public class FavoritesActivity extends Activity {
                     fill.setColor(0x1AFFFFFF);
                     c.drawRoundRect(r, 18 * k, 18 * k, fill);
                 }
+                boolean carried = on && moving;
                 if (on) {
-                    ring.setColor(i == armed ? 0xFFFF6961 : 0xFFF5F5F7);
+                    ring.setColor(i == armed ? 0xFFFF6961 : carried ? 0xFFFFC266 : 0xFFF5F5F7);
                     c.drawRoundRect(r, 18 * k, 18 * k, ring);
                 }
-                if (it.paused || i == armed) {
-                    String label = i == armed ? "¿Quitar? OK confirma" : "Oculta";
+                if (it.paused || i == armed || carried) {
+                    String label = i == armed ? "¿Quitar? OK confirma" : carried ? "Moviendo" : "Oculta";
                     float bw = badge.measureText(label) + 32 * k;
                     pill.set(r.left + 14 * k, r.top + 14 * k, r.left + 14 * k + bw, r.top + 14 * k + 40 * k);
-                    fill.setColor(i == armed ? 0xFFFF6961 : 0xE6F5F5F7);
+                    fill.setColor(i == armed ? 0xFFFF6961 : carried ? 0xFFFFC266 : 0xE6F5F5F7);
                     c.drawRoundRect(pill, 20 * k, 20 * k, fill);
                     c.drawText(label, pill.left + 16 * k, pill.centerY() + 8 * k, badge);
                 }
@@ -235,10 +274,32 @@ public class FavoritesActivity extends Activity {
                 name.setColor(on ? 0xFFFFFFFF : it.paused ? 0x80FFFFFF : 0xCCFFFFFF);
                 c.drawText(TextUtils.ellipsize(title, name, tw, TextUtils.TruncateAt.END).toString(), tx, ty + th + 42 * k, name);
             }
-            String foot = armed >= 0 ? "OK la quita de favoritas · Atrás cancela"
-                    : items.get(focus).paused ? "OK: volver a mostrarla de fondo · Mantené OK: quitar de favoritas"
-                    : "OK: no mostrarla de fondo · Mantené OK: quitar de favoritas";
+            String foot = menu ? "↑ ↓ elegí · OK confirma · Atrás cancela"
+                    : moving ? "Flechas: llevala a su lugar · OK o Atrás: dejarla ahí"
+                    : armed >= 0 ? "OK la quita de favoritas · Atrás cancela"
+                    : items.get(focus).paused ? "OK: volver a mostrarla de fondo · Mantené OK: más opciones"
+                    : "OK: no mostrarla de fondo · Mantené OK: más opciones";
             c.drawText(foot, x, h - 56 * k, hint);
+            if (menu) drawMenu(c, w, h);
+        }
+
+        /** The options for the focused picture, in a dark panel over the dimmed grid. */
+        private void drawMenu(Canvas c, float w, float h) {
+            c.drawColor(0x99000000);
+            float rowH = 76 * k, pw = 560 * k, ph = OPTIONS.length * rowH + 40 * k;
+            r.set((w - pw) / 2, (h - ph) / 2, (w + pw) / 2, (h + ph) / 2);
+            fill.setColor(0xFF2C2C2E);
+            c.drawRoundRect(r, 28 * k, 28 * k, fill);
+            for (int i = 0; i < OPTIONS.length; i++) {
+                float top = r.top + 20 * k + i * rowH;
+                if (i == choice) {
+                    pill.set(r.left + 16 * k, top, r.right - 16 * k, top + rowH);
+                    fill.setColor(0xFFF5F5F7);
+                    c.drawRoundRect(pill, 18 * k, 18 * k, fill);
+                }
+                name.setColor(i == choice ? 0xFF1C1C1E : i == 1 ? 0xFFFF8A80 : 0xE6FFFFFF);
+                c.drawText(OPTIONS[i], r.left + 44 * k, top + rowH / 2 + 9 * k, name);
+            }
         }
     }
 }

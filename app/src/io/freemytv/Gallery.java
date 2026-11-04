@@ -145,6 +145,15 @@ final class Gallery {
         return out;
     }
 
+    /** The favourites in a new order (Mis favoritas → Cambiar de lugar): the background and screensaver follow it. */
+    static synchronized void setOrder(Context c, List<Item> items) {
+        try {
+            write(favoritesFile(c), items);
+        } catch (Exception e) {
+            AppLog.w("favorites: " + e.getMessage());
+        }
+    }
+
     /** Pauses a favourite (kept, not shown) or shows it again. */
     static synchronized void setPaused(Context c, String url, boolean paused) {
         List<Item> list = favorites(c);
