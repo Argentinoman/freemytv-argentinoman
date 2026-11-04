@@ -212,12 +212,13 @@ final class Gallery {
 
     /** Shown without the internet: downloaded before, or one of the app's own. */
     static boolean saved(Context c, Item it) {
-        return it.url.startsWith("asset:")
+        return it.url.startsWith("asset:") || it.url.startsWith(OWN)
                 || new File(new File(c.getCacheDir(), "gallery"), Integer.toHexString(it.url.hashCode()) + SMALL).exists();
     }
 
     /** The image on disk, downloaded first if needed (background thread). */
     static File image(Context c, Item it) throws IOException {
+        if (it.url.startsWith(OWN)) return new File(it.url.substring(OWN.length()));   // already a shrunk copy
         File dir = new File(c.getCacheDir(), "gallery");
         File f = new File(dir, Integer.toHexString(it.url.hashCode()) + SMALL);
         if (f.exists()) return f;
@@ -285,6 +286,15 @@ final class Gallery {
         return out;
     }
 
+    /** The favourites in a new order (Mis favoritas → Cambiar de lugar): the background and screensaver follow it. */
+    static synchronized void setOrder(Context c, List<Item> items) {
+        try {
+            write(favoritesFile(c), items);
+        } catch (Exception e) {
+            AppLog.w("favorites: " + e.getMessage());
+        }
+    }
+
     /** Hides a favourite (kept, not shown) or shows it again. */
     static synchronized void setPaused(Context c, String url, boolean paused) {
         List<Item> list = favorites(c);
@@ -318,6 +328,55 @@ final class Gallery {
             AppLog.w("favorites: " + e.getMessage());
         }
         return !was;
+    }
+
+    // MARK: - The person's own pictures (the photo viewer: holding OK): copied here, kept among the favourites
+
+    /** An own picture's url: "file:" and its copy in the app's files (the pen drive or the other app may go). */
+    private static final String OWN = "file:";
+
+    /**
+     * Copies a picture into the app (shrunk to SAVE_WIDTH) and adds it to the favourites; with `show`, the home
+     * screen switches to the favourites with this one on screen. Background thread.
+     */
+    static synchronized void addOwn(Context c, File source, boolean show) throws IOException {
+        File dir = new File(c.getFilesDir(), "fondos-propios");
+        //noinspection ResultOfMethodCallIgnored
+        dir.mkdirs();
+        String name = source.getName();
+        File f = new File(dir, Integer.toHexString((source.getAbsolutePath() + source.length()).hashCode()) + ".jpg");
+        if (!f.exists()) {
+            File part = new File(f.getPath() + ".part");
+            try (InputStream in = new java.io.FileInputStream(source); FileOutputStream out = new FileOutputStream(part)) {
+                copy(in, out);
+            }
+            try {
+                shrink(part);
+            } catch (IOException e) {
+                //noinspection ResultOfMethodCallIgnored
+                part.delete();
+                throw e;
+            }
+            if (!part.renameTo(f)) throw new IOException("couldn't save the image");
+        }
+        Item item = new Item();
+        item.url = OWN + f.getAbsolutePath();
+        item.title = name.lastIndexOf('.') > 0 ? name.substring(0, name.lastIndexOf('.')) : name;
+        if (!isFavorite(c, item.url)) toggleFavorite(c, item);
+        if (!show) return;
+        setPaused(c, item.url, false);   // chosen as the background: shown again if it was hidden
+        if (photos(Prefs.seasonalTheme(c))) return;   // a theme's favourite: the theme shows it among its own
+        List<Item> list = shown(favorites(c));
+        int index = 0;
+        for (int i = 0; i < list.size(); i++) if (list.get(i).url.equals(item.url)) index = i;
+        // The home screen shows picture (turn + skip) % count: the skip that lands on this one, never the turn it's on
+        // now (the same turn would keep the background it already made).
+        long turn = System.currentTimeMillis() / (Prefs.homeBackgroundMinutes(c) * 60_000L);
+        int skip = Prefs.homeBackgroundSkip(c), n = list.size();
+        long now = turn + skip, wanted = now - Math.floorMod(now, n) + index;
+        if (wanted == now && Prefs.homeBackground(c).equals(FAVORITES)) wanted += n;
+        Prefs.setHomeBackgroundSkip(c, (int) (wanted - turn));
+        Prefs.setHomeBackground(c, FAVORITES);
     }
 
     /** The home screen's current background (the home screen writes it; Home Settings > Backgrounds reads it). */
@@ -490,7 +549,8 @@ final class Gallery {
                 it.title = o.optString("title");
                 it.author = o.optString("author");
                 it.paused = o.optBoolean("paused");
-                if (!it.url.isEmpty()) out.add(it);
+                // An own picture whose copy is gone is dropped.
+                if (!it.url.isEmpty() && (!it.url.startsWith(OWN) || new File(it.url.substring(OWN.length())).isFile())) out.add(it);
             }
         } catch (Exception e) {
             AppLog.w("gallery list: " + e.getMessage());

@@ -140,6 +140,11 @@ final class Prefs {
         writeInt(c, "home-background-skip.txt", homeBackgroundSkip(c) + 1);
     }
 
+    /** A skip that lands on a given picture (the photo viewer's "use as background"). */
+    static void setHomeBackgroundSkip(Context c, int skip) {
+        writeInt(c, "home-background-skip.txt", skip);
+    }
+
     /** How long each screensaver photo stays, in seconds. */
     static int screensaverSeconds(Context c) {
         return Math.max(5, readInt(c, "screensaver-seconds.txt", 30));

@@ -81,7 +81,23 @@
             </intent-filter>
         </activity>
 
-        <!-- Settings → Fondos → Mis favoritas: hide or take out each favourite background. -->
+        <!-- Our photo viewer: any app's pictures (a file manager's, say), ← → through the folder. -->
+        <activity
+            android:name=".ImageViewerActivity"
+            android:label="Fotos"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" android:scheme="content" />
+            </intent-filter>
+        </activity>
+
+        <!-- Settings → Fondos → Mis favoritas: hide, reorder or take out each favourite background. -->
         <activity
             android:name=".FavoritesActivity"
             android:process=":home"
