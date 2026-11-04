@@ -45,6 +45,8 @@ public class WirelessActivity extends Activity {
         if (opening != null) {
             running = opening;
             opening = null;
+        } else if (running == null) {
+            finish();   // left with Home: next time it opens fresh, on the Apple card
         }
     }
 

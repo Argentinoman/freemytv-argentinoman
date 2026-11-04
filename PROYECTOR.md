@@ -145,7 +145,8 @@ Internet*), o Android borra la red.
 - **Inalámbrica** (`WirelessActivity`, en Entradas): dos tarjetas, Android / Windows (el Miracast de Amlogic,
   `com.droidlogic.miracast`, de 2014 y con uid de sistema) y Dispositivos Apple (AirPlay Server,
   `io.github.jqssun.airplay`, código abierto, de F-Droid). Los dos quedan desactivados: elegir uno lo prende y lo
-  abre, y al volver a la pantalla se fuerza a cerrar y se desactiva otra vez.
+  abre, y al volver a la pantalla se fuerza a cerrar y se desactiva otra vez. AirPlay Server 0.0.36 instalado de
+  F-Droid (firma del autor, `OU=jqssun`), solo la parte armeabi-v7a (`adb install --abi armeabi-v7a`).
 - **Explorador propio** (`FilesActivity`): el botón USB del cajón. `com.droidlogic.FileBrower` desactivada.
 - **`com.softwinner.tcorrection` oculta** (`pm hide`; vuelve con `pm unhide`): es persistente y Android la levantaba
   en cada arranque aunque estuviera desactivada.
