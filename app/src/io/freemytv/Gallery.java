@@ -49,6 +49,8 @@ final class Gallery {
 
     static final class Item {
         String url = "", title = "", author = "";
+        /** A favourite kept but not shown for now (the favourites screen pauses and resumes it). */
+        boolean paused;
     }
 
     private static final int KEEP_IMAGES = 40;
@@ -62,9 +64,12 @@ final class Gallery {
      * custom ones in this build: the system ones, so the screen is never left black.
      */
     static synchronized List<Item> list(Context c, String kind) {
-        if (kind.equals(FAVORITES)) return read(favoritesFile(c));
         if (system == null) system = folder(c, SYSTEM_FOLDER);
         if (mine == null) mine = folder(c, MINE_FOLDER);
+        if (kind.equals(FAVORITES)) {   // none, or all paused: the system ones
+            List<Item> shown = shownFavorites(c);
+            return shown.isEmpty() ? system : shown;
+        }
         return kind.equals(MINE) && !mine.isEmpty() ? mine : system;
     }
 
@@ -133,6 +138,24 @@ final class Gallery {
         return read(favoritesFile(c));
     }
 
+    /** The favourites the background and the screensaver go through: all but the paused ones. */
+    private static List<Item> shownFavorites(Context c) {
+        List<Item> out = new ArrayList<>();
+        for (Item it : favorites(c)) if (!it.paused) out.add(it);
+        return out;
+    }
+
+    /** Pauses a favourite (kept, not shown) or shows it again. */
+    static synchronized void setPaused(Context c, String url, boolean paused) {
+        List<Item> list = favorites(c);
+        for (Item it : list) if (it.url.equals(url)) it.paused = paused;
+        try {
+            write(favoritesFile(c), list);
+        } catch (Exception e) {
+            AppLog.w("favorites: " + e.getMessage());
+        }
+    }
+
     static synchronized boolean isFavorite(Context c, String url) {
         for (Item it : favorites(c)) if (it.url.equals(url)) return true;
         return false;
@@ -191,7 +214,8 @@ final class Gallery {
         item.title = name.lastIndexOf('.') > 0 ? name.substring(0, name.lastIndexOf('.')) : name;
         if (!isFavorite(c, item.url)) toggleFavorite(c, item);
         if (!show) return;
-        List<Item> list = favorites(c);
+        setPaused(c, item.url, false);   // chosen as the background: shown again if it was paused
+        List<Item> list = shownFavorites(c);
         int index = 0;
         for (int i = 0; i < list.size(); i++) if (list.get(i).url.equals(item.url)) index = i;
         // The home screen shows picture (turn + skip) % count: the skip that lands on this one, never the turn it's on
@@ -232,6 +256,7 @@ final class Gallery {
                 it.url = o.optString("url");
                 it.title = o.optString("title");
                 it.author = o.optString("author");
+                it.paused = o.optBoolean("paused");
                 // Favourites from before (Wikimedia links) aren't in the APK.
                 if (it.url.startsWith("asset:") || it.url.startsWith(OWN) && new File(it.url.substring(OWN.length())).isFile()) out.add(it);
             }
@@ -243,7 +268,11 @@ final class Gallery {
 
     private static void write(File f, List<Item> items) throws Exception {
         JSONArray a = new JSONArray();
-        for (Item it : items) a.put(new JSONObject().put("url", it.url).put("title", it.title).put("author", it.author));
+        for (Item it : items) {
+            JSONObject o = new JSONObject().put("url", it.url).put("title", it.title).put("author", it.author);
+            if (it.paused) o.put("paused", true);
+            a.put(o);
+        }
         java.nio.file.Files.write(f.toPath(), a.toString().getBytes(StandardCharsets.UTF_8));
     }
 

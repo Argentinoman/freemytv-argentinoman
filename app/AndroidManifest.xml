@@ -172,6 +172,14 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
 
+        <!-- Settings → Fondos → Mis favoritas: pause or take out each favourite background. -->
+        <activity
+            android:name=".FavoritesActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
         <!-- The drawer's "Inalámbrica" (HY300): AirPlay or Miracast, each turned on only while in use. -->
         <activity
             android:name=".WirelessActivity"
