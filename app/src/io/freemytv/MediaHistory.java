@@ -33,7 +33,10 @@ import java.util.Set;
 final class MediaHistory implements MediaSessionManager.OnActiveSessionsChangedListener {
     private static final long PLAYED_MS = 10_000;
     private static final int KEEP = 20;
-    private static final String[] APPS = {WatchNext.YOUTUBE, WatchNext.SPOTIFY, WatchNext.PRIME};
+    private static final String[] APPS = {WatchNext.YOUTUBE, WatchNext.SPOTIFY, WatchNext.PRIME, WatchNext.NETFLIX, WatchNext.FLOW};
+    /** Netflix's own notifications ("new season of…"), kept beside the history (NowPlayingListener hands them over). */
+    static final String NETFLIX_NEWS = "netflix-news";
+    private static final int KEEP_NEWS = 3;
 
     private static MediaHistory instance;
     private final Context context;
@@ -147,8 +150,12 @@ final class MediaHistory implements MediaSessionManager.OnActiveSessionsChangedL
         MediaMetadata md = m.getMetadata();
         if (md == null) return null;
         String title = text(md, MediaMetadata.METADATA_KEY_TITLE, MediaMetadata.METADATA_KEY_DISPLAY_TITLE);
-        // Prime Video titles everything "PrimeVideo" (seen on a TCL, 2026): the app's name, not what's playing.
-        if (WatchNext.PRIME.equals(m.getPackageName()) && title.replace(" ", "").equalsIgnoreCase("PrimeVideo")) return null;
+        // Prime Video titles everything "PrimeVideo" (seen on a TCL, 2026): the app's name, not what's playing. The same
+        // guard for Netflix and Flow, in case they do it too.
+        String bare = title.replace(" ", "");
+        if (WatchNext.PRIME.equals(m.getPackageName()) && bare.equalsIgnoreCase("PrimeVideo")) return null;
+        if ((WatchNext.NETFLIX.equals(m.getPackageName()) && bare.equalsIgnoreCase("Netflix"))
+                || (WatchNext.FLOW.equals(m.getPackageName()) && bare.equalsIgnoreCase("Flow"))) return null;
         if (title.isEmpty()) return null;
         if (!WatchNext.SPOTIFY.equals(m.getPackageName())) return title;
         String uri = text(md, "com.spotify.music.extra.ARTIST_URI");
@@ -207,6 +214,10 @@ final class MediaHistory implements MediaSessionManager.OnActiveSessionsChangedL
             if (uri.startsWith("https://") || uri.startsWith("http://")) it.picture = uri;
             return false;
         }
+        return savePicture(it, art, music);
+    }
+
+    private boolean savePicture(Item it, Bitmap art, boolean music) {
         final Bitmap small = music ? WatchNext.crop(art, 200, 200) : WatchNext.crop(art, 320, 180);
         final File out = new File(pictures, Integer.toHexString(it.key.hashCode()) + "-" + System.currentTimeMillis() + ".jpg");
         it.picture = out.getAbsolutePath();
@@ -224,6 +235,24 @@ final class MediaHistory implements MediaSessionManager.OnActiveSessionsChangedL
 
     private void changed() {
         if (listener != null) listener.run();
+    }
+
+    /** A notification from Netflix (UI thread): the newest three are kept, one per title and text. */
+    void notice(String title, String text, Bitmap picture) {
+        Item it = new Item();
+        it.key = title + "\n" + text;
+        it.title = title;
+        it.sub = text;
+        it.at = System.currentTimeMillis();
+        boolean pictured = picture != null && savePicture(it, picture, false);
+        List<Item> l = items.get(NETFLIX_NEWS);
+        if (l == null) items.put(NETFLIX_NEWS, l = new ArrayList<>());
+        for (int i = l.size() - 1; i >= 0; i--) if (l.get(i).key.equals(it.key)) l.remove(i);
+        l.add(0, it);
+        while (l.size() > KEEP_NEWS) l.remove(l.size() - 1);
+        write();
+        AppLog.w("media history: a Netflix notice" + (pictured ? "" : " (no picture)"));
+        if (!pictured) changed();
     }
 
     /** The last n different ones, newest first, as the widget's entries. */
@@ -254,7 +283,9 @@ final class MediaHistory implements MediaSessionManager.OnActiveSessionsChangedL
                 while (off < b.length && (n = in.read(b, off, b.length - off)) > 0) off += n;
             }
             JSONObject root = new JSONObject(new String(b, "UTF-8"));
-            for (String pkg : APPS) {
+            List<String> kinds = new ArrayList<>(java.util.Arrays.asList(APPS));
+            kinds.add(NETFLIX_NEWS);
+            for (String pkg : kinds) {
                 JSONArray a = root.optJSONArray(pkg);
                 if (a == null) continue;
                 List<Item> l = new ArrayList<>();

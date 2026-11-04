@@ -38,7 +38,9 @@ import java.util.concurrent.Executors;
 final class WatchNext {
     static final int ROW_WIDE = 1, ROW_SQUARE = 2, ROW_ROUND = 3;
     static final String YOUTUBE = "com.google.android.youtube.tv", SPOTIFY = "com.spotify.tv.android",
-            PRIME = "com.amazon.amazonvideo.livingroom";
+            PRIME = "com.amazon.amazonvideo.livingroom", NETFLIX = "com.netflix.mediaclient", FLOW = "ar.com.flow.androidtv";
+    /** Netflix's notifications are offered this long. */
+    private static final long NEWS_DAYS_MS = 7L * 24 * 60 * 60 * 1000;
     /** Rows that are never what someone watched: the TCL browser's ads. */
     private static final Set<String> IGNORED = new HashSet<>(Collections.singletonList("com.tcl.browser"));
     /** Almost finished (more than 95% seen): not offered again. */
@@ -344,6 +346,27 @@ final class WatchNext {
                 List<Entry> featured = preview.get(pkg);
                 if (featured != null) for (Entry e : featured) if (c.items.size() < 3) c.items.add(e);
                 c.header = c.items.size() > h.size() ? "SEGUIR VIENDO Y DESTACADOS" : "SEGUIR VIENDO";
+                return c;
+            }
+        }
+        // Netflix's phone build and Flow write no Watch Next: what played here (their cards open the app), and
+        // Netflix's own notifications ("new season of…") in the free places.
+        if (pkg.equals(NETFLIX) || pkg.equals(FLOW)) {
+            List<Entry> h = MediaHistory.get(context).recent(pkg, 3);
+            List<Entry> news = new ArrayList<>();
+            if (pkg.equals(NETFLIX)) {
+                for (Entry e : MediaHistory.get(context).recent(MediaHistory.NETFLIX_NEWS, 3)) {
+                    if (System.currentTimeMillis() - e.at > NEWS_DAYS_MS) continue;
+                    e.pkg = NETFLIX;
+                    news.add(e);
+                }
+            }
+            if (!h.isEmpty() || !news.isEmpty()) {
+                c.variant = ROW_WIDE;
+                c.items.addAll(h);
+                for (Entry e : news) if (c.items.size() < 3) c.items.add(e);
+                c.header = news.isEmpty() || c.items.size() == h.size() ? "SEGUIR VIENDO"
+                        : h.isEmpty() ? "NOVEDADES DE NETFLIX" : "SEGUIR VIENDO · NOVEDADES";
                 return c;
             }
         }
