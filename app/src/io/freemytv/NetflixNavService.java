@@ -128,7 +128,7 @@ public class NetflixNavService extends AccessibilityService {
             return true;
         }
         // A list wider than tall with nothing clickable inside it: a row whose cards Netflix doesn't expose.
-        if (!inner && n.isScrollable() && n.getChildCount() == 0 && r.width() > r.height() && r.height() > 40) {
+        if (!inner && n.isScrollable() && r.width() > r.height() && r.height() > 40) {
             hiddenRows.add(r);
         }
         return inner;
@@ -153,20 +153,44 @@ public class NetflixNavService extends AccessibilityService {
                 if (margin == 0 || a.r.left < margin) margin = a.r.left;
             }
         }
+        int button = Math.round(getResources().getDisplayMetrics().heightPixels / 600f * 44);   // 44 px at 600 px tall
         for (Rect row : hiddenRows) {
             int w = width > 0 ? width : Math.round(row.height() * 0.57f);
             int step = pitch > w ? pitch : Math.round(w * 1.04f);
             int x = row.left + (margin > 0 ? margin : Math.round(w * 0.08f));
+            // The card as Netflix lays it out when it does expose it: the picture (2:2.8) on top, and under it the
+            // ⓘ (more info) and ⋮ (menu) buttons.
+            int imageBottom = Math.min(row.bottom, row.top + Math.round(w * 1.4f));
+            int buttons = row.bottom - imageBottom, size = Math.min(button, buttons - 4), cy = imageBottom + buttons / 2;
             for (; x + w / 2 < row.right; x += step) {
                 Target t = new Target();
-                t.r.set(x, row.top, Math.min(x + w, row.right), row.bottom);
+                t.r.set(x, row.top, Math.min(x + w, row.right), imageBottom);
                 out.add(t);
+                if (size < 24) continue;
+                for (float at : new float[] {0.36f, 0.78f}) {
+                    int cx = x + Math.round(w * at);
+                    if (cx + size / 2 > row.right) continue;
+                    Target b = new Target();
+                    b.r.set(cx - size / 2, cy - size / 2, cx + size / 2, cy + size / 2);
+                    out.add(b);
+                }
             }
         }
     }
 
+    /**
+     * Whether the ring is still on something: the same thing, or one a few pixels off (Netflix's rows shift a little
+     * and come and go from what it exposes), which the ring then takes.
+     */
     private boolean onScreen(List<Target> targets) {
-        for (Target t : targets) if (t.r.equals(focus)) return true;
+        int slack = Math.max(12, focus.width() / 8);
+        for (Target t : targets) {
+            if (Math.abs(t.r.centerX() - focus.centerX()) <= slack && Math.abs(t.r.centerY() - focus.centerY()) <= slack
+                    && Math.abs(t.r.width() - focus.width()) <= 2 * slack) {
+                focus.set(t.r);
+                return true;
+            }
+        }
         return false;
     }
 
