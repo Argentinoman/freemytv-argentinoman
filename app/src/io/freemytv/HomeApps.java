@@ -509,9 +509,8 @@ final class HomeApps {
             if (ia >= 0 || ib >= 0) return ia < 0 ? 1 : ib < 0 ? -1 : ia - ib;
             return a.label.toLowerCase(Locale.ROOT).compareTo(b.label.toLowerCase(Locale.ROOT));
         });
-        // No "Free My TV" card here: its settings are already a drawer shortcut ("Home settings"). Its file explorer
-        // is, last (the USB button opens it on the pen drive; from here, the list of drives).
-        items.add(special(c, USB, "files", "Explorador de archivos", "folder"));
+        // No "Free My TV" card here: its settings are already a drawer shortcut ("Home settings"), and its file
+        // explorer is the drawer's USB button.
         return items;
     }
 

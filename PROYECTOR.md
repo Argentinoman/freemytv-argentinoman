@@ -136,7 +136,7 @@ Internet*), o Android borra la red.
 - **Protector de pantalla:** el firmware trae "apagar pantalla: nunca" (`screen_off_timeout` al máximo), así que
   nunca arranca solo. Medido a mano: unos 30-35 % de CPU sumando procesos y 22 MB más mientras anima. Sacado del
   panel rápido en el HY300.
-- **Explorador propio** (`FilesActivity`): el botón USB y "Todas las apps". `com.droidlogic.FileBrower` desactivada.
+- **Explorador propio** (`FilesActivity`): el botón USB del cajón. `com.droidlogic.FileBrower` desactivada.
 - **`com.softwinner.tcorrection` oculta** (`pm hide`; vuelve con `pm unhide`): es persistente y Android la levantaba
   en cada arranque aunque estuviera desactivada.
 - **Sin Dolby:** la placa anuncia AC3/E-AC3 (una salida "compress offload" y dos decodificadores
