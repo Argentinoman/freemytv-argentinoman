@@ -510,7 +510,8 @@ public class SettingsActivity extends Activity {
                         moveShelfApp(e.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : -1);
                         invalidate();
                     } else if (down && (screen == HOME_SETTINGS || screen == REMOTE_KEYS
-                            || (screen == BACKGROUNDS && focus != CHANGE_NOW_ROW && focus != FAVORITE_ROW))) {
+                            || (screen == BACKGROUNDS && focus != CHANGE_NOW_ROW && focus != FAVORITE_ROW
+                                    && focus != MY_FAVORITES_ROW))) {
                         adjust(e.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : -1);
                         invalidate();
                     }
@@ -567,7 +568,7 @@ public class SettingsActivity extends Activity {
         private static final String[] HOME_MINUTES_NAMES = {"1 hora", "6 horas", "12 horas", "1 día", "1 semana"};
         private static final int[] PHOTO_SECONDS = {15, 30, 60, 300};
         private static final String[] PHOTO_SECONDS_NAMES = {"15 segundos", "30 segundos", "1 minuto", "5 minutos"};
-        private static final int CHANGE_NOW_ROW = 2, FAVORITE_ROW = 3;
+        private static final int CHANGE_NOW_ROW = 2, FAVORITE_ROW = 3, MY_FAVORITES_ROW = 7;
         private static final String[] THEME_CHOICES = {"off", Gallery.HALLOWEEN, Gallery.CHRISTMAS, Gallery.NEW_YEAR,
                 Gallery.CARNIVAL, Gallery.EASTER, Gallery.BIRTHDAY};
 
@@ -578,7 +579,7 @@ public class SettingsActivity extends Activity {
 
         private String[] backgroundLabels() {
             return new String[] {"Fondo del inicio", "Cambiar fondo cada", "Cambiar fondo ahora", "Fondo actual",
-                    "Protector de pantalla", "Cambiar foto cada", "Tema de temporada"};
+                    "Protector de pantalla", "Cambiar foto cada", "Tema de temporada", "Mis favoritas"};
         }
 
         private String[] backgroundValues() {
@@ -587,13 +588,24 @@ public class SettingsActivity extends Activity {
                     HOME_MINUTES_NAMES[indexOf(HOME_MINUTES, Prefs.homeBackgroundMinutes(c))],
                     "OK", currentFavoriteText(c), pictureName(Prefs.screensaver(c)),
                     PHOTO_SECONDS_NAMES[indexOf(PHOTO_SECONDS, Prefs.screensaverSeconds(c))],
-                    Gallery.photos(Prefs.seasonalTheme(c)) ? Gallery.name(Prefs.seasonalTheme(c)) : "Desactivado"};
+                    Gallery.photos(Prefs.seasonalTheme(c)) ? Gallery.name(Prefs.seasonalTheme(c)) : "Desactivado",
+                    favoritesText(c)};
         }
 
         private String currentFavoriteText(Context c) {
             Gallery.Item it = Gallery.current(c);
             if (it == null || Prefs.homeBackgroundShown(c).equals("black")) return "—";
             return Gallery.isFavorite(c, it.url) ? "♥ Favorita" : "Guardar en favoritas";
+        }
+
+        /** "Mis favoritas": how many, and how many are hidden from the background for now. */
+        private String favoritesText(Context c) {
+            List<Gallery.Item> all = Gallery.favorites(c);
+            int hidden = 0;
+            for (Gallery.Item it : all) if (it.paused) hidden++;
+            if (all.isEmpty()) return "Ninguna";
+            return all.size() + (all.size() == 1 ? " foto" : " fotos")
+                    + (hidden > 0 ? " · " + hidden + (hidden == 1 ? " oculta" : " ocultas") : "");
         }
 
         private void adjustBackgrounds(int dir) {
@@ -627,6 +639,9 @@ public class SettingsActivity extends Activity {
                     Prefs.setScreensaverSeconds(c, PHOTO_SECONDS[(at + dir + PHOTO_SECONDS.length) % PHOTO_SECONDS.length]);
                     break;
                 }
+                case MY_FAVORITES_ROW:   // the grid, to hide or take out each one
+                    activity.startActivity(new android.content.Intent(c, FavoritesActivity.class));
+                    break;
                 default: {   // the seasonal theme: off, then each theme
                     int at = java.util.Arrays.asList(THEME_CHOICES).indexOf(Prefs.seasonalTheme(c));
                     Prefs.setSeasonalTheme(c, THEME_CHOICES[(Math.max(0, at) + dir + THEME_CHOICES.length) % THEME_CHOICES.length]);

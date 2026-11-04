@@ -81,6 +81,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Settings → Fondos → Mis favoritas: hide or take out each favourite background. -->
+        <activity
+            android:name=".FavoritesActivity"
+            android:process=":home"
+            android:exported="false"
+            android:taskAffinity="io.freemytv.settings"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
         <!-- The home screen. Its own process (:home): if it ever crashes, the safety net in the main process still
              works. It only becomes the TV's home screen in Free My TV mode (cmd package set-home-activity). -->
         <activity

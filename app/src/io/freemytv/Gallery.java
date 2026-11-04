@@ -67,6 +67,8 @@ final class Gallery {
 
     static final class Item {
         String url = "", title = "", author = "";
+        /** A favourite kept but not shown for now (Settings → Fondos → Mis favoritas hides and shows it). */
+        boolean paused;
         /** The original's width (not saved): the sharpest originals are kept. */
         int width;
     }
@@ -115,7 +117,7 @@ final class Gallery {
 
     /** The list (saved, or fetched when older than a week), shuffled once per fetch so every TV sees its own order. */
     static List<Item> list(Context c, String kind) {
-        if (kind.equals(FAVORITES)) return read(favoritesFile(c, "off"));   // the everyday ones, never a theme's
+        if (kind.equals(FAVORITES)) return shown(read(favoritesFile(c, "off")));   // the everyday ones, never a theme's
         File f = new File(c.getFilesDir(), "gallery2-" + kind + ".json");
         List<Item> all = read(f), saved = suitable(all);
         if (!saved.isEmpty() && System.currentTimeMillis() - f.lastModified() < LIST_EVERY
@@ -148,7 +150,7 @@ final class Gallery {
     private static List<Item> withLocal(Context c, String kind, List<Item> list) {
         if (localFolder(kind) == null) return list;
         List<Item> out = withOwn(c, kind, list);
-        List<Item> favs = read(favoritesFile(c, kind));
+        List<Item> favs = shown(read(favoritesFile(c, kind)));
         if (favs.isEmpty()) return out;
         List<Item> mixed = new ArrayList<>();
         int f = 0;
@@ -274,6 +276,24 @@ final class Gallery {
     /** The favourites in use now: the seasonal theme's while one is on, else the everyday ones. */
     static synchronized List<Item> favorites(Context c) {
         return read(favoritesFile(c));
+    }
+
+    /** The favourites the background and the screensaver go through: all but the hidden ones. */
+    private static List<Item> shown(List<Item> favorites) {
+        List<Item> out = new ArrayList<>();
+        for (Item it : favorites) if (!it.paused) out.add(it);
+        return out;
+    }
+
+    /** Hides a favourite (kept, not shown) or shows it again. */
+    static synchronized void setPaused(Context c, String url, boolean paused) {
+        List<Item> list = favorites(c);
+        for (Item it : list) if (it.url.equals(url)) it.paused = paused;
+        try {
+            write(favoritesFile(c), list);
+        } catch (Exception e) {
+            AppLog.w("favorites: " + e.getMessage());
+        }
     }
 
     static synchronized boolean isFavorite(Context c, String url) {
@@ -469,6 +489,7 @@ final class Gallery {
                 it.url = o.optString("url");
                 it.title = o.optString("title");
                 it.author = o.optString("author");
+                it.paused = o.optBoolean("paused");
                 if (!it.url.isEmpty()) out.add(it);
             }
         } catch (Exception e) {
@@ -479,7 +500,11 @@ final class Gallery {
 
     private static void write(File f, List<Item> items) throws Exception {
         JSONArray a = new JSONArray();
-        for (Item it : items) a.put(new JSONObject().put("url", it.url).put("title", it.title).put("author", it.author));
+        for (Item it : items) {
+            JSONObject o = new JSONObject().put("url", it.url).put("title", it.title).put("author", it.author);
+            if (it.paused) o.put("paused", true);
+            a.put(o);
+        }
         java.nio.file.Files.write(f.toPath(), a.toString().getBytes(StandardCharsets.UTF_8));
     }
 
