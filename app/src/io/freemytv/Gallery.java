@@ -293,6 +293,7 @@ final class Gallery {
         } catch (Exception e) {
             AppLog.w("favorites: " + e.getMessage());
         }
+        keepCurrent(c);
     }
 
     /** Hides a favourite (kept, not shown) or shows it again. */
@@ -369,14 +370,25 @@ final class Gallery {
         List<Item> list = shown(favorites(c));
         int index = 0;
         for (int i = 0; i < list.size(); i++) if (list.get(i).url.equals(item.url)) index = i;
-        // The home screen shows picture (turn + skip) % count: the skip that lands on this one, never the turn it's on
-        // now (the same turn would keep the background it already made).
-        long turn = System.currentTimeMillis() / (Prefs.homeBackgroundMinutes(c) * 60_000L);
-        int skip = Prefs.homeBackgroundSkip(c), n = list.size();
-        long now = turn + skip, wanted = now - Math.floorMod(now, n) + index;
+        // The home screen shows picture step % count: the step that lands on this one, never the step it's on now
+        // (the same step would keep the background it already made).
+        long now = Prefs.homeBackgroundStep(c), n = list.size(), wanted = now - Math.floorMod(now, n) + index;
         if (wanted == now && Prefs.homeBackground(c).equals(FAVORITES)) wanted += n;
-        Prefs.setHomeBackgroundSkip(c, (int) (wanted - turn));
+        Prefs.setHomeBackgroundStep(c, wanted);
         Prefs.setHomeBackground(c, FAVORITES);
+    }
+
+    /** After a new order: the step that keeps the picture on Home now, so the next ones follow the new order. */
+    private static void keepCurrent(Context c) {
+        Item cur = current(c);
+        if (cur == null || !Prefs.homeBackground(c).equals(FAVORITES)) return;
+        List<Item> list = list(c, FAVORITES);   // the list Home goes through
+        for (int i = 0; i < list.size(); i++) {
+            if (!list.get(i).url.equals(cur.url)) continue;
+            long now = Prefs.homeBackgroundStep(c), wanted = now - Math.floorMod(now, (long) list.size()) + i;
+            if (wanted != now) Prefs.setHomeBackgroundStep(c, wanted);
+            return;
+        }
     }
 
     /** The home screen's current background (the home screen writes it; Home Settings > Backgrounds reads it). */
