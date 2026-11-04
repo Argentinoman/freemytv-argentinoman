@@ -75,7 +75,8 @@ public class ImageViewerActivity extends Activity {
         String path = intent.getStringExtra(EXTRA_PATH);
         Uri data = intent.getData();
         if (path == null && data != null && "file".equals(data.getScheme())) path = data.getPath();
-        if (path == null && data != null && FilesProvider.AUTHORITY.equals(data.getAuthority())) path = data.getPath();
+        // A content:// link that carries a readable file's path (our explorer's): then the whole folder goes through.
+        if (path == null && data != null && data.getPath() != null && new File(data.getPath()).canRead()) path = data.getPath();
         if (path != null) {
             File f = new File(path);
             File[] all = f.getParentFile() == null ? null : f.getParentFile().listFiles();
@@ -95,7 +96,9 @@ public class ImageViewerActivity extends Activity {
     }
 
     static boolean isImage(File f) {
-        return FilesProvider.type(f).startsWith("image/");
+        String name = f.getName(), ext = name.substring(name.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
+        String type = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+        return type != null && type.startsWith("image/");
     }
 
     /** Loads the picture at index + step off the UI thread, at the screen's size, and fades it in. */
@@ -162,16 +165,32 @@ public class ImageViewerActivity extends Activity {
 
     /** Holding OK: this picture becomes the home background (copied into the app, as from the explorer). */
     private void useAsBackground() {
-        if (single != null || files.isEmpty()) return;
-        final File f = files.get(index);
+        if (single == null && files.isEmpty()) return;
+        final File f = single == null ? files.get(index) : null;
+        final Uri shared = single;
         view.toast("Guardando la foto…");
         loader.execute(() -> {
             String done;
+            File copy = null;
             try {
-                Gallery.addOwn(this, f, true);
+                if (f == null) {   // another app's picture: a copy first, named as that app calls it
+                    String seg = shared.getLastPathSegment();
+                    String name = seg == null ? "foto" : seg.replaceAll("[^\\p{L}\\p{N}._ -]", "_");
+                    copy = new File(getCacheDir(), name);
+                    try (InputStream in = getContentResolver().openInputStream(shared);
+                         java.io.FileOutputStream out = new java.io.FileOutputStream(copy)) {
+                        byte[] buf = new byte[16384];
+                        int n;
+                        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                    }
+                }
+                Gallery.addOwn(this, f != null ? f : copy, true);
                 done = "Listo: es el fondo del inicio, y quedó en tus favoritas.";
             } catch (Exception e) {
                 done = "No se pudo usar como fondo.";
+            } finally {
+                //noinspection ResultOfMethodCallIgnored
+                if (copy != null) copy.delete();
             }
             final String text = done;
             runOnUiThread(() -> view.toast(text));
@@ -311,7 +330,7 @@ public class ImageViewerActivity extends Activity {
                         x, top + 52 * k, name);
                 c.drawText(detailText, x, top + 92 * k, detail);
                 String keys = (single == null && files.size() > 1 ? "← → otra foto · " : "")
-                        + (single == null ? "mantené OK: usar de fondo · " : "") + "Atrás vuelve";
+                        + "mantené OK: usar de fondo · Atrás vuelve";
                 c.drawText(keys, w - x, top + 72 * k, hint);
             }
             if (notice != null) {   // a pill at the top

@@ -167,8 +167,13 @@ Internet*), o Android borra la red.
   (`server_name` en su `shared_prefs/settings.xml`). El modelo (`ro.product.model` = HY300) es de fábrica.
 - **Mis favoritas** (Ajustes → Fondos, `FavoritesActivity`): grilla de los fondos favoritos; OK oculta uno (sigue en favoritas
   pero el fondo y el protector lo saltean: `"paused"` en `gallery-favorites.json`) o lo vuelve a mostrar, y
-  mantener OK lo quita. Con todas ocultas, el inicio usa los fondos del sistema.
+  mantener OK abre un menú: **Cambiar de lugar** (las flechas la llevan; el orden se guarda en el archivo y lo siguen
+  el fondo y el protector) o **Quitar de favoritas**. Con todas ocultas, el inicio usa los fondos del sistema.
 - **Explorador propio** (`FilesActivity`): el botón USB del cajón. `com.droidlogic.FileBrower` desactivada.
+- **Visor de fotos propio** (`ImageViewerActivity`): las fotos del explorador, y cualquier `content://` de imagen de otra
+  app. ← → recorren la carpeta, OK muestra la barra, mantener OK la copia a `fondos-propios` y la deja de fondo. El
+  de la placa (`com.droidlogic.imageplayer`) sigue instalado: si otra app lo elige, Android pregunta cuál usar.
+- **Sin protector en Ajustes del inicio** (HY300): las filas del protector no se muestran (`NO_SCREENSAVER`).
 - **`com.softwinner.tcorrection` oculta** (`pm hide`; vuelve con `pm unhide`): es persistente y Android la levantaba
   en cada arranque aunque estuviera desactivada.
 - **Sin Dolby:** la placa anuncia AC3/E-AC3 (una salida "compress offload" y dos decodificadores
