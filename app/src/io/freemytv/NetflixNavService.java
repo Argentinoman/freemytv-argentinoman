@@ -268,7 +268,32 @@ public class NetflixNavService extends AccessibilityService {
         hasFocus = true;
         AppLog.w("netflix nav: " + (t.node != null ? t.node.getClassName() : "hidden card") + " "
                 + focus.toShortString());   // TEMP: while tuning
+        // Netflix slides a row a little after the ring moves in it: the ring follows once it has settled.
+        main.removeCallbacks(resync);
+        main.postDelayed(resync, 250);
+        main.postDelayed(resync, 600);
     }
+
+    /** The ring back on the thing it was on (found by what it shows), wherever its row has slid to. */
+    private final Runnable resync = () -> {
+        if (!hasFocus || focusLabel.isEmpty() || ring == null || ring.getVisibility() != View.VISIBLE) return;
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root == null || root.getPackageName() == null || !NETFLIX.contentEquals(root.getPackageName())) return;
+        Target same = null;
+        long sameD = Long.MAX_VALUE;
+        for (Target t : targets(root)) {
+            if (!t.label.equals(focusLabel)) continue;
+            long ddx = t.r.centerX() - focus.centerX(), ddy = t.r.centerY() - focus.centerY();
+            if (ddx * ddx + ddy * ddy < sameD) {
+                sameD = ddx * ddx + ddy * ddy;
+                same = t;
+            }
+        }
+        if (same == null || same.r.equals(focus)) return;
+        AppLog.w("netflix nav: resync " + focus.toShortString() + " -> " + same.r.toShortString());   // TEMP: while tuning
+        focus.set(same.r);
+        showRing();
+    };
 
     // MARK: - Moving and clicking
 
