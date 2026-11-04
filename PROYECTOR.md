@@ -153,6 +153,10 @@ Internet*), o Android borra la red.
 - **Play Store:** sin botón en el cajón; aparece en "Todas las apps" como una más.
 - **ADB por red en el panel:** fila en Ajustes del inicio (`quick-adb.txt`, apagada por defecto); el firewall lo
   cierra en cada arranque igual.
+- **Netflix con las flechas** (`NetflixNavService`, en `:keys`, prendido junto al de los botones por `HomeMode`): en
+  la Netflix de celular, las flechas saltan entre lo que se puede tocar (como el buscador de foco de Android) y OK lo
+  toca; un aro blanco marca dónde. Solo lee la pantalla de Netflix (`packageNames`); con el teclado abierto, las
+  flechas son del teclado. Reemplaza al "NetflixMouse" del fabricante.
 - **Spotify se cierra al apagar el proyector** (`RemoteKeyService`, con la pantalla apagada: `am force-stop`).
 - **Nombre: "Irupé"** (2026-11-04): `settings global device_name` y `wifi_p2p_device_name` (Miracast; en vivo con
   `wpa_cli -p /data/vendor/wifi/wpa/sockets -i wlan0 set device_name`), Bluetooth (desde la pantalla de Android

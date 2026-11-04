@@ -232,15 +232,30 @@ final class HomeMode {
     }
 
     private static final String REMOTE_SERVICE = PKG + "/" + PKG + ".RemoteKeyService";
+    /** HY300: the arrows inside Netflix's phone build (it reads only Netflix's screen). */
+    private static final String NETFLIX_SERVICE = PKG + "/" + PKG + ".NetflixNavService";
     private static final Pattern SERVICE = Pattern.compile("[\\w.]+/[\\w.$]+");
 
-    /** Adds ours to the enabled accessibility services (keeping the others, like TalkBack), or takes it out. */
+    private static List<String> ourServices() {
+        List<String> l = new ArrayList<>();
+        l.add(REMOTE_SERVICE);
+        if (RemoteKeys.HY300) l.add(NETFLIX_SERVICE);
+        return l;
+    }
+
+    /** Adds ours to the enabled accessibility services (keeping the others, like TalkBack), or takes them out. */
     private static void remoteService(Context c, Adb adb, boolean on) throws IOException {
         String current = adb.shell("settings get secure enabled_accessibility_services").trim();
         if (current.equals("null")) current = "";
-        List<String> others = new ArrayList<>();
+        List<String> ours = ourServices(), others = new ArrayList<>();
+        boolean allOn = true, anyOn = false;
+        for (String s : ours) {
+            boolean in = java.util.Arrays.asList(current.split(":")).contains(s);
+            allOn &= in;
+            anyOn |= in;
+        }
         for (String one : current.split(":")) {
-            if (one.isEmpty() || one.equals(REMOTE_SERVICE)) continue;
+            if (one.isEmpty() || one.equals(REMOTE_SERVICE) || one.equals(NETFLIX_SERVICE)) continue;
             // Only plain component names go back into the shell command; anything else is left alone.
             if (!SERVICE.matcher(one).matches()) {
                 AppLog.w("accessibility services left as they are: unexpected entry");
@@ -248,14 +263,14 @@ final class HomeMode {
             }
             others.add(one);
         }
-        if (on == current.contains(REMOTE_SERVICE)) return;
+        if (on ? allOn : !anyOn) return;
         List<String> list = new ArrayList<>(others);
         if (on) {
             JSONObject s = state(c);
             try { s.put("accessibilityWasOff", !"1".equals(adb.shell("settings get secure accessibility_enabled").trim())); }
             catch (JSONException ignored) {}
             save(c, s);
-            list.add(REMOTE_SERVICE);
+            list.addAll(ours);
         }
         adb.shell(list.isEmpty() ? "settings delete secure enabled_accessibility_services"
                 : "settings put secure enabled_accessibility_services '" + String.join(":", list) + "'");
