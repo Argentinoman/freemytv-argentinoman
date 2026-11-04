@@ -137,7 +137,9 @@ public class NetflixNavService extends AccessibilityService {
         Rect r = new Rect();
         n.getBoundsInScreen(r);
         if (row == null ? !n.isVisibleToUser() : !Rect.intersects(row, r) || r.width() <= 0) return false;
-        boolean list = n.isScrollable() && r.width() > r.height() && r.height() > r.width() / 6;   // a row, not a bar
+        // A row of cards: a band across the screen (not the page itself, nor a bar).
+        boolean list = n.isScrollable() && r.width() > r.height() && r.height() > r.width() / 6
+                && r.height() < screenHeight * 3 / 5;
         Rect inRow = list ? r : row;
         int from = out.size();
         boolean inner = false;
@@ -151,6 +153,7 @@ public class NetflixNavService extends AccessibilityService {
                 if (part.height() < r.height() * 4 / 10) part.setEmpty();
             }
             if (row != null) part.intersect(row);
+            if (!part.intersect(0, 0, screenWidth, screenHeight)) part.setEmpty();   // only what's on screen
             if (!part.isEmpty() && part.width() > 8 && part.height() > 8 && !peeking(part)) {
                 Target t = new Target();
                 t.r.set(part);
@@ -307,13 +310,23 @@ public class NetflixNavService extends AccessibilityService {
         // until the page can't scroll any further; sideways, only what's on the same line, or the row scrolls.
         if (step(targets, dx, dy, true, dx != 0)) return;
         AccessibilityNodeInfo list = scroller(root, dx != 0);
-        if (list != null && list.performAction(dx + dy > 0 ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
-                : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)) {
+        boolean scrolled = list != null && scroll(list, dx, dy);
+        AppLog.w("netflix nav: scroll " + (list == null ? "none" : scrolled));   // TEMP: while tuning
+        if (scrolled) {
             final int fx = dx, fy = dy;
             main.postDelayed(() -> afterScroll(fx, fy), 600);   // once Netflix's scroll has settled
         } else {
             step(targets, dx, dy, false, false);
         }
+    }
+
+    /** One step of the list that way: forward or back, or the named direction (Compose lists offer either). */
+    private static boolean scroll(AccessibilityNodeInfo list, int dx, int dy) {
+        if (list.performAction(dx + dy > 0 ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+                : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)) return true;
+        int id = dx > 0 ? android.R.id.accessibilityActionScrollRight : dx < 0 ? android.R.id.accessibilityActionScrollLeft
+                : dy > 0 ? android.R.id.accessibilityActionScrollDown : android.R.id.accessibilityActionScrollUp;
+        return list.performAction(id);
     }
 
     /** A bar floating over the page: short things in the screen's first sixteenth or last eighth. */
@@ -383,7 +396,9 @@ public class NetflixNavService extends AccessibilityService {
         int cx = focus.centerX() + dx * focus.width() / 2, cy = focus.centerY() + dy * focus.height() / 2;
         Target best = null;
         long bestD = Long.MAX_VALUE;
+        boolean fromBar = inBar(focus);
         for (Target t : targets) {
+            if (!fromBar && inBar(t.r)) continue;   // not onto a bar floating over the page
             long ddx = t.r.centerX() - cx, ddy = t.r.centerY() - cy;
             long d = ddx * ddx + ddy * ddy;
             if (d < bestD) {
@@ -391,6 +406,7 @@ public class NetflixNavService extends AccessibilityService {
                 best = t;
             }
         }
+        if (best == null) return;
         pick(best);
         showRing();
     }
