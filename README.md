@@ -43,6 +43,17 @@ Open source. Built with Claude Code. One button to undo.
 > <img src="screenshots/protector-de-pantalla.jpg" width="430" alt="The screensaver: a snowy landscape from Wikimedia Commons, with the song playing and the next football game at the top right, and the weather and the time at the bottom right">
 >
 > <sub>Taken on the TV itself (the home screen's brightness was turned down).</sub>
+>
+> **Also for projectors:** the [`proyector`](https://github.com/Argentinoman/freemytv-argentinoman/tree/proyector)
+> branch is a lighter, flat version for cheap Chinese Android projectors (1 GB of RAM; first the HY300), with its own
+> screens for keystone, HDMI and wireless casting, and without the factory's remote installer.
+>
+> <img src="screenshots/proyector/inicio.png" width="430" alt="The projector's home screen: date, time and weather over a mountain background, and the shelf with YouTube, Netflix, Prime Video, Disney+, Spotify and Flow">
+> <img src="screenshots/proyector/proyeccion.png" width="430" alt="The projector's Proyección panel: automatic keystone, vertical, horizontal, size, projection mode and reset">
+> <img src="screenshots/proyector/inalambrica.png" width="430" alt="The projector's Inalámbrica screen: how to cast from Android and Windows (Miracast) and from Apple devices (AirPlay)">
+> <img src="screenshots/proyector/mis-favoritas.png" width="430" alt="Mis favoritas: the grid of favourite backgrounds, one of them paused">
+>
+> <sub>Taken on the HY300 (1024×600).</sub>
 
 ## What you get
 
