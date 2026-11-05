@@ -30,8 +30,10 @@ Es la rama `proyector` de [este fork](https://github.com/Argentinoman/freemytv-a
 | El inicio | Proyección: trapecio automático, ángulos, tamaño y modo |
 | ![El panel rápido: hora y clima, Wi-Fi, Bluetooth, Imagen y sonido, Proyección, Ajustes, Brillo del inicio, Ajustes de inicio y ADB por red](screenshots/panel-rapido.png) | ![La pantalla Inalámbrica: dos tarjetas, Android / Windows (Miracast) y Dispositivos Apple (AirPlay), con cómo transmitir desde cada uno](screenshots/inalambrica.png) |
 | El panel rápido | Inalámbrica: Miracast o AirPlay, prendidos solo mientras se usan |
-| ![Mis favoritas: la grilla de fondos favoritos, uno pausado](screenshots/mis-favoritas.png) | |
-| Mis favoritas | |
+| ![La entrada HDMI sin nada enchufado: el ícono del cable, "Sin señal" y "Revisá que el equipo esté prendido y el cable bien enchufado"](screenshots/hdmi.png) | ![Mis favoritas: la grilla de fondos favoritos, uno pausado](screenshots/mis-favoritas.png) |
+| HDMI a pantalla completa, con "Sin señal" propio | Mis favoritas |
+| ![El explorador de archivos: una carpeta con una subcarpeta, una imagen y un texto, y los botones Seleccionar varios y Nueva carpeta](screenshots/explorador.png) | ![El menú de un archivo en el explorador: Abrir, Usar como fondo, Sumar a fondos favoritos, Copiar, Mover a otra carpeta, Cambiar el nombre, Seleccionar varios y Borrar](screenshots/explorador-opciones.png) |
+| El explorador de archivos | Mantener OK sobre una foto: usarla de fondo, copiar, mover… |
 
 ## Qué trae
 
