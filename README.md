@@ -57,6 +57,33 @@ Es la rama `proyector` de [este fork](https://github.com/Argentinoman/freemytv-a
 Probado en un **HY300**: Amlogic T950S, Android 13, 1 GB de RAM, pantalla de 1024×600, firmware
 `be311-13 TQ2A.20250807`.
 
+## Rendimiento
+
+Medido en el HY300 de referencia (1 GB de RAM, de los que Android ve 958 MB), con `/proc/meminfo` y `ps`/`dumpsys
+meminfo` por ADB.
+
+**Lo que dejó de correr.** Al lado del inicio chino, el sistema mantenía siempre vivos sus procesos auxiliares. Medido
+en el mismo momento, con los dos inicios instalados (RSS, que incluye memoria compartida):
+
+| Proceso | De fábrica | Con Free My TV |
+|---|---|---|
+| Inicio | `htclauncherhighenglishd08`: 106 MB, más su descargador (`:filedownloader`): 67 MB | `io.freemytv:home`: 96 MB, sin descargador |
+| Trapecio | `com.softwinner.tcorrection` + `:remote`: 136 MB, siempre corriendo | 0: la Proyección es parte del inicio |
+| Total de esas piezas | **309 MB** | **96 MB** |
+
+En memoria propia (PSS, sin contar la compartida), el inicio de Free My TV ocupa unos **40 MB**, y el servicio de los
+botones del control y el volumen, unos **9 MB**.
+
+**Memoria libre:**
+
+- **En reposo:** de unos 370 MB libres con el software de fábrica a unos 400 MB con Free My TV.
+- **Con Spotify sonando:** quedan unos 390 MB libres, casi sin usar la memoria de intercambio.
+
+**Sin protector de pantalla:** medido a mano, el protector animado usaba un 30-35 % de procesador y 22 MB más. En el
+HY300 está sacado.
+
+<sub>Son mediciones de un solo equipo, en momentos puntuales: la memoria libre cambia según qué apps quedaron abiertas.</sub>
+
 ## Instalar
 
 | Cómo | Qué necesitás |
