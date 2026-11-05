@@ -100,7 +100,7 @@ En los accesos directos del cajón, junto a Todas las apps y Ajustes: abre el na
 
 ### 6. Que se vea como la tele Android
 
-La referencia visual es la versión Android en mi TCL (capturas en `screenshots/`). Tiene que parecerse lo más posible:
+La referencia visual es la versión Android en mi TCL (capturas en `screenshots/tv/`). Tiene que parecerse lo más posible:
 
 - **Logos del estante:** reusar los de Android, `app/assets/logos/` (netflix, youtube, prime, disney, max, spotify),
   copiados a `web/icons/` y asociados a los ids de esas apps en Samsung y LG. Hoy la web no tiene logo de Disney+.

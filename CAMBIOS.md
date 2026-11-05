@@ -5,18 +5,19 @@ Todo lo que se agregó o cambió sobre [Free My TV](https://github.com/simbasjun
 
 | | |
 |---|---|
-| ![YouTube seleccionado: la isla "Vistos recientemente" con los últimos videos que se vieron en la tele, sobre el tema de Halloween](screenshots/vistos-recientemente-youtube.jpg) | ![Netflix seleccionado: la isla "Continuar viendo" con Shrek 2 y Te conozco](screenshots/continuar-viendo-netflix.jpg) |
-| "Vistos recientemente" en YouTube, con el tema de Halloween | "Continuar viendo" en Netflix |
-| ![Spotify seleccionado: el Top 3 de Argentina con las portadas](screenshots/top3-spotify.jpg) | ![Prime Video seleccionado: destacados, sobre un fondo de paisaje de Wikimedia](screenshots/destacados-prime-fondo-paisaje.jpg) |
-| Top 3 Argentina en Spotify | Destacados de Prime Video, con fondo de paisaje |
-| ![Dos partidos en vivo debajo del reloj y una canción sonando](screenshots/partidos-en-vivo-y-musica.jpg) | ![El cajón: entradas, accesos directos con Navegador, el clima y los próximos partidos](screenshots/cajon-navegador-y-partidos.jpg) |
-| Dos partidos en vivo y el reproductor | El cajón, con "Navegador" y los partidos |
-| ![La tarjeta del clima en su segunda página: el pronóstico de 7 días con máxima y mínima](screenshots/pronostico-7-dias.webp) | ![El panel rápido sobre el inicio, con el fondo de una pintura](screenshots/panel-rapido.webp) |
-| El pronóstico extendido de 7 días | El panel rápido |
-| ![El protector de pantalla: un paisaje nevado con la canción, el próximo partido, el clima y la hora](screenshots/protector-de-pantalla.jpg) | |
-| El protector de pantalla | |
+| ![El inicio: fecha, hora y clima sobre un lago de montaña, y el estante de apps](screenshots/tv/inicio.jpg) | ![YouTube seleccionado: la isla "Vistos recientemente" y tres partidos en vivo debajo del reloj](screenshots/tv/vistos-recientemente-youtube.jpg) |
+| El inicio | "Vistos recientemente" en YouTube y partidos en vivo |
+| ![Netflix seleccionado: la isla "Continuar viendo" con One Piece y The Office](screenshots/tv/continuar-viendo-netflix.jpg) | ![Spotify seleccionado: el Top 3 de Argentina con las portadas](screenshots/tv/top3-spotify.jpg) |
+| "Continuar viendo" en Netflix | Top 3 Argentina en Spotify |
+| ![El cajón: entradas, accesos directos con Navegador, el clima y tres partidos en vivo](screenshots/tv/cajon.jpg) | ![La tarjeta del clima en su segunda página: el pronóstico de 7 días con máxima y mínima](screenshots/tv/pronostico-7-dias.jpg) |
+| El cajón, con "Navegador" y los partidos | El pronóstico extendido de 7 días |
+| ![El panel rápido sobre el inicio](screenshots/tv/panel-rapido.jpg) | ![Ajustes → Fondos: fondo del inicio, protector, tema de temporada, Mis favoritas y orden de las fotos](screenshots/tv/ajustes-fondos.jpg) |
+| El panel rápido | Ajustes → Fondos |
+| ![Mis favoritas: la grilla de fondos favoritos](screenshots/tv/mis-favoritas.jpg) | ![El protector de pantalla: un paisaje de Wikimedia con tres partidos en vivo, el título, el clima y la hora](screenshots/tv/protector-de-pantalla.jpg) |
+| Mis favoritas | El protector de pantalla |
 
-<sub>Capturas sacadas en la tele (con el brillo del inicio bajado).</sub>
+<sub>Capturas sacadas en la tele en noviembre de 2026 (con el brillo del inicio al 40 %). Todas, también las del
+proyector, en el [README](README.md#screenshots).</sub>
 
 ## Pantalla de inicio
 

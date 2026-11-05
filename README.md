@@ -9,51 +9,67 @@
 Trending picks from your own apps, the weather at a glance, and a look that follows the sunset.<br>
 Open source. Built with Claude Code. One button to undo.
 
-[**freemytv.io**](https://freemytv.io) · [Install](#install) · [LG TVs](#lg-tvs-webos) · [Samsung TVs](#samsung-tvs-tizen) · [Any TV](#any-tv) · [Make it yours](#make-it-yours)
+[**freemytv.io**](https://freemytv.io) · [Screenshots](#screenshots) · [Install](#install) · [LG TVs](#lg-tvs-webos) · [Samsung TVs](#samsung-tvs-tizen) · [Any TV](#any-tv) · [Make it yours](#make-it-yours)
 
-<img src=".github/preview.webp" width="880" alt="The Free My TV home screen: a glass shelf of apps, trending picks, and a drawer with the weather and crypto prices">
+<img src="screenshots/tv/inicio.jpg" width="880" alt="The home screen on a TCL Google TV: date, time and weather over a mountain lake, the top buttons, and the glass shelf with YouTube, Netflix, Disney+, Prime Video and Spotify">
 
 </div>
 
 > **This fork** is [simbasjungles/free-my-tv](https://github.com/simbasjungles/free-my-tv) tuned for one TV: a 2 GB TCL
 > Google TV (Android 11, Mali-G31) in Argentina. On top of the original:
 >
-> - A **"Continuar viendo" island** for the focused shelf app: Watch Next (Disney+, Netflix), what was watched on this TV in
->   YouTube ("Vistos recientemente"), Spotify's Top 3 Argentina, and each app's featured row (Prime Video, YouTube trending) when there's nothing
->   to resume.
-> - **Football**: live games first, every Argentine professional cup, CONMEBOL and UEFA competitions and the World Cup,
->   also in the screensaver.
-> - **TCL remote**: the browser, TV (straight to the antenna's channels), TCL Home and gear buttons work in Free My TV
->   mode; the codes and what each opens are documented in `Prefs.java`, the tuner in `HomeApps.liveTv`.
-> - A now-playing widget with stop, shuffle and repeat; a quick settings panel; Wikimedia backgrounds and screensaver
->   (landscapes, art, abstract art, animals); a Samsung-style power-off animation; a "Navegador" drawer shortcut.
-> - Speed work for a weak GPU and 2 GB of RAM (see `CLAUDE.md`: compile the app after installing it).
-> - **Per-TV app touches** (a name or a card picture for a particular app) go in a git-ignored
->   `app/assets/local/apps.properties`: see `LocalApps.java`.
+> - **An island for the focused app:** "Continuar viendo" (Disney+, Netflix), "Vistos recientemente" (what was watched
+>   on this TV in YouTube), Spotify's Top 3 Argentina, and each app's featured row when there's nothing to resume.
+> - **Football, live first:** every Argentine professional cup, CONMEBOL and UEFA competitions and the World Cup, under
+>   the clock, in the drawer and in the screensaver.
+> - **Backgrounds:** Wikimedia Commons (landscapes, art, abstract art, animals), **Mis favoritas** (pause, reorder or
+>   take out each favourite), seasonal themes (Halloween, Christmas, New Year, Carnival, Easter, a birthday) and a photo
+>   viewer for pictures opened from a file explorer.
+> - **TCL remote:** the browser, TV (straight to the antenna's channels), TCL Home and gear buttons work, also over the
+>   screensaver; the codes are documented in `Prefs.java`.
+> - **More:** a now-playing widget, a quick settings panel, the extended 7-day forecast, a "Navegador" shortcut and a
+>   Samsung-style power-off animation.
+> - **Speed work** for a weak GPU and 2 GB of RAM (see `CLAUDE.md`: compile the app after installing it).
+> - **Per-TV touches** (an app's name or card picture, a theme's own pictures) go in the git-ignored
+>   `app/assets/local/`: see `LocalApps.java` and [CAMBIOS.md](CAMBIOS.md).
 >
 > The UI text added here is in Spanish. **Every change in detail (in Spanish): [CAMBIOS.md](CAMBIOS.md).**
->
-> <img src="screenshots/vistos-recientemente-youtube.jpg" width="430" alt="Home screen with YouTube focused, over the Halloween theme: the Vistos recientemente island shows the last three videos watched on this TV">
-> <img src="screenshots/continuar-viendo-netflix.jpg" width="430" alt="Home screen with Netflix focused: the Continuar viendo island shows Shrek 2 with 57 minutes left and Te conozco, season 1 episode 4">
-> <img src="screenshots/partidos-en-vivo-y-musica.jpg" width="430" alt="Home screen with two live football games stacked under the clock and a song playing at the top right">
-> <img src="screenshots/top3-spotify.jpg" width="430" alt="Home screen with Spotify focused: the island shows Spotify's Top 3 Argentina with album covers">
-> <img src="screenshots/cajon-navegador-y-partidos.jpg" width="430" alt="The drawer: inputs, shortcuts with the Navegador button, the weather and the next football games">
-> <img src="screenshots/pronostico-7-dias.webp" width="430" alt="The drawer's weather card on its second page: the extended 7-day forecast with each day's high and low">
-> <img src="screenshots/panel-rapido.webp" width="430" alt="The quick settings panel over the home screen: clock and weather, Wi-Fi, Bluetooth, screensaver, picture and sound, inputs, settings, home brightness and home settings">
-> <img src="screenshots/protector-de-pantalla.jpg" width="430" alt="The screensaver: a snowy landscape from Wikimedia Commons, with the song playing and the next football game at the top right, and the weather and the time at the bottom right">
->
-> <sub>Taken on the TV itself (the home screen's brightness was turned down).</sub>
 >
 > **Also for projectors:** the [`proyector`](https://github.com/Argentinoman/freemytv-argentinoman/tree/proyector)
 > branch is a lighter, flat version for cheap Chinese Android projectors (1 GB of RAM; first the HY300), with its own
 > screens for keystone, HDMI and wireless casting, and without the factory's remote installer.
->
-> <img src="screenshots/proyector/inicio.png" width="430" alt="The projector's home screen: date, time and weather over a mountain background, and the shelf with YouTube, Netflix, Prime Video, Disney+, Spotify and Flow">
-> <img src="screenshots/proyector/proyeccion.png" width="430" alt="The projector's Proyección panel: automatic keystone, vertical, horizontal, size, projection mode and reset">
-> <img src="screenshots/proyector/inalambrica.png" width="430" alt="The projector's Inalámbrica screen: how to cast from Android and Windows (Miracast) and from Apple devices (AirPlay)">
-> <img src="screenshots/proyector/mis-favoritas.png" width="430" alt="Mis favoritas: the grid of favourite backgrounds, one of them paused">
->
-> <sub>Taken on the HY300 (1024×600).</sub>
+
+## Screenshots
+
+### On the TV
+
+| | |
+|---|---|
+| ![Home with YouTube focused: the Vistos recientemente island shows the last three videos watched on this TV, and three live games under the clock](screenshots/tv/vistos-recientemente-youtube.jpg) | ![Home with Netflix focused: the Continuar viendo island shows One Piece and The Office](screenshots/tv/continuar-viendo-netflix.jpg) |
+| **Vistos recientemente** (YouTube) and live games | **Continuar viendo** (Netflix) |
+| ![Home with Disney+ focused: the Continuar viendo island with three shows to resume](screenshots/tv/continuar-viendo-disney.jpg) | ![Home with Prime Video focused: the island shows Destacados en Prime Video](screenshots/tv/destacados-prime.jpg) |
+| **Continuar viendo** (Disney+) | **Destacados** (Prime Video) |
+| ![Home with Spotify focused: the island shows Spotify's Top 3 Argentina with the covers](screenshots/tv/top3-spotify.jpg) | ![The drawer: inputs, shortcuts with Navegador, the weather and three live games](screenshots/tv/cajon.jpg) |
+| **Top 3 Argentina** (Spotify) | **The drawer**, with live games |
+| ![The drawer's weather card on its second page: the 7-day forecast with each day's high and low](screenshots/tv/pronostico-7-dias.jpg) | ![The quick settings panel over the home screen: Wi-Fi, Bluetooth, screensaver, picture and sound, inputs, settings, home brightness, home settings and change background](screenshots/tv/panel-rapido.jpg) |
+| **7-day forecast** | **Quick settings** (the remote's gear button) |
+| ![Settings → Fondos: home background, how often it changes, screensaver, seasonal theme, Mis favoritas and photo order](screenshots/tv/ajustes-fondos.jpg) | ![Mis favoritas: the grid of favourite backgrounds](screenshots/tv/mis-favoritas.jpg) |
+| **Settings → Fondos** | **Mis favoritas** |
+| ![The screensaver: a Wikimedia landscape with three live games at the top right, the title and author at the bottom left, and the weather and time at the bottom right](screenshots/tv/protector-de-pantalla.jpg) | |
+| **The screensaver** | |
+
+<sub>Taken on the TCL itself, November 2026 (the home screen's brightness is turned down to 40%).</sub>
+
+### On the projector
+
+| | |
+|---|---|
+| ![The projector's home screen: date, time and weather over a mountain background, and the shelf with YouTube, Netflix, Prime Video, Disney+, Spotify and Flow](screenshots/proyector/inicio.png) | ![The projector's Proyección panel: automatic keystone, vertical, horizontal, size, projection mode and reset](screenshots/proyector/proyeccion.png) |
+| **Home** | **Proyección** (keystone) |
+| ![The projector's Inalámbrica screen: how to cast from Android and Windows (Miracast) and from Apple devices (AirPlay)](screenshots/proyector/inalambrica.png) | ![Mis favoritas on the projector: the grid of favourite backgrounds, one of them paused](screenshots/proyector/mis-favoritas.png) |
+| **Inalámbrica** (Miracast and AirPlay) | **Mis favoritas** |
+
+<sub>Taken on the HY300 (1024×600). More in the [`proyector`](https://github.com/Argentinoman/freemytv-argentinoman/tree/proyector) branch.</sub>
 
 ## What you get
 
