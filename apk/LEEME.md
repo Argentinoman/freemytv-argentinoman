@@ -15,7 +15,7 @@ la rama `proyector`.
 
 | Archivo | Versión | SHA-256 |
 |---|---|---|
-| `FreeMyTV-proyector.apk` | 2026-11-04, 1,7 MB | `348bccb8b48d15851364b3d8c90e2964413ee4c7efdb1f97942c84c4060cb172` |
+| `FreeMyTV-proyector.apk` | 2026-11-05, 1,7 MB | `2e9c5e66796367a5c6d46b2875066be5129186c2ba77a8167ac0bd39a240f424` |
 
 ## Qué trae (reemplaza las apps del proyector)
 

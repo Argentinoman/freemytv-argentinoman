@@ -386,7 +386,7 @@ public class SettingsActivity extends Activity {
             // On the left: big symbol, title, description.
             float cx = 500 * k;
             Symbols.draw(getContext(), c, "sparkles", cx, 400 * k, 150 * k, 0xEBFFFFFF);
-            c.drawText("Proyector de Eli", cx, 612 * k, title);
+            c.drawText("Mi proyector", cx, 612 * k, title);
             c.drawText("Ajustado en base al buen gusto de Mati", cx, 660 * k, subtitle);
             c.drawText(versionName(getContext()), cx, 704 * k, version);
 
@@ -503,11 +503,11 @@ public class SettingsActivity extends Activity {
         }
 
         private static String versionName(Context c) {
-            // The projector branch of Mati's fork (Free My TV's MIT notice stays in LICENSE).
+            // Credit: the base project (Free My TV, its MIT notice in LICENSE) and Argentinoman's fork it comes from.
             try {
-                return "Basado en TV de Mati " + c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
+                return "Basado en Free My TV y en la rama de Argentinoman · " + c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                return "Basado en TV de Mati";
+                return "Basado en Free My TV y en la rama de Argentinoman";
             }
         }
 
