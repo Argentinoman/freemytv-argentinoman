@@ -20,6 +20,19 @@ el HDMI y la recepción inalámbrica. Código abierto. Un botón para volver a c
 Es la rama `proyector` de [este fork](https://github.com/Argentinoman/freemytv-argentinoman) de
 [Free My TV](https://github.com/simbasjungles/free-my-tv), recortada y adaptada para un proyector de 1 GB de RAM.
 
+## Cómo se ve
+
+<sub>Capturas sacadas en el HY300 (1024×600).</sub>
+
+| | |
+|---|---|
+| ![El inicio: fecha, hora y clima sobre un fondo de montañas, el widget de música arriba a la derecha y el estante con YouTube, Netflix, Prime Video, Disney+, Spotify y Flow](screenshots/inicio.png) | ![El panel de Proyección sobre el inicio: trapecio automático, vertical, horizontal, tamaño, modo de proyección y restablecer](screenshots/proyeccion.png) |
+| El inicio | Proyección: trapecio automático, ángulos, tamaño y modo |
+| ![El panel rápido: hora y clima, Wi-Fi, Bluetooth, Imagen y sonido, Proyección, Ajustes, Brillo del inicio, Ajustes de inicio y ADB por red](screenshots/panel-rapido.png) | ![La pantalla Inalámbrica: dos tarjetas, Android / Windows (Miracast) y Dispositivos Apple (AirPlay), con cómo transmitir desde cada uno](screenshots/inalambrica.png) |
+| El panel rápido | Inalámbrica: Miracast o AirPlay, prendidos solo mientras se usan |
+| ![Mis favoritas: la grilla de fondos favoritos, uno pausado](screenshots/mis-favoritas.png) | |
+| Mis favoritas | |
+
 ## Qué trae
 
 - **Inicio sin publicidad:** las apps de streaming que usás en un estante, el reloj y el clima (con el pronóstico de 7
