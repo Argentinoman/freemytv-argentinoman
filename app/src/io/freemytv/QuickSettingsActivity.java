@@ -131,7 +131,13 @@ public class QuickSettingsActivity extends Activity {
                 try {
                     c.startActivity(screensaverNow().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 } catch (RuntimeException e) {
+                    // A Philco (Android TV 14) resolves Somnambulator but has no such class: our own preview then.
                     AppLog.w("screensaver: " + e.getMessage());
+                    try {
+                        c.startActivity(screensaverPreview().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    } catch (RuntimeException e2) {
+                        AppLog.w("screensaver preview: " + e2.getMessage());
+                    }
                 }
                 finish();
                 overridePendingTransition(0, 0);
@@ -206,6 +212,10 @@ public class QuickSettingsActivity extends Activity {
         private Intent screensaverNow() {
             Intent dream = new Intent().setClassName("com.android.systemui", "com.android.systemui.Somnambulator");
             if (dream.resolveActivity(getContext().getPackageManager()) != null) return dream;
+            return screensaverPreview();
+        }
+
+        private Intent screensaverPreview() {
             return new Intent(getContext(), SettingsActivity.class).putExtra("screensaver", true);
         }
 
