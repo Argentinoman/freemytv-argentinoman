@@ -29,11 +29,13 @@ final class RemoteKeys {
      * Vestel builds TVs sold under other brands (F&U...), so BRAND varies: check the maker too.
      */
     static final boolean TCL = is("TCL"), VESTEL = is("Vestel"), KTC = is("KTC"), SONY = is("Sony"), FORMOVIE = is("Formovie");
+    /** Philco (Homwee firmware, made by Changhong; MediaTek, Android TV 14): its PVR, Options and Search buttons. */
+    static final boolean PHILCO = is("PHILCO");
     /** Brands whose Netflix button is STEM_1, a global key (MediaTek): only that button is ours. */
     static final boolean STEM_NETFLIX = VESTEL || FORMOVIE;
 
     static boolean supported() {
-        return TCL || STEM_NETFLIX || KTC || SONY;
+        return TCL || STEM_NETFLIX || KTC || SONY || PHILCO;
     }
 
     private static boolean is(String maker) {
@@ -80,10 +82,12 @@ final class RemoteKeys {
                 || keyCode == KeyEvent.KEYCODE_BUTTON_9)) {
             keyCode = Prefs.SONY_KEY + e.getScanCode();
         }
-        // The gear and the profile keys: fixed, the stock home screen's own jobs.
-        if ((TCL && keyCode == KEY_TCL_SETTINGS) || keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH) {
+        // The gear and the profile keys: fixed, the stock home screen's own jobs. Philco's Options button (MENU) opens
+        // the quick panel too, as the person asked (apps no longer get MENU there).
+        boolean panel = (TCL && keyCode == KEY_TCL_SETTINGS) || (PHILCO && keyCode == Prefs.KEY_PHILCO_OPTIONS);
+        if (panel || keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH) {
             if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
-                final Intent intent = keyCode == KEY_TCL_SETTINGS ? quickPanel(c) : accounts(c);
+                final Intent intent = panel ? quickPanel(c) : accounts(c);
                 final int code = keyCode;
                 afterScreensaver(c, () -> {
                     try {
@@ -100,20 +104,37 @@ final class RemoteKeys {
         if (!ours) return false;
         String pkg = Prefs.keyApp(keyCode);
         if (pkg.isEmpty()) return false;   // "Nothing": the key goes on as if we weren't here
-        if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
-            // The TV's own live TV app: straight to the antenna's channels, as Home's Live TV does (opened plainly, it
-            // goes back to the last source, often an HDMI).
-            boolean live = java.util.Arrays.asList(HomeApps.LIVE_TV_APPS).contains(pkg);
-            Intent intent = live ? HomeApps.liveTv(c) : launchIntent(c.getPackageManager(), pkg);
-            AppLog.w("remote key " + e.getKeyCode() + " -> " + pkg + (intent == null ? " (not installed)" : ""));
-            // The same quick fade through black as from Home: what's on screen fades out, the app (and its grey
-            // loading window) fades in, instead of the grey cutting in.
-            if (intent != null) {
-                afterScreensaver(c, () -> c.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                        android.app.ActivityOptions.makeCustomAnimation(c, live ? R.anim.tv_in : R.anim.app_in, R.anim.app_out).toBundle()));
-            }
-        }
+        if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) open(c, pkg, e.getKeyCode());
         return true;
+    }
+
+    /** Opens the app picked for a button (keyCode only for the log). */
+    static void open(Context c, String pkg, int keyCode) {
+        // The TV's own live TV app: straight to the antenna's channels, as Home's Live TV does (opened plainly, it
+        // goes back to the last source, often an HDMI).
+        boolean live = java.util.Arrays.asList(HomeApps.LIVE_TV_APPS).contains(pkg);
+        Intent intent = live ? HomeApps.liveTv(c) : launchIntent(c.getPackageManager(), pkg);
+        AppLog.w("remote key " + keyCode + " -> " + pkg + (intent == null ? " (not installed)" : ""));
+        // The same quick fade through black as from Home: what's on screen fades out, the app (and its grey
+        // loading window) fades in, instead of the grey cutting in.
+        if (intent != null) {
+            afterScreensaver(c, () -> c.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    android.app.ActivityOptions.makeCustomAnimation(c, live ? R.anim.tv_in : R.anim.app_in, R.anim.app_out).toBundle()));
+        }
+    }
+
+    /**
+     * Philco's Search button reaches us as android.intent.action.ASSIST (see Prefs.KEY_PHILCO_SEARCH). The activity
+     * that answers it is off in the manifest, so on other TVs it never stands beside the Google Assistant; on Philco
+     * it's turned on at every start.
+     */
+    static void enableSearchKey(Context c) {
+        if (!PHILCO) return;
+        android.content.ComponentName cn = new android.content.ComponentName(c, SearchKeyActivity.class);
+        PackageManager pm = c.getPackageManager();
+        if (pm.getComponentEnabledSetting(cn) != PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+            pm.setComponentEnabledSetting(cn, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+        }
     }
 
     private static final android.os.Handler MAIN = new android.os.Handler(android.os.Looper.getMainLooper());

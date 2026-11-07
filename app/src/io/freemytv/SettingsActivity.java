@@ -557,8 +557,11 @@ public class SettingsActivity extends Activity {
         // MARK: - Home Settings and Remote Buttons
 
         private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
-        /** Home Settings: language, temperature, theme, sounds, weather, city, football, favourite club and team. */
-        private static final int CITY_ROW = 5, FUTBOL_ROW = 6, CLUB_ROW = 7, NATION_ROW = 8, WATCH_ROW = 9;
+        /**
+         * Home Settings: language, temperature, theme, sounds, weather, city, Continue watching, then football, favourite
+         * club and team, last: 1 GB TVs (Ui.LITE) have no football, and the list just ends before them.
+         */
+        private static final int CITY_ROW = 5, WATCH_ROW = 6, FUTBOL_ROW = 7, CLUB_ROW = 8, NATION_ROW = 9;
         private static final String[] HOME_PICTURES = {"black", Gallery.LANDSCAPES, Gallery.ART, Gallery.ABSTRACT,
                 Gallery.ANIMALS, Gallery.FAVORITES};
         private static final String[] SCREENSAVERS = {Gallery.LANDSCAPES, Gallery.ART, Gallery.ABSTRACT, Gallery.ANIMALS,
@@ -568,7 +571,8 @@ public class SettingsActivity extends Activity {
         private static final String[] HOME_MINUTES_NAMES = {"1 hora", "6 horas", "12 horas", "1 día", "1 semana"};
         private static final int[] PHOTO_SECONDS = {15, 30, 60, 300};
         private static final String[] PHOTO_SECONDS_NAMES = {"15 segundos", "30 segundos", "1 minuto", "5 minutos"};
-        private static final int CHANGE_NOW_ROW = 2, FAVORITE_ROW = 3, MY_FAVORITES_ROW = 7, ORDER_ROW = 8;
+        /** The seasonal theme is the last row (adjustBackgrounds' default): 1 GB TVs have none, and the list ends before it. */
+        private static final int CHANGE_NOW_ROW = 2, FAVORITE_ROW = 3, MY_FAVORITES_ROW = 6, ORDER_ROW = 7;
         private static final String[] THEME_CHOICES = {"off", Gallery.HALLOWEEN, Gallery.CHRISTMAS, Gallery.NEW_YEAR,
                 Gallery.CARNIVAL, Gallery.EASTER, Gallery.BIRTHDAY};
 
@@ -578,9 +582,10 @@ public class SettingsActivity extends Activity {
         }
 
         private String[] backgroundLabels() {
-            return new String[] {"Fondo del inicio", "Cambiar fondo cada", "Cambiar fondo ahora", "Fondo actual",
-                    "Protector de pantalla", "Cambiar foto cada", "Tema de temporada", "Mis favoritas",
-                    "Orden de las fotos"};
+            String[] all = {"Fondo del inicio", "Cambiar fondo cada", "Cambiar fondo ahora", "Fondo actual",
+                    "Protector de pantalla", "Cambiar foto cada", "Mis favoritas", "Orden de las fotos",
+                    "Tema de temporada"};
+            return Ui.LITE ? java.util.Arrays.copyOf(all, all.length - 1) : all;
         }
 
         private String[] backgroundValues() {
@@ -589,8 +594,8 @@ public class SettingsActivity extends Activity {
                     HOME_MINUTES_NAMES[indexOf(HOME_MINUTES, Prefs.homeBackgroundMinutes(c))],
                     "OK", currentFavoriteText(c), pictureName(Prefs.screensaver(c)),
                     PHOTO_SECONDS_NAMES[indexOf(PHOTO_SECONDS, Prefs.screensaverSeconds(c))],
-                    Gallery.photos(Prefs.seasonalTheme(c)) ? Gallery.name(Prefs.seasonalTheme(c)) : "Desactivado",
-                    favoritesText(c), Prefs.homeBackgroundRandom(c) ? "Al azar" : "En orden"};
+                    favoritesText(c), Prefs.homeBackgroundRandom(c) ? "Al azar" : "En orden",
+                    Gallery.photos(Prefs.seasonalTheme(c)) ? Gallery.name(Prefs.seasonalTheme(c)) : "Desactivado"};
         }
 
         private String currentFavoriteText(Context c) {
@@ -684,10 +689,12 @@ public class SettingsActivity extends Activity {
             l.add(Ui.tr("Navigation sounds"));
             l.add(Ui.tr("Weather widget"));
             l.add(Ui.tr("City"));
-            l.add("Fútbol");
-            l.add("Club favorito");
-            l.add("Selección favorita");
             l.add("Continuar viendo");
+            if (!Ui.LITE) {
+                l.add("Fútbol");
+                l.add("Club favorito");
+                l.add("Selección favorita");
+            }
             return l.toArray(new String[0]);
         }
 
@@ -703,10 +710,12 @@ public class SettingsActivity extends Activity {
             v[3] = onOff(Prefs.sounds());
             v[4] = onOff(Prefs.weather());
             v[CITY_ROW] = !cityStatus.isEmpty() ? cityStatus : Prefs.city().isEmpty() ? "—" : Prefs.city();
-            v[FUTBOL_ROW] = onOff(Prefs.futbol());
-            v[CLUB_ROW] = CLUBS[indexOf(CLUBS, Prefs.club())][1];
-            v[NATION_ROW] = NATIONS[indexOf(NATIONS, Prefs.nation())][1];
             v[WATCH_ROW] = onOff(Prefs.watchNext());
+            if (!Ui.LITE) {
+                v[FUTBOL_ROW] = onOff(Prefs.futbol());
+                v[CLUB_ROW] = CLUBS[indexOf(CLUBS, Prefs.club())][1];
+                v[NATION_ROW] = NATIONS[indexOf(NATIONS, Prefs.nation())][1];
+            }
             return v;
         }
 
@@ -726,6 +735,7 @@ public class SettingsActivity extends Activity {
         private String[] keyLabels() {
             if (RemoteKeys.STEM_NETFLIX) return new String[] {Ui.tr("Netflix button")};
             if (RemoteKeys.KTC) return new String[] {Ui.tr("Tabii button")};
+            if (RemoteKeys.PHILCO) return new String[] {"Botón PVR", "Botón Buscar", "Botón Google TV"};
             if (RemoteKeys.SONY) return new String[] {Ui.tr("BRAVIA CORE button"),
                     Ui.tr("Netflix button"), Ui.tr("Disney+ button"),
                     Ui.tr("Prime Video button"), Ui.tr("YouTube button"),
@@ -747,7 +757,10 @@ public class SettingsActivity extends Activity {
         private void loadApps() {
             List<String[]> found = new ArrayList<>();
             for (String[] app : HomeApps.launchable(getContext())) {
-                if (!app[0].equals(getContext().getPackageName())) found.add(app);
+                // Not on Philco: Google TV's package is the bridge for its button there (it would open itself).
+                if (app[0].equals(getContext().getPackageName())
+                        || (RemoteKeys.PHILCO && app[0].equals("com.google.android.videos"))) continue;
+                found.add(app);
             }
             Collections.sort(found, (a, b) -> a[1].toLowerCase(Locale.ROOT).compareTo(b[1].toLowerCase(Locale.ROOT)));
             appPkgs.clear();
@@ -1022,6 +1035,7 @@ public class SettingsActivity extends Activity {
                         : RemoteKeys.KTC ? Ui.tr("Netflix, YouTube and Prime Video: the TV itself controls those buttons.")
                         : RemoteKeys.SONY ? Ui.tr("Sony default: the button opens what it always did.")
                         : RemoteKeys.FORMOVIE ? Ui.tr("The other buttons: the TV itself controls them.")
+                        : RemoteKeys.PHILCO ? "Opciones abre el panel rápido. Nada: el botón hace lo de siempre."
                         : RemoteKeys.supported() ? Ui.tr("Disney and Globoplay: the TV itself controls those buttons.")
                         : Ui.tr("TCL remote buttons: on this TV they work as always."), LIST_X * k + 30 * k, hy + 38 * k, hint);
             }

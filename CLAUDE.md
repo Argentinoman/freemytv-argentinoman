@@ -33,7 +33,9 @@ before you do it, and let them do the taps on the TV.
    allow*. Then `adb install -r FreeMyTV.apk`, and right after it `adb shell cmd package compile -m speed -f io.freemytv`
    (a fresh install runs uncompiled: the first return to Home took 3 s on a TCL with 2 GB; installing over Home also
    closes it, so warn the person, and don't run the compile while they open an app: it takes the CPU for a few
-   seconds). On TCL, also `adb shell "appops set io.freemytv AUTO_START allow || appops set io.freemytv APP_AUTO_START allow"`
+   seconds). Then `adb shell cmd notification allow_listener io.freemytv/io.freemytv.NowPlayingListener`: without
+   notification access Android hides the media sessions, and the music widget (and the YouTube and Spotify history)
+   stays empty; nothing in the app grants it. On TCL, also `adb shell "appops set io.freemytv AUTO_START allow || appops set io.freemytv APP_AUTO_START allow"`
    (some firmware calls the operation `APP_AUTO_START`; this tries both):
    TCL's `TclAppBoot` blocks background jobs by default, so the switch (and the watchdog) never run. The log shows
    `forbid bind service ... ModeJob`. Some TCL firmware has neither (a 2024 MediaTek Google TV, Android 14, has no

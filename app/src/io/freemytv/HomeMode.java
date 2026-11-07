@@ -69,6 +69,7 @@ final class HomeMode {
         // Philco (Homwee/Changhong)
         "com.homwee.aipont",                                                          // AI PONT: promo channels, app downloads
         "com.homwee.help",                                                            // user manual
+        "com.homwee.store",                                                           // Homwee's app store (Play Store stays)
         // Xiaomi
         "com.miui.tv.analytics", "com.xiaomi.statistic",                              // telemetry
         "com.mitv.tvhome.mitvplus", "com.xm.webcontent",                              // Mi TV+ promo channels, promo web content
@@ -82,6 +83,17 @@ final class HomeMode {
 
     /** The voice assistant, only with disable_assistant=true in config.properties (the mic button stops working). */
     static final String[] ASSISTANT = {"com.google.android.katniss", "com.android.hotwordenrollment.okgoogle"};
+
+    /**
+     * Also off on 1 GB TVs (Ui.LITE), where every process counts, with the assistant too (33 MB running on a Philco;
+     * the mic button stops working): the stock home screen's partner setup (useless without it), Health Connect, and
+     * the feedback senders.
+     */
+    static final String[] LITE_EXTRA = {
+        "com.google.android.leanbacklauncher.partnercustomizer",
+        "com.android.healthconnect.controller", "com.android.health.connect.backuprestore",
+        "com.android.tv.feedbackconsent", "com.google.android.feedback",
+    };
 
     /** Never turned off, not even by mistake (picture, sound, inputs, remote, store). Checked before every disable. */
     private static final Set<String> PROTECTED = new HashSet<>(Arrays.asList(
@@ -388,7 +400,8 @@ final class HomeMode {
             String home = originalHome(s);
             Set<String> toEnable = new HashSet<>(stringList(s, "disabled"));
             for (String pkg : targets(home, originalDream(s), true)) {
-                if (!Arrays.asList(DEBLOAT).contains(pkg) && !Arrays.asList(ASSISTANT).contains(pkg)) toEnable.add(pkg);
+                if (!Arrays.asList(DEBLOAT).contains(pkg) && !Arrays.asList(ASSISTANT).contains(pkg)
+                        && !Arrays.asList(LITE_EXTRA).contains(pkg)) toEnable.add(pkg);
             }
             toEnable.removeAll(stringList(s, "keptOff"));
             Set<String> present = packages(adb, "");
@@ -659,7 +672,8 @@ final class HomeMode {
         String dreamPkg = packageOf(dream);
         if (dreamPkg != null && !dreamPkg.equals(PKG) && !dreamPkg.equals(homePkg)) out.add(dreamPkg);
         out.addAll(Arrays.asList(DEBLOAT));
-        if (Config.DISABLE_ASSISTANT) out.addAll(Arrays.asList(ASSISTANT));
+        if (Config.DISABLE_ASSISTANT || Ui.LITE) out.addAll(Arrays.asList(ASSISTANT));
+        if (Ui.LITE) out.addAll(Arrays.asList(LITE_EXTRA));
         return out;
     }
 

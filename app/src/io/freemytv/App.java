@@ -8,5 +8,6 @@ public class App extends Application {
         super.onCreate();
         Prefs.init(this);
         LocalApps.load(this);
+        RemoteKeys.enableSearchKey(this);
     }
 }

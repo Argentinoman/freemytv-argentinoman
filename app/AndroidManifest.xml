@@ -168,6 +168,24 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
 
+        <!-- Philco's Search button, which MediaTek's hot-key receiver sends as ASSIST: opens the app picked for it.
+             Off here: RemoteKeys.enableSearchKey turns it on, on Philco only (elsewhere it would stand beside the
+             Google Assistant). In :keys, where the key service already runs. -->
+        <activity
+            android:name=".SearchKeyActivity"
+            android:process=":keys"
+            android:enabled="false"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <!-- Only so the home screen may see what is playing (media sessions); it reads no notifications. -->
         <!-- In :home: the main process (12 MB) isn't kept alive just for it, and Home, bound to it, is closed less often. -->
         <service

@@ -45,6 +45,7 @@ final class Scene {
     Scene(boolean withGlass) {
         this.withGlass = withGlass;
         try {
+            if (Ui.LITE) throw new UnsupportedOperationException("1 GB TV, flat look");
             aurora = new RuntimeShader(Shaders.AURORA);
             glass = new RuntimeShader(Shaders.GLASS);
             liquid = new RuntimeShader(Shaders.LIQUID);

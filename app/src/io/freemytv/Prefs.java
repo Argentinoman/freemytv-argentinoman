@@ -53,7 +53,22 @@ final class Prefs {
     static final int KEY_SONY_CORE = SONY_KEY + 496, KEY_SONY_NETFLIX = SONY_KEY + 583, KEY_SONY_DISNEY = SONY_KEY + 491,
             KEY_SONY_PRIME = SONY_KEY + 490, KEY_SONY_YOUTUBE = SONY_KEY + 485, KEY_SONY_CRUNCHYROLL = SONY_KEY + 507,
             KEY_SONY_PLAY = SONY_KEY + 587;   // the Google Play button of older remotes: BUTTON_8 (BRAVIA 4K UR3, Android 10)
-    static final int[] KEYS = RemoteKeys.SONY
+    /**
+     * Philco's (Homwee) remote. PVR (MEDIA_RECORD, scan 59; with nothing chosen it goes to the playing app's media
+     * session). Options (MENU, scan 34) always opens the quick panel (RemoteKeys), so it isn't listed. Search is a
+     * global key (NAVIGATE_NEXT, scan 217) for MediaTek's hot-key receiver, which the key filter never sees: that
+     * receiver asks for android.intent.action.ASSIST, and SearchKeyActivity answers it with the app picked here.
+     */
+    static final int KEY_PHILCO_PVR = KeyEvent.KEYCODE_MEDIA_RECORD, KEY_PHILCO_OPTIONS = KeyEvent.KEYCODE_MENU,
+            KEY_PHILCO_SEARCH = KeyEvent.KEYCODE_NAVIGATE_NEXT;
+    /**
+     * Philco's Google TV button (scan 501): MediaTek's receiver opens com.google.android.videos with it (its Play Store
+     * page when missing). With Google TV removed, tools/googletv-bridge takes that package name and hands the press to
+     * SearchKeyActivity with this made-up code, which opens the app picked here.
+     */
+    static final int KEY_PHILCO_GOOGLE_TV = 200_501;
+    static final int[] KEYS = RemoteKeys.PHILCO ? new int[] {KEY_PHILCO_PVR, KEY_PHILCO_SEARCH, KEY_PHILCO_GOOGLE_TV}
+            : RemoteKeys.SONY
             ? new int[] {KEY_SONY_CORE, KEY_SONY_NETFLIX, KEY_SONY_DISNEY, KEY_SONY_PRIME, KEY_SONY_YOUTUBE, KEY_SONY_CRUNCHYROLL,
                     KEY_SONY_PLAY}
             : RemoteKeys.STEM_NETFLIX ? new int[] {KEY_STEM_NETFLIX}
@@ -93,7 +108,7 @@ final class Prefs {
 
     /** The home screen's background: "black" or one of Gallery.KINDS (a file: the screensaver reads it too). */
     static String homeBackground(Context c) {
-        String v = readString(c, "home-background.txt", "black");
+        String v = readString(c, "home-background.txt", Gallery.LANDSCAPES);
         return v.equals("modern") ? Gallery.ART : v;   // modern art was an option for a while
     }
 
@@ -103,6 +118,7 @@ final class Prefs {
 
     /** The seasonal theme (Gallery.THEMES), or "off". A file: the screensaver reads it too. */
     static String seasonalTheme(Context c) {
+        if (Ui.LITE) return "off";   // 1 GB TVs: no seasonal themes
         return readString(c, "seasonal-theme.txt", "off");
     }
 
@@ -323,8 +339,8 @@ final class Prefs {
     static boolean weather() { return sp().getBoolean("weather", true); }
     static void setWeather(boolean on) { put("weather", on); }
 
-    /** The football row under the clock, the drawer card and the screensaver line. */
-    static boolean futbol() { return sp().getBoolean("futbol", true); }
+    /** The football row under the clock, the drawer card and the screensaver line. Never on 1 GB TVs (Ui.LITE). */
+    static boolean futbol() { return !Ui.LITE && sp().getBoolean("futbol", true); }
     static void setFutbol(boolean on) { put("futbol", on); }
 
     /** The floating "Continuar viendo" island over the home screen (what to resume, recent, featured). */

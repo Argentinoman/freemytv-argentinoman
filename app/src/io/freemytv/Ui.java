@@ -35,8 +35,29 @@ import java.util.function.Supplier;
 final class Ui {
     private Ui() {}
 
-    /** Android 8 to 11: older TVs and boxes, whose GPUs need the cheaper drawing paths (Shadows, rounded images). */
-    static final boolean LEGACY = Build.VERSION.SDK_INT < 31;
+    /**
+     * TVs with about 1 GB (a Philco AI PONT, Android 14: ro.config.low_ram): the look of the TVs without AGSL (no glass
+     * or aurora shaders), the LEGACY drawing paths, and no football or seasonal themes. Drawn live, every focus frame's
+     * blurred shadow and glow was a new mask in Android's drawing cache: each step along the shelf added about 15 MB
+     * that never came back (300 MB after 14 keys).
+     */
+    static final boolean LITE = totalRamMb() < 1536;
+    /**
+     * Android 8 to 11, and 1 GB TVs: the cheaper drawing paths (no GPU layers, Shadows and cards from cached bitmaps,
+     * rounded images). Older GPUs choked on the live ones, and they fill a small TV's memory.
+     */
+    static final boolean LEGACY = Build.VERSION.SDK_INT < 31 || LITE;
+
+    private static long totalRamMb() {
+        try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("/proc/meminfo"))) {
+            for (String line; (line = r.readLine()) != null; ) {
+                if (line.startsWith("MemTotal:")) return Long.parseLong(line.replaceAll("[^0-9]", "")) / 1024;
+            }
+        } catch (IOException | RuntimeException ignored) {
+            // unreadable: treated as a roomy TV
+        }
+        return Long.MAX_VALUE;
+    }
     /**
      * The language in use: "en" or one with a catalogue in assets/i18n (pt, es, de, fr, zh-CN…), picked in the settings
      * or, with "auto", the TV's own (English when there is no catalogue for it).

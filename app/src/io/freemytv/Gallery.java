@@ -80,8 +80,8 @@ final class Gallery {
     private static final int KEEP_IMAGES = 40;
     /** Per kind: the sharpest originals only (quality over quantity). */
     private static final int PER_KIND = 20;
-    /** Saved at the screensaver's size (the UI draws at 1920, zoomed up to 10%): sharp, and a fourth of the original's space. */
-    private static final int SAVE_WIDTH = 2112;
+    /** Saved at the screensaver's size (the UI's width plus its 10% zoom; 1408 on 1 GB TVs): sharp, and a fraction of the space. */
+    private static final int SAVE_WIDTH = DreamView.PW;
 
     private static final String[] LANDSCAPE_CATEGORIES = {"Featured pictures of landscapes", "Featured pictures of mountains"};
     private static final String[] ART_CATEGORIES = {

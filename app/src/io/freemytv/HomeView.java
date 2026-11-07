@@ -1733,6 +1733,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private void drawPlatter(Canvas c) {
         if (shelf.isEmpty()) return;
         float radius = (TILE_RADIUS + SHELF_PAD) * k;
+        if (Ui.LITE) {
+            // No Liquid Glass shader on 1 GB TVs: the drawer cards' own glass, so the bar matches the cards below it.
+            drawerGlass(c, platterRect, radius, 0.72f, 0x1A000000, 10 * k);
+            return;
+        }
         tmp.set(platterRect);
         tmp.offset(0, 18 * k);
         shadow.setColor(tone(0x1F000000, 0x52000000));
