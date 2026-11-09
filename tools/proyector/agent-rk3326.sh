@@ -40,9 +40,11 @@ for ip in 47.113.90.237 120.26.86.122 47.253.204.65 43.172.180.24 183.62.168.221
   iptables -A fmtv_vendor -d $ip -j REJECT
 done
 ip6tables -A fmtv_vendor -d 240d:c000:f020:f600:8ed2:ffd0:3246:0 -j REJECT
-# QuickShare (the Android card of "Inalámbrica", on only while in use) talks to the local network only.
+# QuickShare (the Android card of "Inalámbrica", on only while in use) can't be kept to the local network by its user:
+# it runs as the system's (uid 1000, shared with system_server: blocking it cut the clock's sync and the Wi-Fi's check).
+# Its own server is in the list above, and it's off the rest of the time.
 QS=$(stat -c %u /data/data/com.bozee.usbdisplay 2>/dev/null)
-if [ -n "$QS" ]; then
+if [ -n "$QS" ] && [ "$QS" -ge 10000 ]; then
   for net in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 224.0.0.0/4 127.0.0.0/8; do
     iptables -A fmtv_vendor -m owner --uid-owner $QS -d $net -j RETURN
   done
