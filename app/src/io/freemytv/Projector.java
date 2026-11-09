@@ -203,6 +203,17 @@ final class Projector {
 
     /** Puts the setting on screen (automatic: with the tilt measured now). Off the UI thread; only what changed is sent. */
     static void apply(Context c, Setting s) {
+        apply(c, s, null);
+    }
+
+    /** The automatic tilt last put on screen (null: none yet in this process), to tell a change. */
+    private static volatile Integer autoShown;
+
+    /**
+     * As above; `tilt` is the automatic angle when already known (the projection panel listens to the sensor), else
+     * it's measured. When the automatic angle changes from the one on screen, a toast says so.
+     */
+    static void apply(Context c, Setting s, Integer tilt) {
         final Context app = c.getApplicationContext();
         final boolean auto = s.auto;
         final int v = s.vertical, hz = s.horizontal, zoom = s.zoom, mode = s.mode;
@@ -210,7 +221,16 @@ final class Projector {
         final int ticket = LATEST.incrementAndGet();
         WORKER.execute(() -> {
             if (ticket != LATEST.get()) return;   // a newer change is queued: holding an arrow sends only the last
-            int vertical = auto ? measuredTilt(app) : v;
+            int vertical = !auto ? v : tilt != null ? tilt : measuredTilt(app);
+            if (auto) {
+                Integer before = autoShown;
+                autoShown = vertical;
+                if (before != null && Math.abs(before - vertical) >= 2) {
+                    final String text = "Trapecio ajustado · " + (vertical > 0 ? "+" : vertical < 0 ? "−" : "") + Math.abs(vertical) + "°";
+                    new android.os.Handler(android.os.Looper.getMainLooper())
+                            .post(() -> android.widget.Toast.makeText(app, text, android.widget.Toast.LENGTH_SHORT).show());
+                }
+            }
             String corners, m = String.valueOf(mode);
             StringBuilder cmd = new StringBuilder();
             if (RemoteKeys.RK3326) {

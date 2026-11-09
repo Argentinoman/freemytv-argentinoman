@@ -78,6 +78,48 @@ public class ProjectionActivity extends Activity {
         }
         private final android.graphics.Path chevron = new android.graphics.Path();
 
+        /**
+         * Automatic, live: while the panel is open the accelerometer is followed (smoothed: the fan shakes it), and once
+         * the projector rests at a new angle (2° or more off, steady for 0.6 s) the keystone follows at once.
+         */
+        private final float[] gravity = new float[3];
+        private boolean gravitySeeded;
+        private int shownTilt = Integer.MIN_VALUE, candidate = Integer.MIN_VALUE;
+        private long candidateSince;
+        private final android.hardware.SensorEventListener tiltListener = new android.hardware.SensorEventListener() {
+            @Override public void onSensorChanged(android.hardware.SensorEvent e) {
+                for (int i = 0; i < 3; i++) gravity[i] = gravitySeeded ? gravity[i] + 0.15f * (e.values[i] - gravity[i]) : e.values[i];
+                gravitySeeded = true;
+                if (!s.auto || editing) return;
+                int tilt = (int) Math.round(Math.toDegrees(Math.atan2(gravity[1], gravity[2])));
+                long now = android.os.SystemClock.uptimeMillis();
+                if (tilt != candidate) {
+                    candidate = tilt;
+                    candidateSince = now;
+                    return;
+                }
+                if (now - candidateSince < 600 || Math.abs(tilt - shownTilt) < 2) return;
+                shownTilt = tilt;
+                Projector.lastTilt = tilt;
+                Projector.apply(getContext(), s, tilt);
+                invalidate();
+            }
+            @Override public void onAccuracyChanged(android.hardware.Sensor sensor, int accuracy) {}
+        };
+
+        @Override protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            android.hardware.SensorManager sm = (android.hardware.SensorManager) getContext().getSystemService(Context.SENSOR_SERVICE);
+            android.hardware.Sensor accel = sm == null ? null : sm.getDefaultSensor(android.hardware.Sensor.TYPE_ACCELEROMETER);
+            if (accel != null) sm.registerListener(tiltListener, accel, android.hardware.SensorManager.SENSOR_DELAY_UI);
+        }
+
+        @Override protected void onDetachedFromWindow() {
+            android.hardware.SensorManager sm = (android.hardware.SensorManager) getContext().getSystemService(Context.SENSOR_SERVICE);
+            if (sm != null) sm.unregisterListener(tiltListener);
+            super.onDetachedFromWindow();
+        }
+
         PanelView(Context c) {
             super(c);
             k = c.getResources().getDisplayMetrics().heightPixels / 1080f;
@@ -100,6 +142,7 @@ public class ProjectionActivity extends Activity {
             });
             in.start();
             if (s.auto) measure();
+            shownTilt = Projector.lastTilt;
         }
 
         /** The tilt now, for the vertical row while it's automatic (read off the UI thread). */
