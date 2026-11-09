@@ -144,6 +144,11 @@ final class Projector {
             x += moved[2 * at] * w / W;
             y += moved[2 * at + 1] * h / H;
             // SurfaceFlinger's y grows upwards (seen on the wall: ↑ moved the corner down): the offset goes the other way.
+            // Never past a third of the screen in from where the corner lands (its own corner, or the opposite one in
+            // the mirrored modes), nor outwards at all: beyond that the board drew garbage.
+            float hx = mirrorX ? w - baseX[i] : baseX[i], hy = mirrorY ? h - baseY[i] : baseY[i];
+            x = hx + Math.max(hx == 0 ? 0 : -w / 3f, Math.min(hx == 0 ? w / 3f : 0, x - hx));
+            y = hy + Math.max(hy == 0 ? 0 : -h / 3f, Math.min(hy == 0 ? h / 3f : 0, y - hy));
             out[i] = Math.round(x - baseX[i]) + "," + Math.round(baseY[i] - y);
         }
         return out;
@@ -221,7 +226,8 @@ final class Projector {
         final int ticket = LATEST.incrementAndGet();
         WORKER.execute(() -> {
             if (ticket != LATEST.get()) return;   // a newer change is queued: holding an arrow sends only the last
-            int vertical = !auto ? v : tilt != null ? tilt : measuredTilt(app);
+            // Lifted far or on its side, the sensor reads 60-90°, where the keystone's maths runs off to infinity.
+            int vertical = clamp(!auto ? v : tilt != null ? tilt : measuredTilt(app), -MAX_ANGLE, MAX_ANGLE);
             if (auto) {
                 Integer before = autoShown;
                 autoShown = vertical;
