@@ -55,7 +55,7 @@ final class HdmiWatch {
     }
 
     /** Whether the receiver sees power on the cable; null without an answer. */
-    private static Boolean cable() {
+    static Boolean cable() {
         try {
             Process p = new ProcessBuilder("v4l2-ctl", "-d", "/dev/v4l-subdev2", "--get-ctrl=power_present")
                     .redirectErrorStream(true).start();

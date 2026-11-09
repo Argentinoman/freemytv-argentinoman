@@ -3080,22 +3080,49 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             HomeApps.Item only = null;
             int count = 0;
             for (HomeApps.Item d : drawerItems) if (d.kind == HomeApps.INPUT) { only = d; count++; }
-            if (count == 1 && only.connected) {
-                dimInHome();
-                if (!HomeApps.open(activity, only, this, Math.round(r.left), Math.round(r.top), Math.round(r.width()), Math.round(r.height())))
-                    showToast(Ui.trf("Couldn't open {app}.", "app", only.label));
+            final HomeApps.Item hdmi = only;
+            final RectF at = new RectF(r);
+            if (count == 1 && RemoteKeys.RK3326) {
+                // Nothing announces a cable there: asked now (a fraction of a second, off the UI thread).
+                new Thread(() -> {
+                    boolean cable = Boolean.TRUE.equals(HdmiWatch.cable());
+                    post(() -> {
+                        if (cable) openInput(hdmi, at);
+                        else inputsDrawer();
+                    });
+                }, "hdmi-cable").start();
                 return;
             }
-            openDrawer();
-            for (int i = 0; i < drawerItems.size(); i++) {
-                if (drawerItems.get(i).kind == HomeApps.INPUT) {
-                    drawerIndex = i;
-                    break;
-                }
+            if (count == 1 && only.connected) {
+                openInput(only, at);
+                return;
             }
-            retarget(false);
+            inputsDrawer();
             return;
         }
+        openTop(it, r);
+    }
+
+    private void openInput(HomeApps.Item input, RectF r) {
+        dimInHome();
+        if (!HomeApps.open(activity, input, this, Math.round(r.left), Math.round(r.top), Math.round(r.width()), Math.round(r.height())))
+            showToast(Ui.trf("Couldn't open {app}.", "app", input.label));
+    }
+
+    /** The bottom drawer, on the inputs. */
+    private void inputsDrawer() {
+        openDrawer();
+        for (int i = 0; i < drawerItems.size(); i++) {
+            if (drawerItems.get(i).kind == HomeApps.INPUT) {
+                drawerIndex = i;
+                break;
+            }
+        }
+        retarget(false);
+    }
+
+    /** Opens what OK chose on Home (anything but All Apps and the inputs button). */
+    private void openTop(HomeApps.Item it, RectF r) {
         final HomeApps.Item item = it;
         final RectF from = new RectF(r);
         if (item.kind != HomeApps.QUICK_SETTINGS) dimInHome();   // the panel leaves Home in view: nothing to hand over
