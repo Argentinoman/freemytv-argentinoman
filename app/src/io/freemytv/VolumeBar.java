@@ -38,6 +38,9 @@ final class VolumeBar extends View {
     private final RectF r = new RectF();
     private final android.graphics.Path speaker = new android.graphics.Path();
     private float alpha, level;
+    /** The level drawn on the last press, and when, so its broadcast doesn't redraw it. */
+    private float expected = -1;
+    private long expectedAt;
     private boolean muted;
     private ValueAnimator fade, slide;
     private final Runnable hide = this::fadeOut;
@@ -87,6 +90,15 @@ final class VolumeBar extends View {
     }
 
     static void show(Context c) {
+        show(c, 0);
+    }
+
+    /**
+     * Shows the bar `step` volume units away from now: the remote's key reaches us before the system applies it, and
+     * the change's broadcast came a beat later still, so the bar lagged a step behind. Now it moves on the press itself
+     * and the broadcast only confirms.
+     */
+    static void show(Context c, int step) {
         if (view == null) {
             Ui.init(c);
             view = new VolumeBar(c);
@@ -107,7 +119,7 @@ final class VolumeBar extends View {
                 return;
             }
         }
-        view.update();
+        view.update(step);
     }
 
     private VolumeBar(Context c) {
@@ -121,16 +133,25 @@ final class VolumeBar extends View {
     }
 
     /** The level now: the bar glides to it, shows, and is set to fade. */
-    private void update() {
+    private void update(int step) {
         int max = Math.max(1, audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
-        muted = audio.isStreamMute(AudioManager.STREAM_MUSIC);
-        float target = muted ? 0 : audio.getStreamVolume(AudioManager.STREAM_MUSIC) / (float) max;
+        muted = audio.isStreamMute(AudioManager.STREAM_MUSIC) && step <= 0;   // a press up unmutes
+        int now = Math.max(0, Math.min(max, audio.getStreamVolume(AudioManager.STREAM_MUSIC) + step));
+        float target = muted ? 0 : now / (float) max;
+        if (step == 0 && expected >= 0 && android.os.SystemClock.uptimeMillis() - expectedAt < 400
+                && Math.abs(target - expected) < 0.5f / max) {
+            return;   // the broadcast of the change already drawn on the press
+        }
+        if (step != 0) {
+            expected = target;
+            expectedAt = android.os.SystemClock.uptimeMillis();
+        }
         if (slide != null) slide.cancel();
         if (alpha < 0.05f) {
             level = target;   // appearing: already at the level
         } else {
             slide = ValueAnimator.ofFloat(level, target);
-            slide.setDuration(140);
+            slide.setDuration(80);
             slide.setInterpolator(new DecelerateInterpolator());
             slide.addUpdateListener(a -> {
                 level = (float) a.getAnimatedValue();

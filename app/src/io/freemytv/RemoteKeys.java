@@ -100,8 +100,10 @@ final class RemoteKeys {
                 volumeHeld = 0;
             } else {
                 int n = Math.max(++volumeHeld - 1, e.getRepeatCount());
-                if (n > 0) VolumeBar.boost(c, e.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP, n);
-                VolumeBar.show(c);   // also at 0 or 100, where the volume doesn't change and nothing announces it
+                boolean up = e.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP;
+                if (n > 0) VolumeBar.boost(c, up, n);
+                // The system's own step is still to come: drawn now, with it (also at 0 or 100, where nothing announces it).
+                VolumeBar.show(c, up ? 1 : -1);
             }
             return false;
         }
