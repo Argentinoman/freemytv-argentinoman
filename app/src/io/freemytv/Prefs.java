@@ -379,6 +379,8 @@ final class Prefs {
             case KEY_TCL_CHANNEL: return "";
             case KEY_TCL_BROWSER: return "com.tcl.browser";   // BrowseHere, the TV's own browser
             case KEY_TCL_TV: return "com.tcl.tv";             // live TV
+            // RK3326: the box-with-arrow is the input button (the system opened Rockchip's HDMI app with it): our HDMI.
+            case KEY_HY_ARROW: return RemoteKeys.RK3326 ? RemoteKeys.OPEN_HDMI : "";
             default: return "";
         }
     }

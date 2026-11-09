@@ -153,8 +153,8 @@ final class HomeMode {
         "com.droidlogic.tv.settings", "com.droidlogic.tv.settings.resoverlay", "com.droidlogic.droidlivetvsettings",
         "com.droidlogic.inputmethod.remote", "com.droidlogic.updater",
         "com.droidlogic.appinstall", "com.droidlogic.overlay", "com.droidlogic.systemui.overlay", "com.droidlogic.wifion",
-        // RK3326 projector: Android's TV settings under another name (it saved the Wi-Fi), Rockchip's HDMI-in app
-        "com.android.tv.set", "com.android.rockchip.camera2"));
+        // RK3326 projector: Android's TV settings under another name (it saved the Wi-Fi)
+        "com.android.tv.set"));
 
     /**
      * Android's own pieces: with one of them off, a TV may not start again (a list that took the permission
