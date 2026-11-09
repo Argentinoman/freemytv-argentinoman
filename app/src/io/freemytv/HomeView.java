@@ -493,12 +493,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     // Toasts
     private final ArrayDeque<String> toasts = new ArrayDeque<>();
     private final ArrayDeque<Long> toastLengths = new ArrayDeque<>();
-    /** Whether each notice hangs from the HDMI button (a device plugged in) instead of the top middle. */
-    private final ArrayDeque<Boolean> toastAnchors = new ArrayDeque<>();
     private StaticLayout toast;
     private long toastAt, toastMs = TOAST_MS;
-    private boolean toastAnchored;
-    private final android.graphics.Path toastPointer = new android.graphics.Path();
 
     // Frames
     private boolean running, tilesDirty, statusDirty, heroDirty, drawerDirty, gridDirty, motionDirty = true;
@@ -617,8 +613,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 for (HomeApps.Item d : drawerItems) {
                     if (d.kind != HomeApps.INPUT || !inputId.equals(d.inputId)) continue;
                     boolean named = !d.label.startsWith("HDMI");   // the name the device gave over HDMI-CEC
-                    showToast(plugged ? (named ? "Se conectó " + d.label : d.label + " disponible")
-                            : (named ? "Se desconectó " + d.label : "Se desconectó el equipo de " + d.label), 4000, true);
+                    showToast(plugged ? (named ? "Se conectó " + d.label : "Se detectó un equipo en " + d.label)
+                            : (named ? "Se desconectó " + d.label : "Se desconectó el equipo de " + d.label), 2000);
                 }
             }
             reloadSoon();
@@ -631,45 +627,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         handler.removeCallbacks(reloadSoon);
         handler.postDelayed(reloadSoon, 500);
     }
-
-    /**
-     * RK3326: no TV input tells a device plugged in, so while Home shows, the HDMI receiver is asked every 3 s whether a
-     * cable brings power (v4l2-ctl, which the board ships; its node is open to all). A change shows the HDMI bubble;
-     * the last answer outlives a pause, so a device plugged in meanwhile is told on the way back.
-     */
-    private static Boolean hdmiPowered;
-    private final java.util.concurrent.ExecutorService hdmiProbe = RemoteKeys.RK3326
-            ? java.util.concurrent.Executors.newSingleThreadExecutor() : null;
-    private final Runnable hdmiCheck = new Runnable() {
-        @Override public void run() {
-            if (!running || hdmiProbe == null) return;
-            hdmiProbe.execute(() -> {
-                Boolean now = null;
-                try {
-                    Process p = new ProcessBuilder("v4l2-ctl", "-d", "/dev/v4l-subdev2", "--get-ctrl=power_present")
-                            .redirectErrorStream(true).start();
-                    java.util.Scanner sc = new java.util.Scanner(p.getInputStream()).useDelimiter("\\A");
-                    String out = sc.hasNext() ? sc.next() : "";
-                    p.waitFor();
-                    if (out.contains("power_present: 1")) now = true;
-                    else if (out.contains("power_present: 0")) now = false;
-                } catch (java.io.IOException | InterruptedException | RuntimeException ignored) {
-                }
-                final Boolean seen = now;
-                post(() -> {
-                    if (seen == null) return;
-                    Boolean before = hdmiPowered;
-                    hdmiPowered = seen;
-                    if (!seen.equals(before)) AppLog.w("hdmi: cable " + (seen ? "plugged in" : "out"));
-                    if (before != null && !before.equals(seen)) {
-                        showToast(seen ? "HDMI disponible" : "Se desconectó el equipo de HDMI", 4000, true);
-                        reloadSoon();
-                    }
-                });
-            });
-            handler.postDelayed(this, 3000);
-        }
-    };
 
     private final Runnable tick = new Runnable() {
         @Override public void run() {
@@ -1019,10 +976,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         recs.addListener(this);
         data.refreshIfStale();
         recs.refreshIfStale();
-        if (hdmiProbe != null) {
-            handler.removeCallbacks(hdmiCheck);
-            handler.post(hdmiCheck);
-        }
         if (nowPlaying == null) nowPlaying = new NowPlaying(getContext(), this::onNowPlaying);
         nowPlaying.start();
         // The island's data (the TV Provider, pictures) waits until Home is back on screen: reading it during the
@@ -1073,7 +1026,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         Choreographer.getInstance().removeFrameCallback(this);
         handler.removeCallbacks(tick);
         handler.removeCallbacks(reloadSoon);
-        handler.removeCallbacks(hdmiCheck);
         data.removeListener(this);
         recs.removeListener(this);
         if (nowPlaying != null) nowPlaying.stop();
@@ -2685,7 +2637,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private void clearToasts() {
         toasts.clear();
         toastLengths.clear();
-        toastAnchors.clear();
         if (toast != null) {
             toast = null;
             toastLayer.invalidate();
@@ -2698,14 +2649,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     /** A short notice too (a device plugged in: two seconds). */
     void showToast(String text, long ms) {
-        showToast(text, ms, false);
-    }
-
-    /** `anchored`: a bubble hanging from the HDMI button, pointing at it (a device plugged in). */
-    void showToast(String text, long ms, boolean anchored) {
         toasts.add(text);
         toastLengths.add(ms);
-        toastAnchors.add(anchored);
         announceForAccessibility(text);
         wake();
     }
@@ -2723,8 +2668,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 toastAt = up;
                 Long ms = toastLengths.poll();
                 toastMs = ms == null ? TOAST_MS : ms;
-                Boolean anchored = toastAnchors.poll();
-                toastAnchored = anchored != null && anchored;
             }
         }
         if (toast == null) return false;
@@ -2741,29 +2684,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (a <= 0) return;
         float padX = 28 * k, padY = 18 * k;
         float tw = toast.getWidth(), th = toast.getHeight();
-        int inputs = lightButtons.isEmpty() ? -1 : 3;   // the HDMI button is the first light button
-        if (toastAnchored && inputs >= 0 && topRects[inputs].width() > 0) {
-            // Under the HDMI button, right-aligned with the content, a little pointer up at the button.
-            RectF b = topRects[inputs];
-            float top = b.bottom + 22 * k - (1 - a) * 10 * k, right = Math.max(b.centerX() + 40 * k, CONTENT_R * k);
-            tmp.set(right - tw - 2 * padX, top, right, top + th + 2 * padY);
-            if (tmp.left < MARGIN * k) tmp.offset(MARGIN * k - tmp.left, 0);
-            int save = c.saveLayerAlpha(tmp.left - 4, tmp.top - 20 * k, tmp.right + 4, tmp.bottom + 4, Math.round(255 * a));
-            scene.glass(c, tmp, Math.min(tmp.height() / 2, 32 * k), SMOKE, 0.55f, 0, 0, 0.02f, 1);
-            float px = Math.max(tmp.left + 30 * k, Math.min(tmp.right - 30 * k, b.centerX()));
-            toastPointer.reset();
-            toastPointer.moveTo(px - 12 * k, tmp.top + 1);
-            toastPointer.lineTo(px, tmp.top - 12 * k);
-            toastPointer.lineTo(px + 12 * k, tmp.top + 1);
-            toastPointer.close();
-            fill.setShader(null);
-            fill.setColor(0xCC2A2A2E);
-            c.drawPath(toastPointer, fill);
-            c.translate(tmp.left + padX, tmp.top + padY);
-            toast.draw(c);
-            c.restoreToCount(save);
-            return;
-        }
         float toastTop = 64 * k - (1 - a) * 16 * k;
         tmp.set((w - tw) / 2f - padX, toastTop, (w + tw) / 2f + padX, toastTop + th + 2 * padY);
         int save = c.saveLayerAlpha(tmp.left - 4, tmp.top - 4, tmp.right + 4, tmp.bottom + 4, Math.round(255 * a));
