@@ -128,11 +128,11 @@ final class Projector {
      * way up). Each mode moves the corners to the opposite side: rear mirrors left-right, ceiling turns it upside
      * down, ceiling-rear mirrors top-bottom. The corners moved by hand are where they end up on the screen.
      */
-    static String rkCommands(int vertical, int horizontal, int zoom, int mode, int[] moved, int w, int h) {
+    static String[] rkCorners(int vertical, int horizontal, int zoom, int mode, int[] moved, int w, int h) {
         float[] p = points(-vertical, horizontal, zoom);
         boolean mirrorX = mode == 1 || mode == 2, mirrorY = mode == 2 || mode == 3;
         float[] baseX = {0, w, w, 0}, baseY = {0, 0, h, h};
-        StringBuilder sb = new StringBuilder();
+        String[] out = new String[4];
         for (int i = 0; i < 4; i++) {
             float x = p[2 * i] * w / W, y = p[2 * i + 1] * h / H;
             if (mirrorX) x = w - x;
@@ -144,10 +144,25 @@ final class Projector {
             x += moved[2 * at] * w / W;
             y += moved[2 * at + 1] * h / H;
             // SurfaceFlinger's y grows upwards (seen on the wall: ↑ moved the corner down): the offset goes the other way.
-            sb.append("setprop ").append(RK_KEYSTONE).append(RK_CORNERS[i]).append(' ')
-                    .append(Math.round(x - baseX[i])).append(',').append(Math.round(baseY[i] - y)).append(';');
+            out[i] = Math.round(x - baseX[i]) + "," + Math.round(baseY[i] - y);
         }
-        // Read again only on a change of value: flip it.
+        return out;
+    }
+
+    /** RK3326: the corners last set (null: unknown), so a step rewrites only the one that moved. */
+    private static final String[] rkSent = new String[4];
+
+    /**
+     * The setprop commands for the corners that changed, then the update flag flipped (read again only on a change of
+     * value); "" when nothing changed. Each persist.* property rewrites a file on the flash (~0.1 s): fewer is faster.
+     */
+    private static String rkCommands(String[] corners) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 4; i++) {
+            if (corners[i].equals(rkSent[i])) continue;
+            sb.append("setprop ").append(RK_KEYSTONE).append(RK_CORNERS[i]).append(' ').append(corners[i]).append(';');
+        }
+        if (sb.length() == 0) return "";
         sb.append("if [ \"$(getprop ").append(RK_UPDATE).append(")\" = 1 ]; then setprop ").append(RK_UPDATE)
                 .append(" 0; else setprop ").append(RK_UPDATE).append(" 1; fi");
         return sb.toString();
@@ -202,9 +217,12 @@ final class Projector {
                 android.util.DisplayMetrics dm = new android.util.DisplayMetrics();
                 ((android.view.WindowManager) app.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRealMetrics(dm);
                 int w = Math.max(dm.widthPixels, dm.heightPixels), h = Math.min(dm.widthPixels, dm.heightPixels);
-                corners = rkCommands(vertical, auto ? 0 : hz, zoom, mode, moved, w, h);
-                if (!corners.equals(sentCorners)) cmd.append(corners);
-                sentMode = m;   // the mode is part of the corners there
+                String[] rk = rkCorners(vertical, auto ? 0 : hz, zoom, mode, moved, w, h);
+                cmd.append(rkCommands(rk));
+                if (cmd.length() == 0) return;
+                if (run(app, cmd.toString())) System.arraycopy(rk, 0, rkSent, 0, 4);
+                else java.util.Arrays.fill(rkSent, null);   // unsure what's set: all of them next time
+                return;
             } else {
                 corners = corners(vertical, auto ? 0 : hz, zoom, moved);
                 if (!corners.equals(sentCorners)) cmd.append("setprop ").append(CORNERS).append(' ').append(corners).append(';');

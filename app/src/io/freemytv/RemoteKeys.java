@@ -117,17 +117,18 @@ final class RemoteKeys {
             keyCode = Prefs.SONY_KEY + e.getScanCode();
         }
         // The HY300 sends F10 for its two-boxes button and F11 for its box-with-arrow one: the scan code
-        // keeps them apart from a keyboard's F10 and F11. The RK3326's same buttons arrive as scan 28 (its layout calls it
-        // SETTINGS) and scan 187 (F6, which made the system open Rockchip's HDMI app).
+        // keeps them apart from a keyboard's F10 and F11. On the RK3326 the box-with-arrow is scan 187 (F6, which made
+        // the system open Rockchip's HDMI app), and its two-boxes is still F10.
         if (HY300 && (e.getScanCode() == 68 || e.getScanCode() == 87)) {
             keyCode = e.getScanCode() == 68 ? Prefs.KEY_HY_BOXES : Prefs.KEY_HY_ARROW;
-        } else if (RK3326 && (e.getScanCode() == 28 || e.getScanCode() == 187)) {
-            keyCode = e.getScanCode() == 28 ? Prefs.KEY_HY_BOXES : Prefs.KEY_HY_ARROW;
+        } else if (RK3326 && (e.getScanCode() == 68 || e.getScanCode() == 187)) {
+            keyCode = e.getScanCode() == 68 ? Prefs.KEY_HY_BOXES : Prefs.KEY_HY_ARROW;
         }
         // The gear and the profile keys (and the projectors' Options button, which opened the vendor's settings): fixed,
-        // the stock home screen's own jobs.
+        // the stock home screen's own jobs. The RK3326's mouse button (scan 28, SETTINGS in its layout; it opened
+        // Android's settings) opens the quick panel too.
         if ((TCL && keyCode == KEY_TCL_SETTINGS) || (PROJECTOR && keyCode == KeyEvent.KEYCODE_MENU)
-                || keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH) {
+                || (RK3326 && e.getScanCode() == 28) || keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH) {
             if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
                 final Intent intent = keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH ? accounts(c) : quickPanel(c);
                 final int code = keyCode;

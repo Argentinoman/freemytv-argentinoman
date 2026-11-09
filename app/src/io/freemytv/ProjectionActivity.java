@@ -57,6 +57,25 @@ public class ProjectionActivity extends Activity {
         /** Moving the corners by hand: which one (0 top-left … 3 bottom-left). */
         private boolean editing, grabbed;
         private int corner;
+        /**
+         * Each step is drawn at once (the numbers, the marker), but the board takes ~0.2 s to warp the screen: it gets
+         * the corners at most every 250 ms while an arrow is held, and once more when it's let go.
+         */
+        private long lastApply;
+        private final Runnable send = this::sendNow;
+
+        private void sendNow() {
+            lastApply = android.os.SystemClock.uptimeMillis();
+            s.save(getContext());
+            Projector.apply(getContext(), s);
+        }
+
+        private void sendSoon(boolean now) {
+            removeCallbacks(send);
+            long wait = 250 - (android.os.SystemClock.uptimeMillis() - lastApply);
+            if (now || wait <= 0) send.run();
+            else postDelayed(send, wait);
+        }
         private final android.graphics.Path chevron = new android.graphics.Path();
 
         PanelView(Context c) {
@@ -199,9 +218,12 @@ public class ProjectionActivity extends Activity {
          * goes back to the panel. Grabbed: the arrows move it (held, faster), OK or Back let it go.
          */
         private boolean editKey(KeyEvent e, int code, boolean ok) {
-            if (e.getAction() != KeyEvent.ACTION_DOWN) return true;
             boolean left = code == KeyEvent.KEYCODE_DPAD_LEFT, right = code == KeyEvent.KEYCODE_DPAD_RIGHT,
                     up = code == KeyEvent.KEYCODE_DPAD_UP, down = code == KeyEvent.KEYCODE_DPAD_DOWN;
+            if (e.getAction() != KeyEvent.ACTION_DOWN) {
+                if (grabbed && (left || right || up || down)) sendSoon(true);   // let go: exactly where it stopped
+                return true;
+            }
             if (code == KeyEvent.KEYCODE_BACK || code == KeyEvent.KEYCODE_MENU) {
                 if (grabbed) grabbed = false;
                 else editing = false;
@@ -213,8 +235,7 @@ public class ProjectionActivity extends Activity {
                 // On the 1920×1080 frame: ~5 px on this screen a press, then faster while held.
                 int n = e.getRepeatCount(), step = n < 4 ? 8 : n < 16 ? 20 : 40;
                 s.moveCorner(corner, left ? -step : right ? step : 0, up ? -step : down ? step : 0);
-                s.save(getContext());
-                Projector.apply(getContext(), s);
+                sendSoon(false);
             } else if (e.getRepeatCount() == 0) {
                 boolean top = corner < 2, west = corner == 0 || corner == 3;
                 if (left) west = true;
@@ -292,7 +313,9 @@ public class ProjectionActivity extends Activity {
             c.drawRoundRect(r, 32 * k, 32 * k, fill);
             value.setTextAlign(Paint.Align.CENTER);
             value.setColor(0x99FFFFFF);
-            c.drawText(CORNER_NAMES[corner], w / 2, h / 2 - 44 * k, value);
+            // How far in this corner is, in screen pixels (what the board gets).
+            int inX = Math.round(Math.abs(s.corners[2 * corner]) * w / 1920f), inY = Math.round(Math.abs(s.corners[2 * corner + 1]) * h / 1080f);
+            c.drawText(CORNER_NAMES[corner] + "  ·  ↔ " + inX + "  ↕ " + inY, w / 2, h / 2 - 44 * k, value);
             value.setTextAlign(Paint.Align.RIGHT);
             c.drawText(what, w / 2, h / 2 + 4 * k, guide);
             hint.setTextAlign(Paint.Align.CENTER);
