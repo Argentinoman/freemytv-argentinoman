@@ -213,8 +213,11 @@ public class ProjectionActivity extends Activity {
                     // ← → on the row also open the editor. The automatic tilt goes off there: it measured the sensor
                     // at every step and moved the corners on its own.
                     if (s.auto) {
+                        // What was on screen stays: the measured tilt, and no sideways angle (automatic ignored the
+                        // saved one, which could be anything left from before).
                         s.auto = false;
                         s.vertical = Projector.lastTilt;
+                        s.horizontal = 0;
                         s.save(getContext());
                     }
                     editing = true;
