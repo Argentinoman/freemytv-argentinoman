@@ -130,6 +130,12 @@ final class RemoteKeys {
         // the stock home screen's own jobs.
         if ((TCL && keyCode == KEY_TCL_SETTINGS) || (PROJECTOR && keyCode == KeyEvent.KEYCODE_MENU)
                 || keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH) {
+            if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0 && PROJECTOR
+                    && keyCode == KeyEvent.KEYCODE_MENU && c instanceof android.accessibilityservice.AccessibilityService) {
+                // The projectors: the panel as an overlay of this service, so what's playing behind isn't paused.
+                afterScreensaver(c, () -> QuickOverlay.toggle(c));
+                return true;
+            }
             if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
                 final Intent intent = keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH ? accounts(c) : quickPanel(c);
                 final int code = keyCode;

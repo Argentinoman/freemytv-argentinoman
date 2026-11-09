@@ -42,7 +42,7 @@ public class QuickSettingsActivity extends Activity {
     protected void onCreate(Bundle saved) {
         super.onCreate(saved);
         Ui.init(this);
-        panel = new PanelView(this);
+        panel = new PanelView(this, this::finish);
         setContentView(panel);
     }
 
@@ -86,7 +86,12 @@ public class QuickSettingsActivity extends Activity {
         }
     }
 
-    private final class PanelView extends View {
+    /**
+     * The panel itself: in this activity (from Home), or in an overlay over the app in front (QuickOverlay, from the
+     * remote), which then isn't paused. `dismiss` takes it off screen either way.
+     */
+    static final class PanelView extends View {
+        private final Runnable dismiss;
         private final float k;
         private final List<Tile> tiles = new ArrayList<>();
         private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), rim = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -99,8 +104,9 @@ public class QuickSettingsActivity extends Activity {
         private int focus;
         private float slide;   // 0 off screen, 1 in place
 
-        PanelView(Context c) {
+        PanelView(Context c, Runnable dismiss) {
             super(c);
+            this.dismiss = dismiss;
             k = c.getResources().getDisplayMetrics().heightPixels / 1080f;
             clock = new TextPaint(Ui.text(Ui.light, 76 * k, 0xFFFFFFFF));
             date = new TextPaint(Ui.text(Ui.regular, 24 * k, 0xB3FFFFFF));
@@ -133,8 +139,7 @@ public class QuickSettingsActivity extends Activity {
                 } catch (RuntimeException e) {
                     AppLog.w("screensaver: " + e.getMessage());
                 }
-                finish();
-                overridePendingTransition(0, 0);
+                dismiss.run();
             }));
             dream.sub = "Activar ahora";
             // Not on the HY300: its screen never turns off, so the screensaver never starts by itself, and while it
@@ -152,7 +157,7 @@ public class QuickSettingsActivity extends Activity {
             }
             if (installed("com.tcl.suspension")) {
                 Tile inputs = new Tile("Entradas", "hdmi", () -> {
-                    finish();
+                    dismiss.run();
                     try {
                         c.startService(new Intent("com.tcl.quickpanel.show.window")
                                 .setComponent(new ComponentName("com.tcl.suspension", "com.tcl.suspension.DismissService")));
@@ -289,7 +294,7 @@ public class QuickSettingsActivity extends Activity {
         }
 
         private void open(Intent i) {
-            finish();
+            dismiss.run();
             try {
                 getContext().startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             } catch (RuntimeException e) {
@@ -303,7 +308,7 @@ public class QuickSettingsActivity extends Activity {
         void close() {
             if (closing) return;
             closing = true;
-            slideOutThen(QuickSettingsActivity.this::finish);
+            slideOutThen(dismiss);
         }
 
         boolean key(KeyEvent e) {

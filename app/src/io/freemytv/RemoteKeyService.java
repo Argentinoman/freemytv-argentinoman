@@ -118,6 +118,7 @@ public class RemoteKeyService extends AccessibilityService {
         VolumeBar.stop(this);
         HdmiWatch.stop();
         Snack.stop(this);
+        QuickOverlay.close(this);
         super.onDestroy();
     }
 
