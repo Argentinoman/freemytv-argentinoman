@@ -81,7 +81,8 @@ public class RemoteKeyService extends AccessibilityService {
         registerReceiver(screen, f);
         startPolling();
         VolumeBar.start(this);
-        HdmiWatch.start(this);   // RK3326: a toast when a device is plugged into the HDMI
+        HdmiWatch.start(this);   // RK3326: a notice when a device is plugged into the HDMI
+        Firewall.onceThisBoot(this);   // RK3326: this service is what the system starts at every boot
     }
 
     private static java.lang.reflect.Method getProp;

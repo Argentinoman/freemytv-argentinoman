@@ -9,6 +9,7 @@ public class HomeReceiver extends BroadcastReceiver {
     @Override public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
+            Firewall.onceThisBoot(context);   // RK3326, if its firmware hands this broadcast at all (RemoteKeyService too)
             HomeMode.bootCheck(context);
         } else if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)) {
             HomeMode.verify(context);   // app updated: complete Free My TV mode if something is missing
