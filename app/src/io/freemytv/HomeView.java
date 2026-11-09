@@ -634,6 +634,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             String text = i.getStringExtra(HdmiWatch.EXTRA_TEXT);
             if (text == null || !running) return;
             showToast(text, 2000);
+            reloadSoon();   // the drawer's HDMI lights up or dims with it
             setResultCode(android.app.Activity.RESULT_OK);
         }
     };

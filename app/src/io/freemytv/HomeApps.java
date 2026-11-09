@@ -366,13 +366,28 @@ final class HomeApps {
      * in the TV's settings is used as the label; without one, the name the device reports over HDMI-CEC ("PlayStation 5").
      * The icon follows what that name says the device is (see deviceSymbol).
      */
+    /** RK3326: whether a cable brings power to the HDMI receiver, last seen (lit in the drawer only then). */
+    private static volatile boolean cableSeen;
+
+    /**
+     * Asked of the receiver off the main thread (the lists are built in the background); on the main thread (Home's
+     * very first draw) the last answer, so nothing waits for v4l2-ctl there.
+     */
+    private static boolean hdmiCable() {
+        if (android.os.Looper.myLooper() != android.os.Looper.getMainLooper()) {
+            Boolean now = HdmiWatch.cable();
+            if (now != null) cableSeen = now;
+        }
+        return cableSeen;
+    }
+
     private static List<Item> inputs(Context c, boolean all) {
         List<Item> out = new ArrayList<>();
         if (RemoteKeys.RK3326) {   // no TV input there: the HDMI receiver is a camera (HdmiActivity), always listed
             Item it = shortcut(INPUT, "hdmi1", "HDMI", "hdmi");
             it.inputId = HdmiActivity.CAMERA_INPUT;
             it.number = "1";
-            it.connected = true;
+            it.connected = hdmiCable();
             out.add(it);
             return out;
         }
