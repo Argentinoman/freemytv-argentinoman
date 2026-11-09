@@ -628,6 +628,16 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         handler.postDelayed(reloadSoon, 500);
     }
 
+    /** RK3326: HdmiWatch (in the key service) asks Home to tell a cable plugged in, with its own notice, while it's in front. */
+    private final android.content.BroadcastReceiver hdmiNotice = new android.content.BroadcastReceiver() {
+        @Override public void onReceive(Context c, android.content.Intent i) {
+            String text = i.getStringExtra(HdmiWatch.EXTRA_TEXT);
+            if (text == null || !running) return;
+            showToast(text, 2000);
+            setResultCode(android.app.Activity.RESULT_OK);
+        }
+    };
+
     private final Runnable tick = new Runnable() {
         @Override public void run() {
             if (!running) return;
@@ -976,6 +986,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         recs.addListener(this);
         data.refreshIfStale();
         recs.refreshIfStale();
+        if (RemoteKeys.RK3326) getContext().registerReceiver(hdmiNotice, new android.content.IntentFilter(HdmiWatch.NOTICE));
         if (nowPlaying == null) nowPlaying = new NowPlaying(getContext(), this::onNowPlaying);
         nowPlaying.start();
         // The island's data (the TV Provider, pictures) waits until Home is back on screen: reading it during the
@@ -1026,6 +1037,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         Choreographer.getInstance().removeFrameCallback(this);
         handler.removeCallbacks(tick);
         handler.removeCallbacks(reloadSoon);
+        if (RemoteKeys.RK3326) {
+            try {
+                getContext().unregisterReceiver(hdmiNotice);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
         data.removeListener(this);
         recs.removeListener(this);
         if (nowPlaying != null) nowPlaying.stop();

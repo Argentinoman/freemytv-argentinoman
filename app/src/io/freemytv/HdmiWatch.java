@@ -50,8 +50,21 @@ final class HdmiWatch {
         powered = now;
         if (before == null || before.equals(now)) return;
         AppLog.w("hdmi: cable " + (now ? "plugged in" : "out"));
-        final String text = now ? "HDMI conectado" : "HDMI desconectado";
-        new Handler(Looper.getMainLooper()).post(() -> Snack.show(app, text));
+        // The words of Home's own notice for a TV input (the HY300's, from the system's input state).
+        final String text = now ? "Se detectó un equipo en HDMI" : "Se desconectó el equipo de HDMI";
+        new Handler(Looper.getMainLooper()).post(() -> notice(app, text));
+    }
+
+    /** Asked of Home first: if it's in front it shows its own notice (frosted glass, as on the HY300); else Snack. */
+    static final String NOTICE = "io.freemytv.HDMI_NOTICE", EXTRA_TEXT = "text";
+
+    private static void notice(Context service, String text) {
+        android.content.Intent i = new android.content.Intent(NOTICE).setPackage(service.getPackageName()).putExtra(EXTRA_TEXT, text);
+        service.sendOrderedBroadcast(i, null, new android.content.BroadcastReceiver() {
+            @Override public void onReceive(Context c, android.content.Intent r) {
+                if (getResultCode() != android.app.Activity.RESULT_OK) Snack.show(service, text);
+            }
+        }, null, android.app.Activity.RESULT_CANCELED, null, null);
     }
 
     /** Whether the receiver sees power on the cable; null without an answer. */

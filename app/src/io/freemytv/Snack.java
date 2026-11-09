@@ -17,7 +17,7 @@ import android.view.WindowManager;
  * of ours that may draw over other apps (an accessibility overlay); call it on the main thread with the service.
  */
 final class Snack extends View {
-    private static final long SHOWN_MS = 2500;
+    private static final long SHOWN_MS = 2000;
     private static Snack view;
 
     private final float k;
@@ -34,13 +34,13 @@ final class Snack extends View {
             Ui.init(service);
             view = new Snack(service);
             WindowManager.LayoutParams p = new WindowManager.LayoutParams(
-                    WindowManager.LayoutParams.MATCH_PARENT, Math.round(140 * view.k),
+                    WindowManager.LayoutParams.MATCH_PARENT, Math.round(200 * view.k),
                     WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                     WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                             | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                     PixelFormat.TRANSLUCENT);
             p.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-            p.y = Math.round(40 * view.k);
+            p.y = 0;
             try {
                 ((WindowManager) service.getSystemService(Context.WINDOW_SERVICE)).addView(view, p);
             } catch (RuntimeException e) {
@@ -68,7 +68,7 @@ final class Snack extends View {
     private Snack(Context c) {
         super(c);
         k = c.getResources().getDisplayMetrics().heightPixels / 1080f;
-        text = new TextPaint(Ui.text(Ui.medium, 30 * k, 0xFFFFFFFF));
+        text = new TextPaint(Ui.text(Ui.medium, 26 * k, 0xF2FFFFFF));   // Home's notice: same type
         text.setTextAlign(Paint.Align.CENTER);
         rim.setStyle(Paint.Style.STROKE);
         rim.setStrokeWidth(1.5f * k);
@@ -88,14 +88,14 @@ final class Snack extends View {
     @Override
     protected void onDraw(Canvas c) {
         if (alpha <= 0.01f || message.isEmpty()) return;
-        float w = getWidth(), h = getHeight(), padX = 40 * k, ph = 76 * k;
+        float w = getWidth(), padX = 28 * k, ph = Ui.halfCap(text) * 2 + 2 * 18 * k + 14 * k;
         float tw = text.measureText(message);
         float drop = (1 - alpha) * 14 * k;   // slides down a little as it appears
-        r.set(w / 2 - tw / 2 - padX, 24 * k - drop, w / 2 + tw / 2 + padX, 24 * k + ph - drop);
-        fill.setColor(Ui.alpha(0xF01B1B1E, alpha));   // the panels' dark grey
-        c.drawRoundRect(r, ph / 2, ph / 2, fill);
+        r.set(w / 2 - tw / 2 - padX, 64 * k - drop, w / 2 + tw / 2 + padX, 64 * k + ph - drop);   // where Home's sits
+        fill.setColor(Ui.alpha(0xE6111113, alpha));   // Home's smoked glass, without its blur (an overlay can't read what's behind)
+        c.drawRoundRect(r, Math.min(ph / 2, 32 * k), Math.min(ph / 2, 32 * k), fill);
         rim.setColor(Ui.alpha(0x1FFFFFFF, alpha));
-        c.drawRoundRect(r, ph / 2, ph / 2, rim);
+        c.drawRoundRect(r, Math.min(ph / 2, 32 * k), Math.min(ph / 2, 32 * k), rim);
         text.setAlpha(Math.round(255 * alpha));
         c.drawText(message, w / 2, r.centerY() + Ui.halfCap(text), text);
     }
