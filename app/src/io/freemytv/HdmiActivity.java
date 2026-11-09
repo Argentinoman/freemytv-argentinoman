@@ -264,11 +264,70 @@ public class HdmiActivity extends Activity {
             if (wanted) handler.postDelayed(this::open, 3000);
         }
 
+        /**
+         * The HDMI's sound, as Rockchip's own app plays it: media.audio.hdmiin turns the receiver's audio input on,
+         * the HAL is told, and the sound is read from the camcorder input (where the HDMI's lands) and played on the
+         * speaker, 48 kHz stereo, on its own thread. On the worker thread.
+         */
+        private Thread loop;
+
         private void soundOn(boolean on) {
             if (sound == on) return;
             sound = on;
+            try {
+                new ProcessBuilder("setprop", "media.audio.hdmiin", on ? "1" : "0").start().waitFor();
+            } catch (java.io.IOException | InterruptedException e) {
+                AppLog.w("hdmi sound: " + e.getMessage());
+            }
             android.media.AudioManager am = (android.media.AudioManager) activity.getSystemService(Context.AUDIO_SERVICE);
             if (am != null) am.setParameters("HDMIin_enable=" + on);
+            if (on) {
+                loop = new Thread(this::pipe, "hdmi-sound");
+                loop.start();
+            } else if (loop != null) {
+                loop.interrupt();
+                loop = null;
+            }
+        }
+
+        private void pipe() {
+            int rate = 48000, inCh = android.media.AudioFormat.CHANNEL_IN_STEREO, outCh = android.media.AudioFormat.CHANNEL_OUT_STEREO,
+                    pcm = android.media.AudioFormat.ENCODING_PCM_16BIT;
+            int size = Math.max(8192, Math.max(android.media.AudioRecord.getMinBufferSize(rate, inCh, pcm),
+                    android.media.AudioTrack.getMinBufferSize(rate, outCh, pcm)));
+            android.media.AudioRecord in = null;
+            android.media.AudioTrack out = null;
+            try {
+                in = new android.media.AudioRecord(android.media.MediaRecorder.AudioSource.CAMCORDER, rate, inCh, pcm, size);
+                out = new android.media.AudioTrack(android.media.AudioManager.STREAM_MUSIC, rate, outCh, pcm, size,
+                        android.media.AudioTrack.MODE_STREAM);
+                if (in.getState() != android.media.AudioRecord.STATE_INITIALIZED) throw new IllegalStateException("no input");
+                in.startRecording();
+                out.play();
+                byte[] buf = new byte[size / 2];
+                while (!Thread.currentThread().isInterrupted()) {
+                    int n = in.read(buf, 0, buf.length);
+                    if (n > 0) out.write(buf, 0, n);
+                    else if (n < 0) break;
+                }
+            } catch (RuntimeException e) {
+                AppLog.w("hdmi sound: " + e.getMessage());
+            } finally {
+                if (in != null) {
+                    try {
+                        in.stop();
+                    } catch (RuntimeException ignored) {
+                    }
+                    in.release();
+                }
+                if (out != null) {
+                    try {
+                        out.stop();
+                    } catch (RuntimeException ignored) {
+                    }
+                    out.release();
+                }
+            }
         }
 
         private void close() {

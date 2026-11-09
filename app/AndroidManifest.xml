@@ -23,6 +23,8 @@
     <!-- RK3326 projector: its HDMI input is a camera, and its sound is switched on in the audio HAL (HdmiActivity). -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- RK3326: the HDMI's sound arrives as an audio input, read and played on the speaker. Granted over ADB. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- RK3326 (userdebug firmware, which grants it to any app): the quick panel's "ADB por red" turns ADB on by itself,
          without ADB (NetworkAdb). Elsewhere it's simply not granted. -->

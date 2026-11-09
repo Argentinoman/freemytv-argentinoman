@@ -81,6 +81,7 @@ public class RemoteKeyService extends AccessibilityService {
         registerReceiver(screen, f);
         startPolling();
         VolumeBar.start(this);
+        HdmiWatch.start(this);   // RK3326: a toast when a device is plugged into the HDMI
     }
 
     private static java.lang.reflect.Method getProp;
@@ -114,6 +115,7 @@ public class RemoteKeyService extends AccessibilityService {
         }
         PowerOff.hide(this);
         VolumeBar.stop(this);
+        HdmiWatch.stop();
         super.onDestroy();
     }
 
