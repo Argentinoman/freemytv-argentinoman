@@ -19,8 +19,8 @@ import java.util.concurrent.TimeUnit;
  * read from persist.vendor.hwc.keystone (x,y of top-left, top-right, bottom-right, bottom-left on a 1920×1080 frame);
  * the projection mode flips the panel. Both need root, so they go through the projector's own ADB, as the switch does.
  * The RK3326 "HY300" (in place of the vendor's settings app, which did it through its BridgeService): SurfaceFlinger
- * warps the screen with four corner offsets, each from its own corner, in screen pixels (persist.sys.keystone.lt, rt,
- * rb, lb as "x,y"), and reads them again when persist.sys.keystone.update changes value. The projection mode is the
+ * warps the screen with four corner offsets, each from its own corner, in screen pixels with y growing upwards
+ * (persist.sys.keystone.lt, rt, rb, lb as "x,y"), and reads them again when persist.sys.keystone.update changes value. The projection mode is the
  * same warp with the corners swapped (the vendor app's mirrors). Plain setprop: ADB's shell may set them there.
  */
 final class Projector {
@@ -143,8 +143,9 @@ final class Projector {
             if (mirrorY) at = new int[] {3, 2, 1, 0}[at];
             x += moved[2 * at] * w / W;
             y += moved[2 * at + 1] * h / H;
+            // SurfaceFlinger's y grows upwards (seen on the wall: ↑ moved the corner down): the offset goes the other way.
             sb.append("setprop ").append(RK_KEYSTONE).append(RK_CORNERS[i]).append(' ')
-                    .append(Math.round(x - baseX[i])).append(',').append(Math.round(y - baseY[i])).append(';');
+                    .append(Math.round(x - baseX[i])).append(',').append(Math.round(baseY[i] - y)).append(';');
         }
         // Read again only on a change of value: flip it.
         sb.append("if [ \"$(getprop ").append(RK_UPDATE).append(")\" = 1 ]; then setprop ").append(RK_UPDATE)
