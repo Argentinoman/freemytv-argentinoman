@@ -1,0 +1,749 @@
+diff --git a/MiracastReceiver/app/build.gradle.kts b/MiracastReceiver/app/build.gradle.kts
+index 30855ad..54d0521 100644
+--- a/MiracastReceiver/app/build.gradle.kts
++++ b/MiracastReceiver/app/build.gradle.kts
+@@ -7,7 +7,7 @@ plugins {
+ val targetAbis = when {
+     project.hasProperty("buildArm64") -> listOf("arm64-v8a")
+     project.hasProperty("buildArm32") -> listOf("armeabi-v7a")
+-    else -> listOf("arm64-v8a", "armeabi-v7a")
++    else -> listOf("armeabi-v7a")   // Free My TV: the RK3326 projector is 32-bit
+ }
+ val buildUniversalApk = targetAbis.size > 1
+ val useUxPlay = providers.gradleProperty("useUxPlay").isPresent
+@@ -39,13 +39,6 @@ android {
+         }
+     }
+ 
+-    externalNativeBuild {
+-        cmake {
+-            path = file("src/main/cpp/CMakeLists.txt")
+-            version = "3.22.1"
+-        }
+-    }
+-
+     buildTypes {
+         release {
+             isMinifyEnabled = false
+@@ -95,8 +88,6 @@ android {
+ 
+ dependencies {
+     implementation("com.google.zxing:core:3.5.3")
+-    // Experimental Huawei Cast+ receiver. Source/provenance recorded next to the binary.
+-    implementation(files("libs/HuaweiCastPlusEngine.jar"))
+ 
+     // AndroidX Core
+     implementation("androidx.core:core-ktx:1.15.0")
+diff --git a/MiracastReceiver/app/src/main/AndroidManifest.xml b/MiracastReceiver/app/src/main/AndroidManifest.xml
+index da759a2..42bbf8f 100644
+--- a/MiracastReceiver/app/src/main/AndroidManifest.xml
++++ b/MiracastReceiver/app/src/main/AndroidManifest.xml
+@@ -9,9 +9,6 @@
+     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+     <uses-permission android:name="android.permission.WAKE_LOCK" />
+-    <uses-permission android:name="com.huawei.permission.HISIGHT_ACCESS" />
+-    <uses-permission android:name="com.huawei.hms.kitframework.permission.BIND_ENGINE_FRAMEWORK_SERVICE" />
+-    <uses-permission android:name="com.huawei.hms.kitframework.permission.REQUEST_AUTHENTICATION" />
+     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+     <!-- Wi-Fi Direct 需要定位权限。Android 12+ 只申请 FINE 会被系统拒绝，必须同时声明 COARSE。 -->
+     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+@@ -45,8 +42,6 @@
+         android:required="true" />
+ 
+     <queries>
+-        <package android:name="com.huawei.hms.kitframework" />
+-        <package android:name="com.huawei.dmsdpdevice" />
+     </queries>
+ 
+     <application
+@@ -85,12 +80,6 @@
+             android:theme="@style/Theme.Leanback.Fullscreen" />
+ 
+         <!-- 连接确认 Activity -->
+-        <activity
+-            android:name=".ui.CastPlusPlayerActivity"
+-            android:exported="false"
+-            android:configChanges="orientation|keyboardHidden|screenSize|screenLayout|smallestScreenSize"
+-            android:screenOrientation="sensorLandscape"
+-            android:theme="@style/Theme.Leanback.Fullscreen" />
+ 
+         <!-- Translucent dialogs must not lock orientation: Android 8.0 rejects this in Activity.onCreate. -->
+         <activity
+@@ -106,11 +95,7 @@
+             android:foregroundServiceType="mediaPlayback|connectedDevice" />
+ 
+         <!-- 开机自启：把接收服务拉起来，不打开界面 -->
+-        <service android:name="com.huawei.hisight.service.PlayerSinkService"
+-            android:enabled="true" android:exported="false" />
+         <!-- This SDK service kills its own process in onDestroy. Never put it in the UI process. -->
+-        <service android:name="com.huawei.connection.service.NearFieldManagerService"
+-            android:enabled="true" android:exported="false" android:process=":castplus_nearby" />
+         <meta-data android:name="version" android:value="1" />
+ 
+         <receiver
+diff --git a/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/MiracastApp.kt b/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/MiracastApp.kt
+index e74fe4b..ee31254 100644
+--- a/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/MiracastApp.kt
++++ b/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/MiracastApp.kt
+@@ -21,12 +21,6 @@ class MiracastApp : Application() {
+             })
+         }
+ 
+-        // Both the UI and :castplus_nearby process load this before the SDK.
+-        // Earlier Android versions retain the original netlink watcher.
+-        if (Build.VERSION.SDK_INT >= 30) {
+-            System.loadLibrary("castplus_network_compat")
+-        }
+-
+         // 要在任何 Activity / 服务创建前恢复界面语言
+         AppLanguage.restore(this)
+ 
+diff --git a/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/castplus/CastPlusPlaybackGate.kt b/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/castplus/CastPlusPlaybackGate.kt
+deleted file mode 100644
+index 3b65fb5..0000000
+--- a/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/castplus/CastPlusPlaybackGate.kt
++++ /dev/null
+@@ -1,33 +0,0 @@
+-package top.jast.miracastreceiver.castplus
+-
+-/** A decoder-ready callback and a visible, current Surface are both required to play. */
+-class CastPlusPlaybackGate {
+-    var token: String? = null
+-        private set
+-    private var visible = false
+-    private var surfaceReady = false
+-    private var decoderReady = false
+-    var playing = false
+-        private set
+-
+-    fun begin(id: String) {
+-        token = id; visible = false; surfaceReady = false; decoderReady = false; playing = false
+-    }
+-    fun surface(id: String, ready: Boolean) {
+-        if (id != token) return
+-        surfaceReady = ready
+-        if (!ready) playing = false
+-    }
+-    fun visible(id: String, ready: Boolean) {
+-        if (id != token) return
+-        visible = ready
+-        if (!ready) playing = false
+-    }
+-    fun paused() { decoderReady = true; playing = false }
+-    fun canPlay(): Boolean = token != null && visible && surfaceReady && decoderReady && !playing
+-    fun started() { playing = true; decoderReady = false }
+-    fun end(id: String) {
+-        if (id != token) return
+-        token = null; visible = false; surfaceReady = false; decoderReady = false; playing = false
+-    }
+-}
+diff --git a/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/castplus/CastPlusReceiver.kt b/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/castplus/CastPlusReceiver.kt
+index 3c6b60a..2f4bab6 100644
+--- a/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/castplus/CastPlusReceiver.kt
++++ b/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/castplus/CastPlusReceiver.kt
+@@ -1,31 +1,19 @@
+ package top.jast.miracastreceiver.castplus
+ 
+-import android.Manifest
+ import android.content.Context
+-import android.content.Intent
+-import android.content.pm.PackageManager
+-import android.os.Build
+-import android.os.Handler
+-import android.os.Looper
+ import android.view.Surface
+-import androidx.core.content.ContextCompat
+-import com.huawei.castpluskit.*
+-import top.jast.miracastreceiver.discovery.DeviceInfoProvider
+-import top.jast.miracastreceiver.ui.CastPlusPlayerActivity
+-import top.jast.miracastreceiver.ui.ConnectActivity
+-import top.jast.miracastreceiver.util.AppSettings
+-import kotlinx.coroutines.*
+ import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.asStateFlow
+-import timber.log.Timber
+-import java.util.UUID
+ 
+-/** Main-thread adapter to the unmodified Huawei SDK. SDK callbacks never log PINs or device IDs. */
+-class CastPlusReceiver(private val context: Context, private val takePlayback: () -> Unit) {
++/**
++ * Free My TV build: Huawei Cast+ removed (its SDK is a closed jar and native libraries without a licence). This keeps
++ * the same shape so the rest of the app builds, and always reports UNSUPPORTED.
++ */
++class CastPlusReceiver(@Suppress("unused") private val context: Context, @Suppress("unused") private val takePlayback: () -> Unit) {
+     enum class Status { OFF, UNSUPPORTED, PERMISSION_REQUIRED, STARTING, READY, PAIRING,
+         CONNECTING, PLAYING, PAUSED, DISCONNECTING, ERROR }
+     data class Request(val token: String, val name: String, val pin: String, val accepted: Boolean = false)
+-    data class State(val status: Status = Status.OFF, val session: String? = null,
++    data class State(val status: Status = Status.UNSUPPORTED, val session: String? = null,
+         val name: String = "", val request: Request? = null, val width: Int = 0, val height: Int = 0)
+     companion object {
+         const val TOKEN = "castplus_session"
+@@ -34,255 +22,12 @@ class CastPlusReceiver(private val context: Context, private val takePlayback: (
+     }
+     private val mutableState = MutableStateFlow(State())
+     val state = mutableState.asStateFlow()
+-    private val handler = Handler(Looper.getMainLooper())
+-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+-    private val gate = CastPlusPlaybackGate()
+-    private var epoch = 0
+-    private var enabled = false
+-    private var initializing: Job? = null
+-    private var client: PlayerClient? = null
+-    private var listener: IEventListener? = null
+-    private var device: ProjectionDevice? = null
+-    private var pendingDevice: ProjectionDevice? = null
+-    private var surface: Surface? = null
+-    private var closing = false
+-    private var displayProfile: CastPlusVideoProfile? = null
+-
+-    /** Updates the SDK's capability cache for the next connection; does not tear down playback. */
+-    fun updateDisplayOrientation(): Boolean {
+-        if (!enabled || client == null) return false
+-        val (width, height) = castPlusDisplaySize(context)
+-        val profile = castPlusVideoProfile(width, height, AppSettings.getCastPlusRotation(context))
+-        if (profile == displayProfile) return true
+-        val capability = HiSightCapability(profile.screenWidth, profile.screenHeight,
+-            profile.videoWidth, profile.videoHeight).apply {
+-            videoFps = 30
+-            videoBitrate = profile.bitrate
+-            setIsSupportRemoteCtrl(false)
+-        }
+-        if (call { client?.setCapability(capability) } != true) {
+-            Timber.w("Cast+ display capability update rejected")
+-            return false
+-        }
+-        displayProfile = profile
+-        Timber.i("Cast+ declared screen=%dx%d, video=%dx%d at 30fps, bitrate=%d",
+-            profile.screenWidth, profile.screenHeight, profile.videoWidth, profile.videoHeight, profile.bitrate)
+-        return true
+-    }
+-
+-    fun start() {
+-        current = this
+-        if (enabled && state.value.status !in setOf(Status.ERROR, Status.PERMISSION_REQUIRED)) return
+-        stop()
+-        current = this
+-        enabled = true
+-        if (Build.VERSION.SDK_INT < 23 || Build.SUPPORTED_ABIS.none { it in setOf("armeabi-v7a", "arm64-v8a") }) {
+-            mutableState.value = State(Status.UNSUPPORTED); return
+-        }
+-        val permissions = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION)
+-        if (Build.VERSION.SDK_INT >= 33) permissions += Manifest.permission.NEARBY_WIFI_DEVICES
+-        if (permissions.any { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }) {
+-            mutableState.value = State(Status.PERMISSION_REQUIRED); return
+-        }
+-        val generation = ++epoch
+-        mutableState.value = State(Status.STARTING)
+-        initializing = scope.launch {
+-            try {
+-                withContext(Dispatchers.IO) {
+-                    listOf("securec", "HwKeystoreSDK", "HwDeviceAuthSDK", "ConnectAuthNative",
+-                        "nstackx_util", "nstackx_dmsg", "nstackx_ctrl", "nf_onehop",
+-                        "near_field_onehop_jni", "jniFtSocketSink", "native_codec_jni")
+-                        .forEach(System::loadLibrary)
+-                }
+-                if (enabled && generation == epoch) bind(generation)
+-            } catch (e: CancellationException) { throw e }
+-            catch (e: Exception) { fail("Cast+ initialization failed", e) }
+-            catch (e: LinkageError) { fail("Cast+ native dependency failed", e) }
+-        }
+-        handler.postDelayed({
+-            if (generation == epoch && state.value.status == Status.STARTING) fail("Cast+ bind timed out")
+-        }, 20_000)
+-    }
+-
+-    private fun bind(generation: Int) {
+-        listener = object : IEventListener.Stub() {
+-            override fun onEvent(event: Event?): Boolean {
+-                val id = event?.eventId ?: return false
+-                handler.post { if (enabled && generation == epoch) this@CastPlusReceiver.event(id, null) }
+-                return true
+-            }
+-            override fun onDisplayEvent(id: Int, info: DisplayInfo?): Boolean {
+-                handler.post { if (enabled && generation == epoch) event(id, info) }
+-                return true
+-            }
+-        }
+-        client = PlayerClient.getInstance()
+-        if (call { client!!.registerCallback(listener) } != true || call { client!!.init(context) } != true)
+-            fail("Cast+ service bind rejected")
+-    }
+-
+-    private fun event(id: Int, info: DisplayInfo?) {
+-        Timber.d("Cast+ event: %d", id)
+-        when (id) {
+-            Constant.EVENT_ID_SERVICE_BIND_SUCCESS -> {
+-                if (!updateDisplayOrientation() ||
+-                    call { client!!.setDiscoverable(true, DeviceInfo(DeviceInfoProvider(context).getDeviceName(), DeviceInfo.TYPE_TV)) } != true ||
+-                    call { client!!.setAuthMode(AuthInfo(AuthInfo.AUTH_MODE_GENERIC)) } != true) {
+-                    fail("Cast+ capability or discovery rejected")
+-                } else mutableState.value = State(Status.READY)
+-            }
+-            Constant.EVENT_ID_SERVICE_BIND_FAILED, Constant.EVENT_ID_BINDER_DIED -> fail("Cast+ service disconnected")
+-            Constant.EVENT_ID_PIN_CODE_SHOW, Constant.EVENT_ID_CONFIRMATION_SHOW -> request(info)
+-            Constant.EVENT_ID_PIN_CODE_SHOW_FINISH -> {
+-                mutableState.value = state.value.copy(request = null)
+-            }
+-            Constant.EVENT_ID_CONNECT_REQ -> connected(info)
+-            Constant.EVENT_ID_PAUSED -> {
+-                if (gate.token != null && !closing) {
+-                    gate.paused()
+-                    mutableState.value = state.value.copy(status = Status.PAUSED)
+-                    playIfReady()
+-                }
+-            }
+-            Constant.EVENT_ID_CASTING -> if (gate.token != null && !closing)
+-                mutableState.value = state.value.copy(status = Status.PLAYING)
+-            Constant.EVENT_ID_DEVICE_DISCONNECTED -> {
+-                // Do not accept a new session until teardown completes (or the SDK is rebound).
+-                clearSession()
+-                updateDisplayOrientation()
+-                mutableState.value = State(Status.READY)
+-            }
+-            Constant.EVENT_ID_RESOLUTION_UPDATE -> if (gate.token != null && info != null) {
+-                Timber.i("Cast+ negotiated video: %dx%d", info.videoWidth, info.videoHeight)
+-                mutableState.value = state.value.copy(width = info.videoWidth, height = info.videoHeight)
+-            }
+-        }
+-    }
+-
+-    private fun request(info: DisplayInfo?) {
+-        val remote = info?.projectionDevice ?: return
+-        if (closing || device != null || (pendingDevice != null && pendingDevice?.deviceId != remote.deviceId)) {
+-            call { client?.setConnectRequestChooseResult(ConnectRequestChoice(Constant.CONNECT_REQ_CHOICE_REJECT, remote)) }
+-            return
+-        }
+-        pendingDevice = remote
+-        val old = state.value.request
+-        val request = Request(old?.token ?: UUID.randomUUID().toString(), remote.deviceName.orEmpty(),
+-            info.pinCode.orEmpty(), old?.accepted ?: false)
+-        mutableState.value = State(Status.PAIRING, request = request)
+-        if (old == null) {
+-            try {
+-                context.startActivity(Intent(context, ConnectActivity::class.java).apply {
+-                    putExtra(TOKEN, request.token)
+-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+-                })
+-            } catch (e: Exception) { fail("Cannot show Cast+ confirmation", e); return }
+-            handler.postDelayed({ if (state.value.request?.token == request.token) end() }, 60_000)
+-        }
+-    }
+-
+-    fun answer(token: String, allow: Boolean, remember: Boolean = false) {
+-        val request = state.value.request?.takeIf { it.token == token && !it.accepted } ?: return
+-        val remote = pendingDevice ?: return
+-        val choice = if (!allow) Constant.CONNECT_REQ_CHOICE_REJECT else if (remember)
+-            Constant.CONNECT_REQ_CHOICE_ALWAYS else Constant.CONNECT_REQ_CHOICE_ONCE
+-        if (call { client?.setConnectRequestChooseResult(ConnectRequestChoice(choice, remote)) } != true) {
+-            fail("Cast+ confirmation rejected"); return
+-        }
+-        if (allow) mutableState.value = state.value.copy(request = request.copy(accepted = true))
+-        else end()
+-    }
+-
+-    private fun connected(info: DisplayInfo?) {
+-        val remote = info?.projectionDevice ?: return
+-        if (device?.deviceId == remote.deviceId && gate.token != null) return
+-        if (closing || device != null) { call { client?.disconnectDevice(remote) }; return }
+-        device = remote; pendingDevice = null
+-        val token = UUID.randomUUID().toString()
+-        gate.begin(token)
+-        mutableState.value = State(Status.CONNECTING, token, remote.deviceName.orEmpty(),
+-            width = info.videoWidth, height = info.videoHeight)
+-        try {
+-            takePlayback()
+-            context.startActivity(Intent(context, CastPlusPlayerActivity::class.java).apply {
+-                putExtra(TOKEN, token)
+-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+-            })
+-        } catch (e: Exception) { fail("Cannot open Cast+ player", e) }
+-        handler.postDelayed({
+-            if (state.value.session == token && surface == null) fail("Cast+ player did not become ready")
+-        }, 20_000)
+-    }
+-
+-    fun setSurface(token: String, value: Surface?) {
+-        if (gate.token != token) return
+-        surface = value?.takeIf { it.isValid }
+-        gate.surface(token, surface != null)
+-        if (surface == null) call { device?.let { client?.pause(it) } }
+-        else playIfReady()
+-    }
+-    fun setVisible(token: String, visible: Boolean) {
+-        if (gate.token != token) return
+-        gate.visible(token, visible)
+-        if (!visible) call { device?.let { client?.pause(it) } }
+-        else playIfReady()
+-    }
+-    private fun playIfReady() {
+-        val target = surface?.takeIf { it.isValid } ?: return
+-        val remote = device ?: return
+-        if (!gate.canPlay() || closing) return
+-        if (call { client?.setHiSightSurface(target) } == true &&
+-            call { client?.play(TrackControl(remote.deviceId, TrackControl.TRACK_ALL)) } == true) {
+-            gate.started()
+-            mutableState.value = state.value.copy(status = Status.PLAYING)
+-        } else fail("Cast+ player rejected Surface or play")
+-    }
+-    fun end(token: String? = gate.token) {
+-        if (token != null && token != gate.token) return
+-        val remote = device ?: pendingDevice ?: return
+-        closing = true
+-        gate.token?.let(gate::end)
+-        surface = null
+-        mutableState.value = State(Status.DISCONNECTING)
+-        call { client?.disconnectDevice(remote) }
+-        val generation = epoch
+-        handler.postDelayed({
+-            if (closing && enabled && generation == epoch) { stop(); start() }
+-        }, 5_000)
+-    }
+-    private fun clearSession() {
+-        gate.token?.let(gate::end)
+-        surface = null; device = null; pendingDevice = null; closing = false
+-    }
+-    /** Keep the SDK discovery name aligned with the app's naming setting. */
+-    fun updateDisplayName(name: String) {
+-        if (!enabled || state.value.status !in setOf(Status.READY, Status.PAIRING,
+-                Status.CONNECTING, Status.PLAYING, Status.PAUSED)) return
+-        if (call { client?.setDiscoverable(true, DeviceInfo(name, DeviceInfo.TYPE_TV)) } != true) {
+-            Timber.w("Cast+ discovery name update failed")
+-        }
+-    }
+-
+-    fun stop() {
+-        enabled = false; epoch++; initializing?.cancel(); initializing = null
+-        handler.removeCallbacksAndMessages(null)
+-        call { client?.setDiscoverable(false, DeviceInfo(DeviceInfoProvider(context).getDeviceName(), DeviceInfo.TYPE_TV)) }
+-        call { device?.let { client?.disconnectDevice(it) } }
+-        call { listener?.let { client?.unregisterCallback(it) } }
+-        call { client?.deinit() }
+-        client = null; listener = null
+-        displayProfile = null
+-        clearSession()
+-        mutableState.value = State()
+-        if (current === this) current = null
+-    }
+-    private fun fail(message: String, error: Throwable? = null) {
+-        Timber.w(error, message)
+-        stop()
+-        current = this
+-        mutableState.value = State(Status.ERROR)
+-    }
+-    private inline fun <T> call(block: () -> T): T? = try { block() }
+-    catch (e: Exception) { Timber.w(e, "Cast+ SDK call failed"); null }
+-    catch (e: LinkageError) { Timber.w(e, "Cast+ SDK dependency failed"); null }
++    fun updateDisplayOrientation(): Boolean = false
++    fun start() {}
++    fun answer(token: String, allow: Boolean, remember: Boolean = false) {}
++    fun setSurface(token: String, value: Surface?) {}
++    fun setVisible(token: String, visible: Boolean) {}
++    fun end(token: String? = null) {}
++    fun updateDisplayName(name: String) {}
++    fun stop() {}
+ }
+diff --git a/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/castplus/CastPlusVideoProfile.kt b/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/castplus/CastPlusVideoProfile.kt
+deleted file mode 100644
+index 5f558d5..0000000
+--- a/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/castplus/CastPlusVideoProfile.kt
++++ /dev/null
+@@ -1,56 +0,0 @@
+-package top.jast.miracastreceiver.castplus
+-
+-import android.content.Context
+-import android.media.MediaCodecList
+-import top.jast.miracastreceiver.util.nativeDisplayResolution
+-
+-internal data class CastPlusVideoProfile(val screenWidth: Int, val screenHeight: Int,
+-    val videoWidth: Int, val videoHeight: Int, val bitrate: Int)
+-
+-/** Native panel dimensions remain stable when the activity or sender rotates. */
+-internal fun castPlusDisplaySize(context: Context): Pair<Int, Int> {
+-    return nativeDisplayResolution(context)
+-}
+-
+-internal fun chooseCastPlusVideoProfile(screenWidth: Int, screenHeight: Int, rotation: Int = 0,
+-    supports: (Int, Int) -> Boolean): CastPlusVideoProfile {
+-    require(screenWidth >= 2 && screenHeight >= 2)
+-    val longEdge = maxOf(screenWidth, screenHeight)
+-    val shortEdge = minOf(screenWidth, screenHeight)
+-    val portrait = rotation % 180 != 0
+-    val displayW = if (portrait) shortEdge else longEdge
+-    val displayH = if (portrait) longEdge else shortEdge
+-    fun scaled(edge: Int): Pair<Int, Int> = if (portrait) {
+-        maxOf(2, (shortEdge.toLong() * edge / longEdge).toInt() and -2) to maxOf(2, edge and -2)
+-    } else {
+-        maxOf(2, edge and -2) to maxOf(2, (shortEdge.toLong() * edge / longEdge).toInt() and -2)
+-    }
+-    val candidates = (listOf(longEdge) + listOf(3840, 2560, 2160, 1920, 1600, 1280, 1080, 960, 720, 640)
+-        .filter { it < longEdge }).map(::scaled).distinct()
+-    val (videoW, videoH) = candidates.firstOrNull { (w, h) -> supports(w, h) }
+-        ?: scaled(minOf(longEdge, 720))
+-    val pixels = videoW.toLong() * videoH
+-    val bitrate = when {
+-        // Huawei SDK rejects capability bitrates above 20 Mbps, including on 4K panels.
+-        pixels > 2560L * 1440 -> 20_000_000
+-        pixels > 1920L * 1080 -> 16_000_000
+-        pixels > 1280L * 720 -> 10_000_000
+-        else -> 5_242_880
+-    }
+-    return CastPlusVideoProfile(displayW, displayH, videoW, videoH, bitrate)
+-}
+-
+-internal fun castPlusVideoProfile(screenWidth: Int, screenHeight: Int, rotation: Int): CastPlusVideoProfile {
+-    val decoders = runCatching {
+-        MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos.filter { !it.isEncoder }.mapNotNull { codec ->
+-            runCatching {
+-                if (codec.supportedTypes.none { it.equals("video/avc", true) }) return@runCatching null
+-                if (codec.name.startsWith("OMX.google.") || codec.name.startsWith("c2.android.")) return@runCatching null
+-                codec.getCapabilitiesForType("video/avc").videoCapabilities
+-            }.getOrNull()
+-        }
+-    }.getOrDefault(emptyList())
+-    return chooseCastPlusVideoProfile(screenWidth, screenHeight, rotation) { width, height ->
+-        decoders.any { runCatching { it.areSizeAndRateSupported(width, height, 30.0) }.getOrDefault(false) }
+-    }
+-}
+diff --git a/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/miracast/WfdVideoCapabilities.kt b/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/miracast/WfdVideoCapabilities.kt
+index 866a2e3..2912cfa 100644
+--- a/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/miracast/WfdVideoCapabilities.kt
++++ b/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/miracast/WfdVideoCapabilities.kt
+@@ -68,7 +68,8 @@ internal fun wfdCustomVideoMode(context: Context, extended: Boolean): WfdCustomV
+ 
+ /** Only negotiate extensions the peer explicitly requested; keep the legacy CEA fallback. */
+ internal fun wfdVideoCapabilityLines(requested: Set<String>, mode: WfdCustomVideoMode?): List<String> {
+-    val lines = mutableListOf("wfd_video_formats: 00 00 02 10 000001C0 00000000 00000000 00 0000 0000 00 none none")
++    // Free My TV: 720p only (CEA 1280x720 p30 and p60): the RK3326 projector's screen is 720p, and 1080p60 stuttered on it.
++    val lines = mutableListOf("wfd_video_formats: 00 00 02 10 00000060 00000000 00000000 00 0000 0000 00 none none")
+     if ("wfdx_video_formats" in requested && mode != null) lines += "wfdx_video_formats: ${mode.extendedFormats()}"
+     if ("microsoft_custom_video_formats" in requested) {
+         val usable = mode?.takeIf { "wfdx_video_formats" in requested || it.levelBit <= 0x10 }
+diff --git a/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/service/CastReceiverService.kt b/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/service/CastReceiverService.kt
+index b787399..5fd72a6 100644
+--- a/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/service/CastReceiverService.kt
++++ b/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/service/CastReceiverService.kt
+@@ -518,15 +518,12 @@ class CastReceiverService : Service() {
+ 
+     private fun startAllServices() {
+         servicesStarted = true
+-        // 启动 AirPlay 2 接收器
+-        airPlayReceiver.start()
+-        // Surface 重建时，恢复 AirPlay URL 视频与屏幕镜像的输出
+-        top.jast.miracastreceiver.ui.PlayerActivity.mirrorSurfaceListener = { airPlayReceiver.onVideoSurfaceChanged() }
++        // Free My TV build: Miracast and DLNA only. AirPlay is the projector's own AirPlay Server (its native FairPlay
++        // and ALAC parts aren't built here) and Google Cast stays off.
+ 
+         // 启动 DLNA/UPnP 服务
+         upnpHttpServer.start()
+         ssdpServer.start()
+-        googleCastReceiver.start()
+ 
+         // 启动 Windows 无线显示器（Miracast/WFD）
+         // Inject after onGroupCreated: createGroup is asynchronous and can overwrite WFD IE.
+diff --git a/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/ui/CastPlusPlayerActivity.kt b/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/ui/CastPlusPlayerActivity.kt
+deleted file mode 100644
+index 84f54aa..0000000
+--- a/MiracastReceiver/app/src/main/java/top/jast/miracastreceiver/ui/CastPlusPlayerActivity.kt
++++ /dev/null
+@@ -1,176 +0,0 @@
+-package top.jast.miracastreceiver.ui
+-
+-import android.os.Bundle
+-import android.graphics.SurfaceTexture
+-import android.view.Gravity
+-import android.view.Surface
+-import android.view.TextureView
+-import android.view.WindowManager
+-import android.view.KeyEvent
+-import android.view.MotionEvent
+-import android.view.View
+-import android.widget.ImageButton
+-import android.widget.FrameLayout
+-import android.widget.TextView
+-import android.widget.Toast
+-import androidx.activity.OnBackPressedCallback
+-import androidx.appcompat.app.AppCompatActivity
+-import androidx.lifecycle.Lifecycle
+-import androidx.lifecycle.lifecycleScope
+-import androidx.lifecycle.repeatOnLifecycle
+-import top.jast.miracastreceiver.R
+-import top.jast.miracastreceiver.castplus.CastPlusReceiver
+-import top.jast.miracastreceiver.util.applyVideoTextureTransform
+-import top.jast.miracastreceiver.util.AppSettings
+-import android.content.Intent
+-import kotlinx.coroutines.launch
+-import kotlinx.coroutines.Job
+-import kotlinx.coroutines.delay
+-
+-/** Cast+ owns this Surface; legacy mirrors and ExoPlayer cannot replace its output. */
+-class CastPlusPlayerActivity : AppCompatActivity(), TextureView.SurfaceTextureListener {
+-    companion object {
+-        private const val ROTATE_BUTTON_HIDE_DELAY_MS = 4_000L
+-        private val ROTATE_REVEAL_KEYS = setOf(
+-            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER,
+-            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN
+-        )
+-    }
+-    private var token: String? = null
+-    private var receiver: CastPlusReceiver? = null
+-    private lateinit var textureView: TextureView
+-    private var surface: Surface? = null
+-    private lateinit var root: FrameLayout
+-    private var width = 0
+-    private var height = 0
+-    private var rotationDegrees = 0
+-    private lateinit var rotateButton: ImageButton
+-    private var rotateButtonHideJob: Job? = null
+-
+-    override fun onCreate(savedInstanceState: Bundle?) {
+-        super.onCreate(savedInstanceState)
+-        rotationDegrees = savedInstanceState?.getInt("castplus_rotation") ?: AppSettings.getCastPlusRotation(this)
+-        token = intent.getStringExtra(CastPlusReceiver.TOKEN)
+-        receiver = CastPlusReceiver.current
+-        if (token == null || receiver?.state?.value?.session != token) { finish(); return }
+-        root = FrameLayout(this).apply { setBackgroundColor(android.graphics.Color.BLACK) }
+-        textureView = TextureView(this).apply { surfaceTextureListener = this@CastPlusPlayerActivity }
+-        root.addView(textureView, FrameLayout.LayoutParams(-1, -1, Gravity.CENTER))
+-        val status = TextView(this).apply {
+-            setTextColor(android.graphics.Color.WHITE)
+-            setBackgroundColor(0x88000000.toInt())
+-            setPadding(24, 12, 24, 12)
+-            text = getString(R.string.castplus_connecting)
+-        }
+-        root.addView(status, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.CENTER_HORIZONTAL))
+-        layoutInflater.inflate(R.layout.rotate_overlay_button, root, true)
+-        rotateButton = root.findViewById(R.id.btn_rotate_overlay)
+-        rotateButton.setOnClickListener {
+-                rotationDegrees = (rotationDegrees + 90) % 360
+-                AppSettings.setCastPlusRotation(this@CastPlusPlayerActivity, rotationDegrees)
+-                val updated = receiver?.updateDisplayOrientation() == true
+-                Toast.makeText(this@CastPlusPlayerActivity,
+-                    if (updated) R.string.castplus_resolution_reconnect else R.string.castplus_resolution_failed,
+-                    Toast.LENGTH_LONG).show()
+-                fitSurface()
+-                showRotateButton(focus = false)
+-        }
+-        setContentView(root)
+-        root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> fitSurface() }
+-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+-            override fun handleOnBackPressed() = exit()
+-        })
+-        lifecycleScope.launch {
+-            repeatOnLifecycle(Lifecycle.State.STARTED) {
+-                receiver!!.state.collect { state ->
+-                    if (state.session != token) { finish(); return@collect }
+-                    width = state.width; height = state.height
+-                    fitSurface()
+-                    status.visibility = if (state.status == CastPlusReceiver.Status.PLAYING)
+-                        android.view.View.GONE else android.view.View.VISIBLE
+-                }
+-            }
+-        }
+-    }
+-
+-    private fun showRotateButton(focus: Boolean) {
+-        if (!::rotateButton.isInitialized) return
+-        rotateButton.visibility = View.VISIBLE
+-        if (focus) rotateButton.requestFocus()
+-        rotateButtonHideJob?.cancel()
+-        rotateButtonHideJob = lifecycleScope.launch {
+-            delay(ROTATE_BUTTON_HIDE_DELAY_MS)
+-            rotateButton.visibility = View.GONE
+-        }
+-    }
+-
+-    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+-        if (event.actionMasked == MotionEvent.ACTION_DOWN) showRotateButton(focus = false)
+-        return super.dispatchTouchEvent(event)
+-    }
+-
+-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+-        if (::rotateButton.isInitialized && event.action == KeyEvent.ACTION_DOWN &&
+-            event.keyCode in ROTATE_REVEAL_KEYS) {
+-            val alreadyFocused = rotateButton.visibility == View.VISIBLE && rotateButton.isFocused
+-            showRotateButton(focus = true)
+-            if (!alreadyFocused) return true
+-        }
+-        return super.dispatchKeyEvent(event)
+-    }
+-
+-    private fun fitSurface() {
+-        if (width > 0 && height > 0) textureView.surfaceTexture?.setDefaultBufferSize(width, height)
+-        applyVideoTextureTransform(textureView, width, height, rotationDegrees)
+-    }
+-
+-    override fun onSurfaceTextureAvailable(texture: SurfaceTexture, width: Int, height: Int) {
+-        surface?.release()
+-        surface = Surface(texture)
+-        fitSurface()
+-        token?.let { receiver?.setSurface(it, surface) }
+-    }
+-    override fun onSurfaceTextureSizeChanged(texture: SurfaceTexture, width: Int, height: Int) = fitSurface()
+-    override fun onSurfaceTextureUpdated(texture: SurfaceTexture) = Unit
+-    override fun onSurfaceTextureDestroyed(texture: SurfaceTexture): Boolean {
+-        token?.let { receiver?.setSurface(it, null) }
+-        surface?.release()
+-        surface = null
+-        return true
+-    }
+-    override fun onSaveInstanceState(outState: Bundle) {
+-        outState.putInt("castplus_rotation", rotationDegrees)
+-        super.onSaveInstanceState(outState)
+-    }
+-    override fun onStart() {
+-        super.onStart()
+-        if (receiver?.state?.value?.session == token && token != null) {
+-            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+-            receiver?.setVisible(token!!, true)
+-            showRotateButton(focus = false)
+-        }
+-    }
+-    override fun onStop() {
+-        rotateButtonHideJob?.cancel()
+-        if (::rotateButton.isInitialized) rotateButton.visibility = View.GONE
+-        token?.let { receiver?.setVisible(it, false) }
+-        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+-        super.onStop()
+-    }
+-    override fun onDestroy() {
+-        token?.let { id ->
+-            receiver?.setSurface(id, null)
+-            if (isFinishing && receiver?.state?.value?.session == id) receiver?.end(id)
+-        }
+-        surface?.release()
+-        surface = null
+-        super.onDestroy()
+-    }
+-    private fun exit() {
+-        token?.let { receiver?.end(it) }
+-        if (AppSettings.isReturnToAppAfterCast(this)) {
+-            startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+-            finish()
+-        } else finishAffinity()
+-    }
+-}
+diff --git a/MiracastReceiver/settings.gradle.kts b/MiracastReceiver/settings.gradle.kts
+index c309c7b..ae243f8 100644
+--- a/MiracastReceiver/settings.gradle.kts
++++ b/MiracastReceiver/settings.gradle.kts
+@@ -3,9 +3,6 @@ pluginManagement {
+         google()
+         mavenCentral()
+         gradlePluginPortal()
+-        maven { url = uri("https://maven.aliyun.com/repository/google") }
+-        maven { url = uri("https://maven.aliyun.com/repository/public") }
+-        maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
+     }
+ }
+ 
+@@ -14,8 +11,6 @@ dependencyResolutionManagement {
+     repositories {
+         google()
+         mavenCentral()
+-        maven { url = uri("https://maven.aliyun.com/repository/google") }
+-        maven { url = uri("https://maven.aliyun.com/repository/public") }
+     }
+ }
+ 
