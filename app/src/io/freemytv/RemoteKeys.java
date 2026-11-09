@@ -31,11 +31,18 @@ final class RemoteKeys {
     static final boolean TCL = is("TCL"), VESTEL = is("Vestel"), KTC = is("KTC"), SONY = is("Sony"), FORMOVIE = is("Formovie");
     /** The HY300 projector (an Amlogic T950S board posing as a Pixel, so no brand to go by): its arrows and mouse buttons. */
     static final boolean HY300 = "t950s_be311".equalsIgnoreCase(Build.DEVICE);
+    /**
+     * The other "HY300": a Rockchip RK3326 board (Android 12 Go, also posing as Google) sold under the same name, with
+     * the same remote. Its picture, HDMI and wireless receiver work differently (Projector, HdmiActivity, WirelessActivity).
+     */
+    static final boolean RK3326 = "rk3326_sgo".equalsIgnoreCase(Build.DEVICE);
+    /** Either projector: our projection, HDMI and wireless screens, the remote's two buttons, no screensaver. */
+    static final boolean PROJECTOR = HY300 || RK3326;
     /** Brands whose Netflix button is STEM_1, a global key (MediaTek): only that button is ours. */
     static final boolean STEM_NETFLIX = VESTEL || FORMOVIE;
 
     static boolean supported() {
-        return TCL || STEM_NETFLIX || KTC || SONY || HY300;
+        return TCL || STEM_NETFLIX || KTC || SONY || PROJECTOR;
     }
 
     private static boolean is(String maker) {
@@ -52,6 +59,18 @@ final class RemoteKeys {
     static Intent quickSettings(Context c) {
         Intent tcl = new Intent("com.tcl.settings.action.QUICKSETTINGS");
         if (tcl.resolveActivity(c.getPackageManager()) != null) return tcl;
+        return androidSettings(c);
+    }
+
+    /**
+     * Android's settings. On the RK3326 the SETTINGS action belongs to the vendor's layer (TxczSetting, under the name
+     * com.android.tv.settings, turned off there); Android's own TV settings are com.android.tv.set.
+     */
+    static Intent androidSettings(Context c) {
+        if (RK3326) {
+            Intent own = new Intent(Intent.ACTION_MAIN).setClassName("com.android.tv.set", "com.android.tv.set.MainSettings");
+            if (own.resolveActivity(c.getPackageManager()) != null) return own;
+        }
         return new Intent(android.provider.Settings.ACTION_SETTINGS);
     }
 
@@ -60,7 +79,7 @@ final class RemoteKeys {
      * the settings' own accounts page waits on it forever, and a section can't be opened on its own.
      */
     static Intent accounts(Context c) {
-        return new Intent(android.provider.Settings.ACTION_SETTINGS);
+        return androidSettings(c);
     }
 
     /** Our own quick settings panel (Wi-Fi, Bluetooth, notifications, screensaver...), Google TV's gear panel's stand-in. */
@@ -98,12 +117,14 @@ final class RemoteKeys {
             keyCode = Prefs.SONY_KEY + e.getScanCode();
         }
         // The HY300 sends F10 for its two-boxes button and F11 for its box-with-arrow one: the scan code
-        // keeps them apart from a keyboard's F10 and F11.
-        if (HY300 && (e.getScanCode() == 68 || e.getScanCode() == 87)) keyCode = Prefs.HY_KEY + e.getScanCode();
-        // The gear and the profile keys (and the HY300's Options button, which opened the vendor's settings): fixed, the
-        // stock home screen's own jobs.
-        if ((TCL && keyCode == KEY_TCL_SETTINGS) || (HY300 && keyCode == KeyEvent.KEYCODE_MENU)
-                || keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH) {
+        // keeps them apart from a keyboard's F10 and F11. The RK3326's layout has F10 (68) and F12 (88) instead.
+        if (PROJECTOR && (e.getScanCode() == 68 || e.getScanCode() == 87 || (RK3326 && e.getScanCode() == 88))) {
+            keyCode = e.getScanCode() == 68 ? Prefs.KEY_HY_BOXES : Prefs.KEY_HY_ARROW;
+        }
+        // The gear and the profile keys (and the projectors' Options button, which opened the vendor's settings): fixed,
+        // the stock home screen's own jobs. The RK3326's remote also has a settings key (scan 28).
+        if ((TCL && keyCode == KEY_TCL_SETTINGS) || (PROJECTOR && keyCode == KeyEvent.KEYCODE_MENU)
+                || (RK3326 && keyCode == KeyEvent.KEYCODE_SETTINGS) || keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH) {
             if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
                 final Intent intent = keyCode == KeyEvent.KEYCODE_PROFILE_SWITCH ? accounts(c) : quickPanel(c);
                 final int code = keyCode;
@@ -159,6 +180,10 @@ final class RemoteKeys {
 
     /** The first HDMI input (not a CEC device under it) in HdmiActivity; null without one. */
     private static Intent hdmi(Context c) {
+        if (RK3326) {   // no TV input: the HDMI receiver is a camera
+            return new Intent(c, HdmiActivity.class).putExtra(HdmiActivity.EXTRA_INPUT, HdmiActivity.CAMERA_INPUT)
+                    .putExtra(HdmiActivity.EXTRA_LABEL, "HDMI");
+        }
         android.media.tv.TvInputManager tim = (android.media.tv.TvInputManager) c.getSystemService(Context.TV_INPUT_SERVICE);
         if (tim == null) return null;
         for (android.media.tv.TvInputInfo info : tim.getTvInputList()) {

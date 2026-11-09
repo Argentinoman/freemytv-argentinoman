@@ -83,6 +83,11 @@ final class HomeMode {
         "com.jm.jmlauncher", "com.master.apps", "com.htc.htcsettings",
         "com.softwinner.tcorrection",                                                 // its keystone app: ours (Projector) instead
         "com.droidlogic.FileBrower",                                                  // Amlogic's file explorer: ours (FilesActivity) instead
+        // RK3326 "HY300" (Tianxing/txcz): the launcher goes as the home screen; its settings layer, which also installed
+        // apps by itself from the vendor's server the minute it got online (the Wi-Fi was saved by com.android.tv.set);
+        // the media centre (ours: FilesActivity and the image viewer)
+        "com.shzhtxcz.txbox",
+        "com.rockchips.mediacenter",
     };
 
     /** The voice assistant, only with disable_assistant=true in config.properties (the mic button stops working). */
@@ -147,7 +152,9 @@ final class HomeMode {
         "com.droidlogic", "com.droidlogic.tvinput", "com.droidlogic.android.tv",
         "com.droidlogic.tv.settings", "com.droidlogic.tv.settings.resoverlay", "com.droidlogic.droidlivetvsettings",
         "com.droidlogic.inputmethod.remote", "com.droidlogic.updater",
-        "com.droidlogic.appinstall", "com.droidlogic.overlay", "com.droidlogic.systemui.overlay", "com.droidlogic.wifion"));
+        "com.droidlogic.appinstall", "com.droidlogic.overlay", "com.droidlogic.systemui.overlay", "com.droidlogic.wifion",
+        // RK3326 projector: Android's TV settings under another name (it saved the Wi-Fi), Rockchip's HDMI-in app
+        "com.android.tv.set", "com.android.rockchip.camera2"));
 
     /**
      * Android's own pieces: with one of them off, a TV may not start again (a list that took the permission
@@ -239,7 +246,7 @@ final class HomeMode {
     private static List<String> ourServices() {
         List<String> l = new ArrayList<>();
         l.add(REMOTE_SERVICE);
-        if (RemoteKeys.HY300) l.add(NETFLIX_SERVICE);
+        if (RemoteKeys.PROJECTOR) l.add(NETFLIX_SERVICE);
         return l;
     }
 

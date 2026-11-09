@@ -3027,7 +3027,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             try {
                 getContext().startActivity(RemoteKeys.accounts(getContext()).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
             } catch (RuntimeException e) {
-                getContext().startActivity(new android.content.Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+                getContext().startActivity(RemoteKeys.androidSettings(getContext()).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
             }
             return;
         } else if (zone == Z_PLAYER) {

@@ -19,11 +19,16 @@ import android.widget.FrameLayout;
  * The HDMI input, full screen, in place of the board's live TV app (DroidLogic's, which also carries a British
  * Freeview client): a TvView tuned to the input, its name for a moment, and "Sin señal" while nothing comes in.
  * Back goes home; the other keys go on to the input (HDMI-CEC hands them to the device).
+ * The RK3326 projector has no TV input: its HDMI receiver (an RK628 bridge) is camera 0, and its sound is turned on in
+ * the audio HAL with "HDMIin_enable" (what Rockchip's own HDMI app does). There a SurfaceView shows the camera.
  */
 public class HdmiActivity extends Activity {
     static final String EXTRA_INPUT = "input", EXTRA_LABEL = "label";
+    /** RK3326: the input id that means the HDMI camera. */
+    static final String CAMERA_INPUT = "camera:0";
 
     private TvView tv;
+    private CameraFeed camera;
     private Overlay overlay;
     private String inputId, label;
 
@@ -36,10 +41,18 @@ public class HdmiActivity extends Activity {
         if (label == null || label.isEmpty()) label = "HDMI";
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(0xFF000000);
-        tv = new TvView(this);
         overlay = new Overlay(this);
-        root.addView(tv, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-        root.addView(overlay, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        FrameLayout.LayoutParams full = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+        if (CAMERA_INPUT.equals(inputId)) {
+            camera = new CameraFeed(this, overlay);
+            root.addView(camera.view, new FrameLayout.LayoutParams(full));
+            root.addView(overlay, full);
+            setContentView(root);
+            return;
+        }
+        tv = new TvView(this);
+        root.addView(tv, new FrameLayout.LayoutParams(full));
+        root.addView(overlay, full);
         setContentView(root);
         tv.setCallback(new TvView.TvInputCallback() {
             @Override public void onVideoAvailable(String id) { overlay.show(null); }
@@ -55,6 +68,7 @@ public class HdmiActivity extends Activity {
     protected void onNewIntent(android.content.Intent intent) {
         super.onNewIntent(intent);
         String id = intent.getStringExtra(EXTRA_INPUT);
+        if (camera != null) return;   // one input there
         if (id != null && !id.equals(inputId)) {
             inputId = id;
             String l = intent.getStringExtra(EXTRA_LABEL);
@@ -70,6 +84,15 @@ public class HdmiActivity extends Activity {
     }
 
     private void tune() {
+        if (camera != null) {
+            overlay.show("Conectando…");
+            if (checkSelfPermission(android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                camera.start();
+            } else {
+                requestPermissions(new String[] {android.Manifest.permission.CAMERA}, 1);
+            }
+            return;
+        }
         if (inputId == null) {
             overlay.show("No se pudo abrir la entrada");
             return;
@@ -79,9 +102,190 @@ public class HdmiActivity extends Activity {
     }
 
     @Override
+    public void onRequestPermissionsResult(int code, String[] permissions, int[] results) {
+        if (camera == null) return;
+        if (results.length > 0 && results[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) camera.start();
+        else overlay.show("No se pudo abrir la entrada");
+    }
+
+    @Override
     protected void onStop() {
-        tv.reset();   // let the input go: the picture and sound stop with the screen
+        // Let the input go: the picture and sound stop with the screen.
+        if (camera != null) camera.stop();
+        else tv.reset();
         super.onStop();
+    }
+
+    /**
+     * RK3326: the HDMI camera on a SurfaceView, and its sound through the audio HAL. "Sin señal" until frames come; with
+     * nothing plugged in, the camera errors or stays quiet, and it's opened again every few seconds.
+     */
+    private static final class CameraFeed implements android.view.SurfaceHolder.Callback {
+        private static final String ID = "0";
+        final android.view.SurfaceView view;
+        private final Activity activity;
+        private final Overlay overlay;
+        private final android.os.HandlerThread thread = new android.os.HandlerThread("hdmi-camera");
+        private final android.os.Handler handler;
+        private final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
+        private android.hardware.camera2.CameraDevice device;
+        private android.hardware.camera2.CameraCaptureSession session;
+        private android.view.Surface surface;
+        private boolean wanted, sound, frames;
+
+        CameraFeed(Activity a, Overlay o) {
+            activity = a;
+            overlay = o;
+            view = new android.view.SurfaceView(a);
+            view.getHolder().addCallback(this);
+            thread.start();
+            handler = new android.os.Handler(thread.getLooper());
+        }
+
+        void start() {
+            wanted = true;
+            handler.post(this::open);
+        }
+
+        void stop() {
+            wanted = false;
+            main.removeCallbacksAndMessages(null);
+            handler.removeCallbacksAndMessages(null);
+            handler.post(this::close);
+        }
+
+        @Override public void surfaceCreated(android.view.SurfaceHolder h) {
+            handler.post(() -> {
+                surface = h.getSurface();
+                open();
+            });
+        }
+
+        @Override public void surfaceChanged(android.view.SurfaceHolder h, int format, int w, int hgt) {}
+
+        @Override public void surfaceDestroyed(android.view.SurfaceHolder h) {
+            handler.post(() -> {
+                close();
+                surface = null;
+            });
+        }
+
+        /** The camera's largest preview size up to 1080p (the bridge sends what the source does, scaled to this). */
+        private android.util.Size size(android.hardware.camera2.CameraManager cm) throws android.hardware.camera2.CameraAccessException {
+            android.hardware.camera2.params.StreamConfigurationMap map = cm.getCameraCharacteristics(ID)
+                    .get(android.hardware.camera2.CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            android.util.Size best = new android.util.Size(1920, 1080);
+            if (map == null) return best;
+            long area = 0;
+            for (android.util.Size s : map.getOutputSizes(android.view.SurfaceHolder.class)) {
+                long a = (long) s.getWidth() * s.getHeight();
+                if (s.getWidth() <= 1920 && s.getHeight() <= 1080 && a > area) {
+                    area = a;
+                    best = s;
+                }
+            }
+            return best;
+        }
+
+        private void open() {
+            if (!wanted || device != null || surface == null) return;
+            android.hardware.camera2.CameraManager cm =
+                    (android.hardware.camera2.CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+            try {
+                final android.util.Size s = size(cm);
+                main.post(() -> view.getHolder().setFixedSize(s.getWidth(), s.getHeight()));
+                cm.openCamera(ID, new android.hardware.camera2.CameraDevice.StateCallback() {
+                    @Override public void onOpened(android.hardware.camera2.CameraDevice d) {
+                        device = d;
+                        preview();
+                    }
+                    @Override public void onDisconnected(android.hardware.camera2.CameraDevice d) {
+                        d.close();
+                        device = null;
+                        noSignal();
+                    }
+                    @Override public void onError(android.hardware.camera2.CameraDevice d, int error) {
+                        d.close();
+                        device = null;
+                        noSignal();
+                    }
+                }, handler);
+            } catch (android.hardware.camera2.CameraAccessException | RuntimeException e) {
+                AppLog.w("hdmi camera: " + e.getMessage());
+                noSignal();
+            }
+        }
+
+        private void preview() {
+            try {
+                frames = false;
+                device.createCaptureSession(java.util.Collections.singletonList(surface),
+                        new android.hardware.camera2.CameraCaptureSession.StateCallback() {
+                    @Override public void onConfigured(android.hardware.camera2.CameraCaptureSession s) {
+                        if (device == null) return;
+                        session = s;
+                        try {
+                            android.hardware.camera2.CaptureRequest.Builder b =
+                                    device.createCaptureRequest(android.hardware.camera2.CameraDevice.TEMPLATE_PREVIEW);
+                            b.addTarget(surface);
+                            s.setRepeatingRequest(b.build(), new android.hardware.camera2.CameraCaptureSession.CaptureCallback() {
+                                @Override public void onCaptureCompleted(android.hardware.camera2.CameraCaptureSession cs,
+                                        android.hardware.camera2.CaptureRequest r, android.hardware.camera2.TotalCaptureResult t) {
+                                    if (frames) return;
+                                    frames = true;
+                                    soundOn(true);
+                                    main.post(() -> overlay.show(null));
+                                }
+                            }, handler);
+                        } catch (android.hardware.camera2.CameraAccessException | RuntimeException e) {
+                            AppLog.w("hdmi camera: " + e.getMessage());
+                            noSignal();
+                        }
+                    }
+                    @Override public void onConfigureFailed(android.hardware.camera2.CameraCaptureSession s) {
+                        noSignal();
+                    }
+                }, handler);
+            } catch (android.hardware.camera2.CameraAccessException | RuntimeException e) {
+                AppLog.w("hdmi camera: " + e.getMessage());
+                noSignal();
+            }
+            // Nothing in 3 s: no source sending (unless the camera was opened again meanwhile).
+            final android.hardware.camera2.CameraDevice opened = device;
+            handler.postDelayed(() -> {
+                if (wanted && !frames && device == opened && opened != null) noSignal();
+            }, 3000);
+        }
+
+        /** "Sin señal", the camera let go, and another try in a few seconds. */
+        private void noSignal() {
+            main.post(() -> overlay.show("Sin señal"));
+            close();
+            if (wanted) handler.postDelayed(this::open, 3000);
+        }
+
+        private void soundOn(boolean on) {
+            if (sound == on) return;
+            sound = on;
+            android.media.AudioManager am = (android.media.AudioManager) activity.getSystemService(Context.AUDIO_SERVICE);
+            if (am != null) am.setParameters("HDMIin_enable=" + on);
+        }
+
+        private void close() {
+            soundOn(false);
+            if (session != null) {
+                try {
+                    session.close();
+                } catch (RuntimeException ignored) {
+                }
+                session = null;
+            }
+            if (device != null) {
+                device.close();
+                device = null;
+            }
+            frames = false;
+        }
     }
 
     @Override

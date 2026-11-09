@@ -299,6 +299,12 @@ public class FilesActivity extends Activity {
             view.invalidate();
             return;
         }
+        if (PlayerActivity.isMedia(e.file)) {   // videos and songs in our own player (↑ ↓ through the folder)
+            startActivity(new Intent(this, PlayerActivity.class).putExtra(PlayerActivity.EXTRA_PATH, e.file.getPath()));
+            status = null;
+            view.invalidate();
+            return;
+        }
         Intent open = new Intent(Intent.ACTION_VIEW)
                 .setDataAndType(FilesProvider.uri(e.file), FilesProvider.type(e.file))
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);

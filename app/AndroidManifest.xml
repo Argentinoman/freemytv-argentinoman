@@ -20,6 +20,13 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- HY300: a moment awake as it turns off, to close Spotify (RemoteKeyService). -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- RK3326 projector: its HDMI input is a camera, and its sound is switched on in the audio HAL (HdmiActivity). -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- RK3326 (userdebug firmware, which grants it to any app): the quick panel's "ADB por red" turns ADB on by itself,
+         without ADB (NetworkAdb). Elsewhere it's simply not granted. -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
 
     <!-- Android 11+: without this list the app can't "see" the other apps (getLeanbackLaunchIntentForPackage
          returns null). The shelf and streaming apps, the live TV apps and, through the <intent>, every TV app
@@ -41,6 +48,7 @@
         <!-- The wireless screen's receivers (HY300): turned on only while in use. -->
         <package android:name="io.github.jqssun.airplay" />
         <package android:name="com.droidlogic.miracast" />
+        <package android:name="com.bozee.usbdisplay" />
         <package android:name="com.tcl.tv" />
         <package android:name="com.google.android.tv" />
         <package android:name="com.mediatek.wwtv.tvcenter" />
@@ -187,6 +195,27 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" android:scheme="content" />
+            </intent-filter>
+        </activity>
+
+        <!-- Videos and songs: the explorer's, or another app's (in place of the board's media centre). -->
+        <activity
+            android:name=".PlayerActivity"
+            android:label="Reproductor"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="audio/*" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
             </intent-filter>
         </activity>
 

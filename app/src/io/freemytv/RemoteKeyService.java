@@ -50,7 +50,7 @@ public class RemoteKeyService extends AccessibilityService {
                 startPolling();
             } else {
                 stopPolling();
-                if (RemoteKeys.HY300) closeMusic();
+                if (RemoteKeys.PROJECTOR) closeMusic();
             }
         }
     };

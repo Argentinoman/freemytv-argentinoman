@@ -139,7 +139,7 @@ public class QuickSettingsActivity extends Activity {
             dream.sub = "Activar ahora";
             // Not on the HY300: its screen never turns off, so the screensaver never starts by itself, and while it
             // shows it takes a third of the CPU on a 1 GB board (no screen to protect on a projector).
-            if (!RemoteKeys.HY300) tiles.add(dream);
+            if (!RemoteKeys.PROJECTOR) tiles.add(dream);
             Tile picture = new Tile("Imagen y sonido", "picture", () -> open(RemoteKeys.quickSettings(c)));
             picture.sub = "Brillo y modos";
             tiles.add(picture);
@@ -162,7 +162,7 @@ public class QuickSettingsActivity extends Activity {
                 inputs.sub = "HDMI y TV";
                 tiles.add(inputs);
             }
-            Tile all = new Tile("Ajustes", "settings", () -> open(new Intent(Settings.ACTION_SETTINGS)));
+            Tile all = new Tile("Ajustes", "settings", () -> open(RemoteKeys.androidSettings(c)));
             all.sub = "Todos los ajustes";
             tiles.add(all);
             // The home screen's own brightness: each OK dims it one step more, then back to full. Seen live behind the panel.
@@ -182,12 +182,14 @@ public class QuickSettingsActivity extends Activity {
             tiles.add(home);
             // Network ADB: closed by the boot firewall, opened here to work from a computer. Shown only when Home
             // Settings say so.
-            if (RemoteKeys.HY300 && Prefs.quickAdb(c)) {
+            if (RemoteKeys.PROJECTOR && Prefs.quickAdb(c)) {
                 final Tile adb = new Tile("ADB por red", "lock", null);
                 adb.sub = "…";
                 final Runnable show = () -> new Thread(() -> {
                     Boolean open = NetworkAdb.open(c);
-                    String text = open == null ? "Sin firewall" : open ? "Abierto · " + NetworkAdb.address() : "Cerrado";
+                    String port = NetworkAdb.wirelessPort();
+                    String text = open == null ? "Sin firewall" : open ? "Abierto · " + NetworkAdb.address()
+                            + (port.isEmpty() ? "" : ":" + port) : "Cerrado";
                     post(() -> {
                         adb.sub = text;
                         invalidate();

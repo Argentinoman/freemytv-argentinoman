@@ -341,7 +341,7 @@ public class SettingsActivity extends Activity {
         }
 
         /** HY300: no screensaver row (no screen to protect on a projector, and its screen never sleeps). */
-        private static final boolean NO_SCREENSAVER = RemoteKeys.HY300;
+        private static final boolean NO_SCREENSAVER = RemoteKeys.PROJECTOR;
 
         /** The main screen's row behind a shown one (they differ by the screensaver row where it's left out). */
         private static int mainRow(int shown) {
@@ -692,7 +692,7 @@ public class SettingsActivity extends Activity {
             l.add(Ui.tr("Weather widget"));
             l.add(Ui.tr("City"));
             l.add("Continuar viendo");
-            if (RemoteKeys.HY300) l.add("ADB por red en el panel");
+            if (RemoteKeys.PROJECTOR) l.add("ADB por red en el panel");
             return l.toArray(new String[0]);
         }
 
@@ -709,7 +709,7 @@ public class SettingsActivity extends Activity {
             v[4] = onOff(Prefs.weather());
             v[CITY_ROW] = !cityStatus.isEmpty() ? cityStatus : Prefs.city().isEmpty() ? "—" : Prefs.city();
             v[WATCH_ROW] = onOff(Prefs.watchNext());
-            if (RemoteKeys.HY300) v[ADB_ROW] = onOff(Prefs.quickAdb(getContext()));
+            if (RemoteKeys.PROJECTOR) v[ADB_ROW] = onOff(Prefs.quickAdb(getContext()));
             return v;
         }
 
@@ -729,7 +729,7 @@ public class SettingsActivity extends Activity {
         private String[] keyLabels() {
             if (RemoteKeys.STEM_NETFLIX) return new String[] {Ui.tr("Netflix button")};
             if (RemoteKeys.KTC) return new String[] {Ui.tr("Tabii button")};
-            if (RemoteKeys.HY300) return new String[] {"Botón de las dos cajitas", "Botón de la caja con flecha"};
+            if (RemoteKeys.PROJECTOR) return new String[] {"Botón de las dos cajitas", "Botón de la caja con flecha"};
             if (RemoteKeys.SONY) return new String[] {Ui.tr("BRAVIA CORE button"),
                     Ui.tr("Netflix button"), Ui.tr("Disney+ button"),
                     Ui.tr("Prime Video button"), Ui.tr("YouTube button"),
@@ -759,7 +759,7 @@ public class SettingsActivity extends Activity {
             appPkgs.add("");
             // On Sony, "nothing" leaves the key to the TV, which opens its usual app.
             appLabels.add(RemoteKeys.SONY ? Ui.tr("Sony default") : Ui.tr("Nothing"));
-            if (RemoteKeys.HY300) {   // the projector's own screens, before the apps
+            if (RemoteKeys.PROJECTOR) {   // the projector's own screens, before the apps
                 appPkgs.add(RemoteKeys.OPEN_HDMI);
                 appLabels.add("HDMI");
                 appPkgs.add(RemoteKeys.OPEN_PROJECTION);
@@ -1017,12 +1017,12 @@ public class SettingsActivity extends Activity {
             }
             if (!backgrounds && !keys) {   // Eli's projector, signed
                 c.drawText("Ajustado en base al criterio del buen Mati.", LIST_X * k + 30 * k, hy + 38 * k, hint);
-                c.drawText("Conseguime sueldo en dólares, Eliana.", LIST_X * k + 30 * k, hy + 76 * k, hint);
+                if (RemoteKeys.HY300) c.drawText("Conseguime sueldo en dólares, Eliana.", LIST_X * k + 30 * k, hy + 76 * k, hint);
             }
             if (keys) {
                 c.drawText(RemoteKeys.VESTEL ? Ui.tr("YouTube, Prime Video and Google Play: the TV itself controls those buttons.")
                         : RemoteKeys.KTC ? Ui.tr("Netflix, YouTube and Prime Video: the TV itself controls those buttons.")
-                        : RemoteKeys.HY300 ? "Nada: el botón hace lo de siempre. Opciones abre el panel rápido."
+                        : RemoteKeys.PROJECTOR ? "Nada: el botón hace lo de siempre. Opciones abre el panel rápido."
                         : RemoteKeys.SONY ? Ui.tr("Sony default: the button opens what it always did.")
                         : RemoteKeys.FORMOVIE ? Ui.tr("The other buttons: the TV itself controls them.")
                         : RemoteKeys.supported() ? Ui.tr("Disney and Globoplay: the TV itself controls those buttons.")
@@ -1097,7 +1097,7 @@ public class SettingsActivity extends Activity {
                 screen = REMOTE_KEYS;
                 focus = 0;
             } else {
-                activity.startActivity(new Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                activity.startActivity(RemoteKeys.androidSettings(activity).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             }
             for (Spring s : pop) s.snap(0);
             invalidate();

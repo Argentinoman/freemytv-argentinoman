@@ -241,7 +241,7 @@ final class HomeApps {
             break;
         }
         // Hidden from All Apps too; on the HY300 it's an app among the others instead (its TV banner as the card).
-        if (!RemoteKeys.HY300 && launchIntent(c.getPackageManager(), STORE) != null) {
+        if (!RemoteKeys.PROJECTOR && launchIntent(c.getPackageManager(), STORE) != null) {
             Item store = shortcut(APP, STORE, "Play Store", "store");
             store.pkg = STORE;
             items.add(store);
@@ -256,7 +256,7 @@ final class HomeApps {
         usb.uri = usbPath(c);
         usb.connected = usb.uri != null;
         items.add(usb);
-        if (RemoteKeys.HY300) {
+        if (RemoteKeys.PROJECTOR) {
             Item wireless = shortcut(WIRELESS, "wireless", "Inalámbrica", "cast");
             wireless.connected = true;
             items.add(wireless);
@@ -368,6 +368,14 @@ final class HomeApps {
      */
     private static List<Item> inputs(Context c, boolean all) {
         List<Item> out = new ArrayList<>();
+        if (RemoteKeys.RK3326) {   // no TV input there: the HDMI receiver is a camera (HdmiActivity), always listed
+            Item it = shortcut(INPUT, "hdmi1", "HDMI", "hdmi");
+            it.inputId = HdmiActivity.CAMERA_INPUT;
+            it.number = "1";
+            it.connected = true;
+            out.add(it);
+            return out;
+        }
         TvInputManager tim = (TvInputManager) c.getSystemService(Context.TV_INPUT_SERVICE);
         if (tim == null) return out;
         List<TvInputInfo> list = new ArrayList<>();
@@ -501,7 +509,7 @@ final class HomeApps {
         skip.addAll(java.util.Arrays.asList(LIVE_TV_APPS));
         skip.add(c.getPackageName());
         skip.addAll(HIDDEN);
-        if (RemoteKeys.HY300) skip.remove(STORE);   // no drawer button for it there: listed here
+        if (RemoteKeys.PROJECTOR) skip.remove(STORE);   // no drawer button for it there: listed here
         skip.add("com.android.tv.settings");   // the drawer's "Ajustes" opens it
         List<Item> items = new ArrayList<>();
         Set<String> seen = new HashSet<>();
@@ -565,7 +573,7 @@ final class HomeApps {
                 intent = new Intent().setComponent(new ComponentName(a, SettingsActivity.class));
                 break;
             case ANDROID_SETTINGS:
-                intent = new Intent(Settings.ACTION_SETTINGS);
+                intent = RemoteKeys.androidSettings(a);
                 break;
             case FILES:
                 intent = it.pkg != null ? launchIntent(a.getPackageManager(), it.pkg)
@@ -573,7 +581,7 @@ final class HomeApps {
                 break;
             case SPEAKER:
                 intent = bluetoothSettings(a);
-                plain = new Intent(Settings.ACTION_SETTINGS);   // a projector without a Bluetooth page: its settings
+                plain = RemoteKeys.androidSettings(a);   // a projector without a Bluetooth page: its settings
                 break;
             case USB:
                 // Without a pen drive: the list of drives (the projector's memory).

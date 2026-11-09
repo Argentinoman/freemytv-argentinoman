@@ -21,10 +21,15 @@ import java.io.IOException;
  * The drawer's "Inalámbrica" (HY300): two cards, Android and Windows (the board's Miracast) and Apple devices
  * (AirPlay Server, open source, from F-Droid). Neither is on until chosen: the choice turns its app on and opens it,
  * and coming back here turns it off again, so nothing listens on the network while it isn't in use.
+ * On the RK3326 the Android card is the board's QuickShare (Bozee: Miracast and casting), the only receiver it has; its
+ * servers are blocked by the boot firewall, and it's off the rest of the time like the others.
  */
 public class WirelessActivity extends Activity {
-    static final String MIRACAST = "com.droidlogic.miracast", AIRPLAY = "io.github.jqssun.airplay";
-    private static final ComponentName MIRACAST_SCREEN = new ComponentName(MIRACAST, MIRACAST + ".WiFiDirectMainActivity");
+    static final String AIRPLAY = "io.github.jqssun.airplay";
+    static final String MIRACAST = RemoteKeys.RK3326 ? "com.bozee.usbdisplay" : "com.droidlogic.miracast";
+    private static final ComponentName MIRACAST_SCREEN = RemoteKeys.RK3326
+            ? new ComponentName(MIRACAST, MIRACAST + ".StartupActivity")
+            : new ComponentName(MIRACAST, MIRACAST + ".WiFiDirectMainActivity");
 
     private CardsView view;
     /** The receiver being opened, and the one that's running (turned off on the way back). */
@@ -106,7 +111,7 @@ public class WirelessActivity extends Activity {
 
     /** Back on Home: AirPlay or Miracast still on (left with Home, not Back) is closed and turned off. */
     static void offIfOn(Context c) {
-        if (!RemoteKeys.HY300) return;
+        if (!RemoteKeys.PROJECTOR) return;
         final Context app = c.getApplicationContext();
         StringBuilder cmd = new StringBuilder();
         for (String pkg : new String[] {MIRACAST, AIRPLAY}) {
