@@ -4,12 +4,11 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
-import android.widget.Toast;
 
 import java.util.Scanner;
 
 /**
- * RK3326: a toast when a device is plugged into the HDMI or unplugged, over whatever is on screen. The board has no TV
+ * RK3326: a notice (Snack) when a device is plugged into the HDMI or unplugged, over whatever is on screen. The board has no TV
  * input to announce it, so the HDMI receiver is asked every 4 s whether a cable brings power (the board's v4l2-ctl; its
  * node is open to all). Run by RemoteKeyService, which is always there.
  */
@@ -23,7 +22,7 @@ final class HdmiWatch {
 
     static void start(Context c) {
         if (!RemoteKeys.RK3326 || thread != null) return;
-        final Context app = c.getApplicationContext();
+        final Context app = c;   // the service itself: the notice is its overlay
         thread = new HandlerThread("hdmi-watch");
         thread.start();
         worker = new Handler(thread.getLooper());
@@ -52,7 +51,7 @@ final class HdmiWatch {
         if (before == null || before.equals(now)) return;
         AppLog.w("hdmi: cable " + (now ? "plugged in" : "out"));
         final String text = now ? "HDMI conectado" : "HDMI desconectado";
-        new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(app, text, Toast.LENGTH_SHORT).show());
+        new Handler(Looper.getMainLooper()).post(() -> Snack.show(app, text));
     }
 
     /** Whether the receiver sees power on the cable; null without an answer. */
