@@ -76,10 +76,21 @@ final class Projector {
         }
 
         /** Moves corner i (0 top-left … 3 bottom-left) by dx,dy, kept between its own corner and a third of the way in. */
+        /**
+         * Moves corner i (0 top-left … 3 bottom-left) by dx,dy: up to a third of the way in, and out as far as a third
+         * too, so a hand can undo part of the automatic correction. Past the panel's edge is cut where the corners are
+         * sent (there are no pixels beyond it).
+         */
         void moveCorner(int i, int dx, int dy) {
             int inX = i == 0 || i == 3 ? 1 : -1, inY = i < 2 ? 1 : -1;   // the way inwards from that corner
-            corners[2 * i] = inX * clamp(inX * (corners[2 * i] + dx), 0, (int) W / 3);
-            corners[2 * i + 1] = inY * clamp(inY * (corners[2 * i + 1] + dy), 0, (int) H / 3);
+            corners[2 * i] = inX * clamp(inX * (corners[2 * i] + dx), -(int) W / 3, (int) W / 3);
+            corners[2 * i + 1] = inY * clamp(inY * (corners[2 * i + 1] + dy), -(int) H / 3, (int) H / 3);
+        }
+
+        /** How far in corner i is (x, y on the 1920×1080 frame); negative is out. */
+        int inwards(int i, boolean y) {
+            int inX = i == 0 || i == 3 ? 1 : -1, inY = i < 2 ? 1 : -1;
+            return y ? inY * corners[2 * i + 1] : inX * corners[2 * i];
         }
 
         boolean cornersMoved() {
@@ -114,6 +125,7 @@ final class Projector {
             p[2 * i] += moved[2 * wall];
             p[2 * i + 1] -= moved[2 * wall + 1];
         }
+        for (int i = 0; i < 8; i++) p[i] = Math.max(0, Math.min(i % 2 == 0 ? W : H, p[i]));   // no pixels past the panel
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 4; i++) {
             if (i > 0) sb.append(',');

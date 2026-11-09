@@ -360,7 +360,8 @@ public class ProjectionActivity extends Activity {
             value.setTextAlign(Paint.Align.CENTER);
             value.setColor(0x99FFFFFF);
             // How far in this corner is, in screen pixels (what the board gets).
-            int inX = Math.round(Math.abs(s.corners[2 * corner]) * w / 1920f), inY = Math.round(Math.abs(s.corners[2 * corner + 1]) * h / 1080f);
+            // Negative: out from where the automatic correction put it.
+            int inX = Math.round(s.inwards(corner, false) * w / 1920f), inY = Math.round(s.inwards(corner, true) * h / 1080f);
             c.drawText(CORNER_NAMES[corner] + "  ·  ↔ " + inX + "  ↕ " + inY, w / 2, h / 2 - 44 * k, value);
             value.setTextAlign(Paint.Align.RIGHT);
             c.drawText(what, w / 2, h / 2 + 4 * k, guide);
