@@ -21,15 +21,20 @@ import java.io.IOException;
  * The drawer's "Inalámbrica" (HY300): two cards, Android and Windows (the board's Miracast) and Apple devices
  * (AirPlay Server, open source, from F-Droid). Neither is on until chosen: the choice turns its app on and opens it,
  * and coming back here turns it off again, so nothing listens on the network while it isn't in use.
- * On the RK3326 the Android card is the board's QuickShare (Bozee: Miracast and casting), the only receiver it has; its
- * servers are blocked by the boot firewall, and it's off the rest of the time like the others.
+ * On the RK3326 the Android card is MiracastReceiver (open source, MIT; built here without its closed Huawei Cast+ part
+ * and with only Miracast and DLNA on), in place of the board's QuickShare (Bozee, which ran as the system's user). An
+ * app can't announce itself as a Miracast screen there (that takes a signature permission), so once it's open the
+ * projector's ADB tells wpa_supplicant, as root, what MiracastReceiver would with root of its own.
  */
 public class WirelessActivity extends Activity {
     static final String AIRPLAY = "io.github.jqssun.airplay";
-    static final String MIRACAST = RemoteKeys.RK3326 ? "com.bozee.usbdisplay" : "com.droidlogic.miracast";
+    static final String MIRACAST = RemoteKeys.RK3326 ? "top.jast.miracastreceiver" : "com.droidlogic.miracast";
     private static final ComponentName MIRACAST_SCREEN = RemoteKeys.RK3326
-            ? new ComponentName(MIRACAST, MIRACAST + ".StartupActivity")
+            ? new ComponentName(MIRACAST, MIRACAST + ".ui.MainActivity")
             : new ComponentName(MIRACAST, MIRACAST + ".WiFiDirectMainActivity");
+    /** RK3326: Wi-Fi Display on in wpa_supplicant, as a primary sink on RTSP port 7236 at 50 Mb/s (MiracastReceiver's). */
+    private static final String WFD_ON = "su 0 sh -c 'W=\"wpa_cli -p /data/vendor/wifi/wpa/sockets -i wlan0\";"
+            + " $W SET wifi_display 1; $W WFD_SUBELEM_SET 0 000600111c440032'";
 
     private CardsView view;
     /** The receiver being opened, and the one that's running (turned off on the way back). */
@@ -64,7 +69,7 @@ public class WirelessActivity extends Activity {
         busy = false;
         view.status = null;
         view.invalidate();
-        new Thread(() -> shell("am force-stop " + pkg + "; pm disable-user --user 0 " + pkg), "wireless-off").start();
+        new Thread(() -> shell("am force-stop " + pkg + "; pm disable-user --user 0 " + pkg + wfdOff(pkg)), "wireless-off").start();
     }
 
     private boolean installed(String pkg) {
@@ -98,6 +103,7 @@ public class WirelessActivity extends Activity {
                     if (open == null) throw new IllegalStateException("no screen");
                     opening = pkg;
                     startActivity(open);
+                    if (RemoteKeys.RK3326 && pkg.equals(MIRACAST)) announceMiracast();
                 } catch (RuntimeException e) {
                     AppLog.w("wireless: " + e.getMessage());
                     opening = null;
@@ -107,6 +113,34 @@ public class WirelessActivity extends Activity {
                 }
             });
         }, "wireless-on").start();
+    }
+
+    /**
+     * RK3326: the Wi-Fi Display announcement, a few times while MiracastReceiver comes up (its Wi-Fi Direct group,
+     * created asynchronously, can reset it), so phones and Windows (Win+K) see the projector.
+     */
+    private void announceMiracast() {
+        final Context app = getApplicationContext();
+        new Thread(() -> {
+            for (long wait : new long[] {3000, 5000, 10000}) {
+                try {
+                    Thread.sleep(wait);
+                } catch (InterruptedException e) {
+                    return;
+                }
+                try (Adb adb = Adb.connect(app, 3000, null)) {
+                    adb.shell(WFD_ON);
+                } catch (IOException e) {
+                    AppLog.w("miracast: " + e.getMessage());
+                }
+            }
+        }, "miracast-wfd").start();
+    }
+
+    /** RK3326: with MiracastReceiver going off, the Wi-Fi Display announcement goes too (else phones still list it). */
+    private static String wfdOff(String pkg) {
+        return RemoteKeys.RK3326 && pkg.equals(MIRACAST)
+                ? "; su 0 wpa_cli -p /data/vendor/wifi/wpa/sockets -i wlan0 SET wifi_display 0" : "";
     }
 
     /** Back on Home: AirPlay or Miracast still on (left with Home, not Back) is closed and turned off. */
@@ -122,7 +156,7 @@ public class WirelessActivity extends Activity {
                 continue;
             }
             if (state != PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER) {
-                cmd.append("am force-stop ").append(pkg).append("; pm disable-user --user 0 ").append(pkg).append("; ");
+                cmd.append("am force-stop ").append(pkg).append("; pm disable-user --user 0 ").append(pkg).append(wfdOff(pkg)).append("; ");
             }
         }
         if (cmd.length() == 0) return;

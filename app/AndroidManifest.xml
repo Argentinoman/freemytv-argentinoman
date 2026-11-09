@@ -50,7 +50,7 @@
         <!-- The wireless screen's receivers (HY300): turned on only while in use. -->
         <package android:name="io.github.jqssun.airplay" />
         <package android:name="com.droidlogic.miracast" />
-        <package android:name="com.bozee.usbdisplay" />
+        <package android:name="top.jast.miracastreceiver" />
         <package android:name="com.tcl.tv" />
         <package android:name="com.google.android.tv" />
         <package android:name="com.mediatek.wwtv.tvcenter" />
