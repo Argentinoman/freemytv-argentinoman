@@ -210,15 +210,53 @@ final class Projector {
                 if (!m.equals(sentMode)) cmd.append("echo ").append(m).append(" > ").append(FLIP).append(';');
             }
             if (cmd.length() == 0) return;
-            try (Adb adb = Adb.connect(app, 3000, null)) {
-                adb.shell(cmd.toString());
+            if (run(app, cmd.toString())) {
                 sentCorners = corners;
                 sentMode = m;
-            } catch (IOException e) {
-                AppLog.w("projector: " + e.getMessage());
             }
         });
     }
+
+    /** The projector's ADB, kept open while the arrows are moving things (a connection per step made each one lag). */
+    private static Adb adb;
+    private static final Runnable CLOSE = () -> {
+        if (adb != null) {
+            adb.close();
+            adb = null;
+        }
+    };
+    private static final android.os.Handler IDLE = new android.os.Handler(android.os.Looper.getMainLooper());
+
+    /**
+     * Runs the commands, on the worker thread. The RK3326 sets the properties from this app itself (its userdebug,
+     * permissive firmware lets any app run setprop: no round trip through ADB); the HY300, or if that fails, through
+     * the projector's ADB, one connection reused and closed after 20 s without use.
+     */
+    private static boolean run(Context app, String cmd) {
+        if (RemoteKeys.RK3326) {
+            try {
+                Process p = new ProcessBuilder("sh", "-c", "set -e; " + cmd).redirectErrorStream(true).start();
+                if (p.waitFor() == 0) return true;
+            } catch (IOException | InterruptedException e) {
+                AppLog.w("projector: setprop " + e.getMessage());
+            }
+        }
+        for (int attempt = 0; attempt < 2; attempt++) {
+            try {
+                if (adb == null) adb = Adb.connect(app, 3000, null);
+                adb.shell(cmd);
+                IDLE.removeCallbacks(CLOSE_ON_WORKER);
+                IDLE.postDelayed(CLOSE_ON_WORKER, 20_000);
+                return true;
+            } catch (IOException e) {
+                CLOSE.run();   // a stale connection: open a new one once
+                if (attempt == 1) AppLog.w("projector: " + e.getMessage());
+            }
+        }
+        return false;
+    }
+
+    private static final Runnable CLOSE_ON_WORKER = () -> WORKER.execute(CLOSE);
 
     /** The automatic angle, on Home's start: the projector may have been moved while off. */
     static void applySaved(Context c) {
