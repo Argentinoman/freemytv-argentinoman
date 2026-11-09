@@ -91,7 +91,7 @@ public class ProjectionActivity extends Activity {
                 for (int i = 0; i < 3; i++) gravity[i] = gravitySeeded ? gravity[i] + 0.15f * (e.values[i] - gravity[i]) : e.values[i];
                 gravitySeeded = true;
                 if (!s.auto || editing) return;
-                int tilt = (int) Math.round(Math.toDegrees(Math.atan2(gravity[1], gravity[2])));
+                int tilt = Projector.tilt(gravity[1], gravity[2]);
                 long now = android.os.SystemClock.uptimeMillis();
                 if (tilt != candidate) {
                     candidate = tilt;

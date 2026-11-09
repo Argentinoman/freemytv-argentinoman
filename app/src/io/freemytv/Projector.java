@@ -310,6 +310,17 @@ final class Projector {
 
     static volatile int lastTilt;
 
+    /**
+     * The tilt up (+) or down (−) in whole degrees from gravity along the accelerometer's y and z. The RK3326's sensor
+     * is mounted the other way round from the HY300's: its reading is turned over. (Measured on its wall: −17° read
+     * pointing up, where the hand-made correction narrowed the top edge to 90.3 % of the bottom one; the maths gives
+     * 90.1 % for 17°.)
+     */
+    static int tilt(float y, float z) {
+        int degrees = (int) Math.round(Math.toDegrees(Math.atan2(y, z)));
+        return RemoteKeys.RK3326 ? -degrees : degrees;
+    }
+
     /** The projector's tilt up (+) or down (−) in whole degrees, from the accelerometer; 0 without an answer. */
     static int measuredTilt(Context c) {
         SensorManager sm = (SensorManager) c.getSystemService(Context.SENSOR_SERVICE);
@@ -338,7 +349,7 @@ final class Projector {
         thread.quitSafely();
         synchronized (sum) {
             if (count[0] == 0) return lastTilt;
-            lastTilt = (int) Math.round(Math.toDegrees(Math.atan2(sum[1], sum[2])));
+            lastTilt = tilt(sum[1], sum[2]);
         }
         AppLog.w("projector: tilt " + lastTilt + "°");
         return lastTilt;
