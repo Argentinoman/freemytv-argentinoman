@@ -47,11 +47,15 @@ public class RemoteKeyService extends AccessibilityService {
             if (Intent.ACTION_SCREEN_ON.equals(i.getAction())) {
                 PowerOff.reveal(RemoteKeyService.this);
                 startPolling();
+                Dlna.start(RemoteKeyService.this);
             } else {
                 stopPolling();
+                Dlna.stop();   // off: it leaves the phones' "play on" lists
             }
         }
     };
+
+    private BroadcastReceiver dlnaToggle;
 
     @Override protected void onServiceConnected() {
         super.onServiceConnected();
@@ -60,6 +64,9 @@ public class RemoteKeyService extends AccessibilityService {
         f.addAction(Intent.ACTION_SCREEN_ON);
         registerReceiver(screen, f);
         startPolling();
+        dlnaToggle = Dlna.toggleReceiver();
+        registerReceiver(dlnaToggle, new IntentFilter(Dlna.TOGGLE), Dlna.PERMISSION, null);
+        if (power.isInteractive()) Dlna.start(this);   // the DLNA receiver: found by phones and computers
     }
 
     private static java.lang.reflect.Method getProp;
@@ -89,8 +96,10 @@ public class RemoteKeyService extends AccessibilityService {
         stopPolling();
         try {
             unregisterReceiver(screen);
+            if (dlnaToggle != null) unregisterReceiver(dlnaToggle);
         } catch (RuntimeException ignored) {
         }
+        Dlna.stop();
         PowerOff.hide(this);
         super.onDestroy();
     }
