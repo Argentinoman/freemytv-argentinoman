@@ -135,7 +135,10 @@ final class Dlna {
     private MulticastSocket ssdp;
     private ServerSocket http;
     private WifiManager.MulticastLock lock;
-    private final ExecutorService pool = Executors.newFixedThreadPool(3), events = Executors.newSingleThreadExecutor();
+    /** Requests, and the relays (one thread each for as long as a film plays, so a few at once). */
+    private final ExecutorService pool = new java.util.concurrent.ThreadPoolExecutor(0, 12, 30, java.util.concurrent.TimeUnit.SECONDS,
+            new java.util.concurrent.SynchronousQueue<>());
+    private final ExecutorService events = Executors.newSingleThreadExecutor();
 
     // Guarded by `this`.
     private String uri = "", meta = "", title = "", kind = KIND_VIDEO, transport = "NO_MEDIA_PRESENT", status = "OK";
@@ -379,7 +382,11 @@ final class Dlna {
                 http = s;
                 while (alive) {
                     final Socket c = s.accept();
-                    pool.execute(() -> handle(c));
+                    try {
+                        pool.execute(() -> handle(c));
+                    } catch (java.util.concurrent.RejectedExecutionException e) {
+                        c.close();   // too many at once
+                    }
                 }
             } catch (IOException | RuntimeException e) {
                 if (!alive) break;
@@ -408,11 +415,19 @@ final class Dlna {
             int q = path.indexOf('?');
             if (q >= 0) path = path.substring(0, q);
             OutputStream out = sock.getOutputStream();
-            Local at = local();
-            String host = at == null ? sock.getLocalAddress().getHostAddress() : at.ip.getHostAddress();
             switch (method) {
                 case "GET":
                 case "HEAD":
+                    if (path.startsWith("/relay/")) {
+                        if (!from.isLoopbackAddress()) return;   // only the player, on this device
+                        String target = null;
+                        synchronized (this) {
+                            if (path.equals("/relay/" + session)) target = uri;
+                        }
+                        if (target == null) respond(out, "404 Not Found", null, "");
+                        else relay(sock, out, method, h, target, 0);
+                        return;
+                    }
                     String xml = path.equals("/desc.xml") ? description()
                             : path.equals("/avt.xml") ? Scpd.AVT : path.equals("/rcs.xml") ? Scpd.RCS
                             : path.equals("/cms.xml") ? Scpd.CMS : null;
@@ -436,6 +451,76 @@ final class Dlna {
             }
         } catch (IOException | RuntimeException e) {
             if (alive) AppLog.w("dlna request: " + e.getMessage());
+        }
+    }
+
+    /** The request headers the player's own server may need passed on (ranges, DLNA time seeks). */
+    private static final String[] RELAYED = {"Range", "User-Agent", "Accept", "Icy-MetaData", "TimeSeekRange.dlna.org",
+            "getcontentFeatures.dlna.org", "transferMode.dlna.org", "If-Range"};
+
+    /**
+     * The current link, fetched with a plain socket and passed to the player byte for byte (status, headers and body as
+     * the server sent them). Redirects to plain http are followed here; to https, handed to the player.
+     */
+    private void relay(Socket client, OutputStream out, String method, Map<String, String> h, String target, int hops) throws IOException {
+        Uri u = Uri.parse(target);
+        String host = u.getHost();
+        if (host == null || hops > 5) {
+            respond(out, "502 Bad Gateway", null, "");
+            return;
+        }
+        int port = u.getPort() < 0 ? 80 : u.getPort();
+        String path = u.getEncodedPath() == null || u.getEncodedPath().isEmpty() ? "/" : u.getEncodedPath();
+        if (u.getEncodedQuery() != null) path += "?" + u.getEncodedQuery();
+        try (Socket up = new Socket()) {
+            up.connect(new InetSocketAddress(host, port), 8000);
+            up.setSoTimeout(30_000);
+            client.setSoTimeout(0);
+            StringBuilder req = new StringBuilder(method).append(' ').append(path).append(" HTTP/1.1\r\nHost: ")
+                    .append(host).append(port == 80 ? "" : ":" + port).append("\r\n");
+            for (String name : RELAYED) {
+                String v = h.get(name.toLowerCase(Locale.ROOT));
+                if (v != null) req.append(name).append(": ").append(v).append("\r\n");
+            }
+            req.append("Connection: close\r\n\r\n");
+            OutputStream o = up.getOutputStream();
+            o.write(req.toString().getBytes(StandardCharsets.ISO_8859_1));
+            o.flush();
+            InputStream in = up.getInputStream();
+            String status = line(in);
+            if (status == null) throw new IOException("no answer");
+            List<String> head = new ArrayList<>();
+            head.add(status);
+            for (String l; (l = line(in)) != null && !l.isEmpty(); ) head.add(l);
+            String[] parts = status.split(" ");
+            int code = parts.length > 1 ? Integer.parseInt(parts[1].trim()) : 0;
+            String location = headers(head.toArray(new String[0])).get("location");
+            if (code >= 300 && code < 400 && location != null) {
+                String next = target;
+                next = new java.net.URI(target).resolve(location).toString();
+                if (next.startsWith("http:")) {
+                    relay(client, out, method, h, next, hops + 1);
+                } else {
+                    Map<String, String> loc = new HashMap<>();
+                    loc.put("Location", next);
+                    respond(out, "302 Found", loc, "");
+                }
+                return;
+            }
+            StringBuilder back = new StringBuilder();
+            for (String l : head) {
+                if (l.toLowerCase(Locale.ROOT).startsWith("connection:")) continue;
+                back.append(l).append("\r\n");
+            }
+            back.append("Connection: close\r\n\r\n");
+            out.write(back.toString().getBytes(StandardCharsets.ISO_8859_1));
+            byte[] buf = new byte[32768];
+            for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+            out.flush();
+        } catch (java.net.URISyntaxException | NumberFormatException e) {
+            respond(out, "502 Bad Gateway", null, "");
+        } catch (IOException e) {
+            // The player closed it (seek, stop) or the server went away: nothing to answer.
         }
     }
 
@@ -741,7 +826,9 @@ final class Dlna {
     private void launch() {
         Intent i;
         synchronized (this) {
-            i = new Intent(app, PlayerActivity.class).setData(Uri.parse(uri)).putExtra(EXTRA_SESSION, session)
+            // Plain http goes through relay(): the app allows no cleartext except to this device itself.
+            Uri data = uri.startsWith("http:") ? Uri.parse("http://127.0.0.1:" + PORT + "/relay/" + session) : Uri.parse(uri);
+            i = new Intent(app, PlayerActivity.class).setData(data).putExtra(EXTRA_SESSION, session)
                     .putExtra(EXTRA_TITLE, title).putExtra(EXTRA_KIND, kind);
         }
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
