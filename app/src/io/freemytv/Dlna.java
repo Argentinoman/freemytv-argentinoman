@@ -57,7 +57,8 @@ final class Dlna {
     static final String CMD = "io.freemytv.DLNA_CMD", STATE = "io.freemytv.DLNA_STATE", TOGGLE = "io.freemytv.DLNA_TOGGLE";
     /** Signature-level: only Free My TV's own processes send or receive the player's commands and reports. */
     static final String PERMISSION = "io.freemytv.permission.DLNA";
-    static final String EXTRA_SESSION = "dlna_session", EXTRA_TITLE = "dlna_title", EXTRA_KIND = "dlna_kind";
+    static final String EXTRA_SESSION = "dlna_session", EXTRA_TITLE = "dlna_title", EXTRA_KIND = "dlna_kind",
+            EXTRA_DURATION = "dlna_duration", EXTRA_TIME_SEEK = "dlna_time_seek";
     static final String KIND_VIDEO = "video", KIND_AUDIO = "audio", KIND_IMAGE = "image";
     private static final String OFF_FILE = "dlna-off";
 
@@ -144,7 +145,7 @@ final class Dlna {
     private String uri = "", meta = "", title = "", kind = KIND_VIDEO, transport = "NO_MEDIA_PRESENT", status = "OK";
     private int posMs, durMs, session;
     private long posAt;
-    private boolean playerOpen;
+    private boolean playerOpen, timeSeek;
     private final Map<String, Sub> subs = new HashMap<>();
 
     private static final class Sub {
@@ -424,8 +425,18 @@ final class Dlna {
                         synchronized (this) {
                             if (path.equals("/relay/" + session)) target = uri;
                         }
-                        if (target == null) respond(out, "404 Not Found", null, "");
-                        else relay(sock, out, method, h, target, 0);
+                        if (target == null) {
+                            respond(out, "404 Not Found", null, "");
+                            return;
+                        }
+                        // ?t=ms: from that second on, asked of the server as a DLNA time seek (live streams have
+                        // no bytes to jump to).
+                        Matcher t = Pattern.compile("[?&]t=(\\d+)").matcher(req[1]);
+                        if (t.find()) {
+                            h.remove("range");
+                            h.put("timeseekrange.dlna.org", String.format(Locale.US, "npt=%.3f-", Long.parseLong(t.group(1)) / 1000.0));
+                        }
+                        relay(sock, out, method, h, target, 0);
                         return;
                     }
                     String xml = path.equals("/desc.xml") ? description()
@@ -653,6 +664,9 @@ final class Dlna {
                     kind = kindOf(m, u);
                     posMs = 0;
                     durMs = parseTime(attr(m, "res", "duration"));
+                    // DLNA.ORG_OP=1x: the server starts from any second asked (TimeSeekRange), e.g. a live transcode.
+                    Matcher op = Pattern.compile("DLNA\\.ORG_OP=([01])([01])").matcher(attr(m, "res", "protocolInfo"));
+                    timeSeek = op.find() && op.group(1).equals("1");
                     status = "OK";
                     if (!playerOpen) transport = "STOPPED";
                 }
@@ -829,7 +843,8 @@ final class Dlna {
             // Plain http goes through relay(): the app allows no cleartext except to this device itself.
             Uri data = uri.startsWith("http:") ? Uri.parse("http://127.0.0.1:" + PORT + "/relay/" + session) : Uri.parse(uri);
             i = new Intent(app, PlayerActivity.class).setData(data).putExtra(EXTRA_SESSION, session)
-                    .putExtra(EXTRA_TITLE, title).putExtra(EXTRA_KIND, kind);
+                    .putExtra(EXTRA_TITLE, title).putExtra(EXTRA_KIND, kind).putExtra(EXTRA_DURATION, durMs)
+                    .putExtra(EXTRA_TIME_SEEK, timeSeek && data.getHost() != null && data.getHost().equals("127.0.0.1"));
         }
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
