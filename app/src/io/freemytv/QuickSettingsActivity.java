@@ -212,6 +212,19 @@ public class QuickSettingsActivity extends Activity {
                 show.run();
                 tiles.add(adb);
             }
+            // The DLNA receiver lives in the remote's service: only where that service runs.
+            String services = Settings.Secure.getString(c.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+            if (services != null && services.contains(c.getPackageName() + "/")) {
+                final Tile dlna = new Tile("Recibir videos", "play", null);
+                dlna.sub = Dlna.enabled(c) ? "DLNA prendido" : "DLNA apagado";
+                dlna.stay = () -> {
+                    boolean on = !Dlna.enabled(c);
+                    Dlna.setEnabled(c, on);
+                    dlna.sub = on ? "DLNA prendido" : "DLNA apagado";
+                    invalidate();
+                };
+                tiles.add(dlna);
+            }
             // Over Home with a picture behind it: the next picture, seen changing behind the panel.
             // Held: the next kind of picture (system, custom, favourites).
             if (HomeActivity.shown && !Prefs.homeBackgroundShown(c).equals("black")) {

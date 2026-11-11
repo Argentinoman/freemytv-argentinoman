@@ -48,9 +48,11 @@ public class RemoteKeyService extends AccessibilityService {
             if (Intent.ACTION_SCREEN_ON.equals(i.getAction())) {
                 PowerOff.reveal(RemoteKeyService.this);
                 startPolling();
+                Dlna.start(RemoteKeyService.this);
             } else {
                 stopPolling();
                 if (RemoteKeys.PROJECTOR) closeMusic();
+                Dlna.stop();   // off: it leaves the phones' "play on" lists
             }
         }
     };
@@ -72,6 +74,7 @@ public class RemoteKeyService extends AccessibilityService {
             }
         }, "music-off").start();
     }
+    private BroadcastReceiver dlnaToggle;
 
     @Override protected void onServiceConnected() {
         super.onServiceConnected();
@@ -83,6 +86,9 @@ public class RemoteKeyService extends AccessibilityService {
         VolumeBar.start(this);
         HdmiWatch.start(this);   // RK3326: a notice when a device is plugged into the HDMI
         Firewall.onceThisBoot(this);   // RK3326: this service is what the system starts at every boot
+        dlnaToggle = Dlna.toggleReceiver();
+        registerReceiver(dlnaToggle, new IntentFilter(Dlna.TOGGLE), Dlna.PERMISSION, null);
+        if (power.isInteractive()) Dlna.start(this);   // the DLNA receiver: found by phones and computers
     }
 
     private static java.lang.reflect.Method getProp;
@@ -112,8 +118,10 @@ public class RemoteKeyService extends AccessibilityService {
         stopPolling();
         try {
             unregisterReceiver(screen);
+            if (dlnaToggle != null) unregisterReceiver(dlnaToggle);
         } catch (RuntimeException ignored) {
         }
+        Dlna.stop();
         PowerOff.hide(this);
         VolumeBar.stop(this);
         HdmiWatch.stop();

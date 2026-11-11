@@ -2,12 +2,17 @@ package io.freemytv;
 
 import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.media.MediaPlayer;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -17,10 +22,18 @@ import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.VideoView;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -31,12 +44,14 @@ import java.util.Locale;
  * the file full screen on black, Android's own decoders (VideoView). OK pauses, ← → go back and forward 10 s (held,
  * faster), ↑ ↓ the previous and next file of its folder, Back leaves. The bar (name, progress, time) shows for a few
  * seconds on any key and stays while paused; a song keeps its name and a speaker on screen. Opened by the explorer with
- * a file, or by other apps with a video or a song (ACTION_VIEW).
+ * a file, by other apps with a video or a song (ACTION_VIEW), or by {@link Dlna} with a link from a phone or a computer
+ * (then also a photo, and it reports what it does so the controller can follow).
  */
 public class PlayerActivity extends Activity {
     static final String EXTRA_PATH = "path";
 
     private VideoView video;
+    private ImageView photo;
     private Bar bar;
     private final Handler main = new Handler(Looper.getMainLooper());
     /** The folder's videos and songs (just the one when another app sent it), and which is playing. */
@@ -44,7 +59,37 @@ public class PlayerActivity extends Activity {
     private int index;
     private Uri single;
     private String title = "";
-    private boolean audioOnly, failed;
+    private boolean audioOnly, failed, image;
+    /** The DLNA controller's file number (0: not from DLNA). */
+    private int session;
+    private int loading;   // which photo download is current
+
+    private final BroadcastReceiver commands = new BroadcastReceiver() {
+        @Override public void onReceive(Context c, Intent i) {
+            if (session == 0 || i.getIntExtra(Dlna.EXTRA_SESSION, -1) != session) return;
+            String cmd = String.valueOf(i.getStringExtra("cmd"));
+            switch (cmd) {
+                case "play":
+                    if (!image && !failed) video.start();
+                    break;
+                case "pause":
+                    if (!image) video.pause();
+                    break;
+                case "seek":
+                    if (!image && !failed) video.seekTo(Math.max(0, i.getIntExtra("ms", 0)));
+                    break;
+                case "stop":
+                    report("STOPPED", false, false);
+                    session = 0;
+                    finish();
+                    return;
+                default:
+                    return;
+            }
+            bar.show();
+            reportNow();
+        }
+    };
 
     @Override
     protected void onCreate(Bundle saved) {
@@ -54,9 +99,14 @@ public class PlayerActivity extends Activity {
         root.setBackgroundColor(0xFF000000);
         video = new VideoView(this);
         video.setKeepScreenOn(true);   // no screensaver or sleep in the middle of a film
+        photo = new ImageView(this);
+        photo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        photo.setKeepScreenOn(true);
+        photo.setVisibility(View.GONE);
         bar = new Bar(this);
         root.addView(video, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT, Gravity.CENTER));
+        root.addView(photo, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         root.addView(bar, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         setContentView(root);
         video.setOnPreparedListener(mp -> {
@@ -64,17 +114,25 @@ public class PlayerActivity extends Activity {
             failed = false;
             video.start();
             bar.show();
+            reportNow();
         });
         video.setOnCompletionListener(mp -> {
-            if (single == null && index < files.size() - 1) play(1);   // on to the next file of the folder
-            else finish();
+            if (single == null && index < files.size() - 1) {
+                play(1);   // on to the next file of the folder
+                return;
+            }
+            report("STOPPED", false, false);   // the controller sends the next one, if it has a list
+            session = 0;
+            finish();
         });
         video.setOnErrorListener((mp, what, extra) -> {
             AppLog.w("player: error " + what + "/" + extra + " on " + title);
             failed = true;
             bar.show();
+            report("STOPPED", true, true);
             return true;   // no system dialog: our message instead
         });
+        registerReceiver(commands, new IntentFilter(Dlna.CMD), Dlna.PERMISSION, null);
         open(getIntent());
     }
 
@@ -88,12 +146,52 @@ public class PlayerActivity extends Activity {
     protected void onStop() {
         super.onStop();
         video.stopPlayback();   // the decoder and the memory go with the screen (1 GB boards)
+        report("STOPPED", false, false);
+        session = 0;
         finish();
     }
 
+    @Override
+    protected void onDestroy() {
+        try {
+            unregisterReceiver(commands);
+        } catch (RuntimeException ignored) {
+        }
+        photo.setImageDrawable(null);
+        super.onDestroy();
+    }
+
+    /** Tells Dlna what it's doing now (only for a file a controller sent). */
+    private void report(String state, boolean open, boolean error) {
+        if (session == 0) return;
+        int pos = image || failed ? 0 : Math.max(0, video.getCurrentPosition());
+        int dur = image || failed ? 0 : Math.max(0, video.getDuration());
+        sendBroadcast(new Intent(Dlna.STATE).setPackage(getPackageName()).putExtra(Dlna.EXTRA_SESSION, session)
+                .putExtra("state", state).putExtra("pos", pos).putExtra("dur", dur).putExtra("open", open)
+                .putExtra("error", error), Dlna.PERMISSION);
+    }
+
+    private void reportNow() {
+        if (failed) return;
+        report(image || video.isPlaying() ? "PLAYING" : "PAUSED_PLAYBACK", true, false);
+    }
+
     private void open(Intent intent) {
+        int next = intent.getIntExtra(Dlna.EXTRA_SESSION, 0);
+        if (session != 0 && session != next) report("STOPPED", false, false);   // the controller's file gave way
+        session = next;
         files.clear();
         single = null;
+        image = false;
+        if (session != 0 && intent.getData() != null) {
+            single = intent.getData();
+            String kind = intent.getStringExtra(Dlna.EXTRA_KIND);
+            image = Dlna.KIND_IMAGE.equals(kind);
+            String t = intent.getStringExtra(Dlna.EXTRA_TITLE);
+            if (image) showPhoto(single, t == null ? "" : t);
+            else play(0, t);
+            return;
+        }
         String path = intent.getStringExtra(EXTRA_PATH);
         Uri data = intent.getData();
         if (path == null && data != null && "file".equals(data.getScheme())) path = data.getPath();
@@ -120,11 +218,101 @@ public class PlayerActivity extends Activity {
 
     /** A video or a song, by its extension (what the explorer sends here). */
     static boolean isMedia(File f) {
-        String type = FilesProvider.type(f);
+        String type = mime(f.getName());
         return type.startsWith("video/") || type.startsWith("audio/");
     }
 
+    /** A file's MIME type by its extension ("*" + "/*" when unknown). */
+    static String mime(String name) {
+        int dot = name.lastIndexOf('.');
+        String ext = dot < 0 ? "" : name.substring(dot + 1).toLowerCase(Locale.ROOT);
+        String t = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+        if (t == null && (ext.equals("mkv") || ext.equals("ts") || ext.equals("m2ts"))) t = "video/x-matroska";
+        return t == null ? "*/*" : t;
+    }
+
+    /**
+     * A photo from DLNA: downloaded to the cache, decoded at the screen's size (a phone's 12 MP photo whole would take
+     * 48 MB) and turned upright by its EXIF.
+     */
+    private void showPhoto(Uri uri, String name) {
+        video.stopPlayback();
+        video.setVisibility(View.GONE);
+        photo.setVisibility(View.VISIBLE);
+        title = name;
+        failed = false;
+        audioOnly = false;
+        bar.show();
+        final int mine = ++loading;
+        final int w = getResources().getDisplayMetrics().widthPixels, h = getResources().getDisplayMetrics().heightPixels;
+        final File tmp = new File(getCacheDir(), "dlna-photo");
+        new Thread(() -> {
+            Bitmap b = null;
+            try {
+                HttpURLConnection c = (HttpURLConnection) new URL(uri.toString()).openConnection();
+                c.setConnectTimeout(8000);
+                c.setReadTimeout(15000);
+                try (InputStream in = c.getInputStream(); OutputStream out = new FileOutputStream(tmp)) {
+                    byte[] buf = new byte[16384];
+                    long total = 0;
+                    for (int n; (n = in.read(buf)) > 0; ) {
+                        out.write(buf, 0, n);
+                        if ((total += n) > 64L << 20) throw new IOException("photo too big");
+                    }
+                } finally {
+                    c.disconnect();
+                }
+                BitmapFactory.Options o = new BitmapFactory.Options();
+                o.inJustDecodeBounds = true;
+                BitmapFactory.decodeFile(tmp.getPath(), o);
+                int sample = 1;
+                while (o.outWidth / (sample * 2) >= w && o.outHeight / (sample * 2) >= h) sample *= 2;
+                o.inJustDecodeBounds = false;
+                o.inSampleSize = sample;
+                b = BitmapFactory.decodeFile(tmp.getPath(), o);
+                int turn = 0;
+                switch (new ExifInterface(tmp.getPath()).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                    case ExifInterface.ORIENTATION_ROTATE_90: turn = 90; break;
+                    case ExifInterface.ORIENTATION_ROTATE_180: turn = 180; break;
+                    case ExifInterface.ORIENTATION_ROTATE_270: turn = 270; break;
+                }
+                if (b != null && turn != 0) {
+                    Matrix m = new Matrix();
+                    m.postRotate(turn);
+                    Bitmap r = Bitmap.createBitmap(b, 0, 0, b.getWidth(), b.getHeight(), m, true);
+                    if (r != b) b.recycle();
+                    b = r;
+                }
+            } catch (IOException | RuntimeException | OutOfMemoryError e) {
+                AppLog.w("player: photo " + e);
+            } finally {
+                tmp.delete();
+            }
+            final Bitmap shown = b;
+            main.post(() -> {
+                if (mine != loading || isFinishing()) return;
+                if (shown == null) {
+                    failed = true;
+                    bar.show();
+                    report("STOPPED", true, true);
+                    return;
+                }
+                photo.setImageBitmap(shown);
+                bar.show();
+                reportNow();
+            });
+        }, "player-photo").start();
+    }
+
     private void play(int step) {
+        play(step, null);
+    }
+
+    private void play(int step, String name) {
+        loading++;
+        photo.setVisibility(View.GONE);
+        photo.setImageDrawable(null);
+        video.setVisibility(View.VISIBLE);
         if (single == null) {
             if (files.isEmpty()) return;
             index = Math.max(0, Math.min(files.size() - 1, index + step));
@@ -135,7 +323,7 @@ public class PlayerActivity extends Activity {
             video.setVideoPath(f.getPath());
         } else {
             String last = single.getLastPathSegment();
-            title = last == null ? "" : Uri.decode(last);
+            title = name != null && !name.isEmpty() ? name : last == null ? "" : Uri.decode(last);
             video.setVideoURI(single);
         }
         audioOnly = false;
@@ -145,13 +333,14 @@ public class PlayerActivity extends Activity {
 
     /** ← → by 10 s; held, the steps grow (30 s, then a minute). */
     private void seek(boolean forward, int repeat) {
-        if (failed || !video.canSeekForward() && forward || !video.canSeekBackward() && !forward) return;
+        if (failed || image || !video.canSeekForward() && forward || !video.canSeekBackward() && !forward) return;
         int step = repeat < 5 ? 10_000 : repeat < 20 ? 30_000 : 60_000;
         int to = video.getCurrentPosition() + (forward ? step : -step);
         int length = video.getDuration();
         if (length > 0) to = Math.min(to, length - 1000);
         video.seekTo(Math.max(0, to));
         bar.show();
+        reportNow();
     }
 
     @Override
@@ -168,18 +357,23 @@ public class PlayerActivity extends Activity {
             case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
             case KeyEvent.KEYCODE_SPACE:
                 if (e.getRepeatCount() > 0) return true;
-                if (failed) return true;
+                if (failed || image) return true;
                 if (video.isPlaying()) video.pause();
                 else video.start();
                 bar.show();
+                reportNow();
                 return true;
             case KeyEvent.KEYCODE_MEDIA_PLAY:
+                if (image) return true;
                 video.start();
                 bar.show();
+                reportNow();
                 return true;
             case KeyEvent.KEYCODE_MEDIA_PAUSE:
+                if (image) return true;
                 video.pause();
                 bar.show();
+                reportNow();
                 return true;
             case KeyEvent.KEYCODE_DPAD_LEFT:
             case KeyEvent.KEYCODE_MEDIA_REWIND:
@@ -260,7 +454,7 @@ public class PlayerActivity extends Activity {
             if (fade != null) fade.cancel();
             alpha = 1;
             invalidate();
-            if (failed || audioOnly || !video.isPlaying()) return;
+            if (failed || audioOnly || !image && !video.isPlaying()) return;
             fade = ValueAnimator.ofFloat(1, 0);
             fade.setStartDelay(3000);
             fade.setDuration(500);
@@ -291,6 +485,11 @@ public class PlayerActivity extends Activity {
             c.drawRect(0, shadeTop, w, h, shade);
             float x = 80 * k, right = w - 80 * k, base = h - 150 * k;
             int a = Math.round(255 * alpha);
+            if (image) {   // a photo: just its name, for a moment
+                name.setAlpha(a);
+                c.drawText(TextUtils.ellipsize(title, name, right - x, TextUtils.TruncateAt.END).toString(), x, base + 50 * k, name);
+                return;
+            }
             // Play or pause, then the name.
             boolean playing = video.isPlaying();
             fill.setColor(Ui.alpha(0xFFFFFFFF, alpha));

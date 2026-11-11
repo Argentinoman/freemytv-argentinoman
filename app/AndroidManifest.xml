@@ -16,6 +16,12 @@
          pm grant io.freemytv android.permission.READ_TV_LISTINGS -->
     <uses-permission android:name="android.permission.READ_TV_LISTINGS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- The DLNA receiver (Dlna): found by phones and computers on the local network (SSDP is multicast). -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- Between Free My TV's own processes: the DLNA receiver (:keys) and the player. -->
+    <permission android:name="io.freemytv.permission.DLNA" android:protectionLevel="signature" />
+    <uses-permission android:name="io.freemytv.permission.DLNA" />
     <!-- After the TV boots (and after a TV update), checks that Free My TV mode is still as you left it. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- HY300: a moment awake as it turns off, to close Spotify (RemoteKeyService). -->
