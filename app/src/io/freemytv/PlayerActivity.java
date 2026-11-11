@@ -60,6 +60,9 @@ public class PlayerActivity extends Activity {
     private Uri single;
     private String title = "";
     private boolean audioOnly, failed, image;
+    /** The picture's own size (the file's, not the screen's), shown by the remote's Info key until `infoUntil`. */
+    private int videoW, videoH;
+    private long infoUntil;
     /** The DLNA controller's file number (0: not from DLNA). */
     private int session;
     private int loading;   // which photo download is current
@@ -123,6 +126,12 @@ public class PlayerActivity extends Activity {
         setContentView(root);
         video.setOnPreparedListener(mp -> {
             audioOnly = mp.getVideoWidth() == 0 || mp.getVideoHeight() == 0;
+            videoW = mp.getVideoWidth();
+            videoH = mp.getVideoHeight();
+            mp.setOnVideoSizeChangedListener((m, vw, vh) -> {   // adaptive streams change it on the way
+                videoW = vw;
+                videoH = vh;
+            });
             failed = false;
             video.start();
             bar.show();
@@ -264,6 +273,8 @@ public class PlayerActivity extends Activity {
         final int mine = ++loading;
         final int w = getResources().getDisplayMetrics().widthPixels, h = getResources().getDisplayMetrics().heightPixels;
         final File tmp = new File(getCacheDir(), "dlna-photo");
+        final int[] size = new int[2];
+        videoW = videoH = 0;
         new Thread(() -> {
             Bitmap b = null;
             try {
@@ -283,6 +294,8 @@ public class PlayerActivity extends Activity {
                 BitmapFactory.Options o = new BitmapFactory.Options();
                 o.inJustDecodeBounds = true;
                 BitmapFactory.decodeFile(tmp.getPath(), o);
+                size[0] = o.outWidth;
+                size[1] = o.outHeight;
                 int sample = 1;
                 while (o.outWidth / (sample * 2) >= w && o.outHeight / (sample * 2) >= h) sample *= 2;
                 o.inJustDecodeBounds = false;
@@ -293,6 +306,11 @@ public class PlayerActivity extends Activity {
                     case ExifInterface.ORIENTATION_ROTATE_90: turn = 90; break;
                     case ExifInterface.ORIENTATION_ROTATE_180: turn = 180; break;
                     case ExifInterface.ORIENTATION_ROTATE_270: turn = 270; break;
+                }
+                if (turn == 90 || turn == 270) {   // upright, as it's shown
+                    int t = size[0];
+                    size[0] = size[1];
+                    size[1] = t;
                 }
                 if (b != null && turn != 0) {
                     Matrix m = new Matrix();
@@ -315,6 +333,8 @@ public class PlayerActivity extends Activity {
                     report("STOPPED", true, true);
                     return;
                 }
+                videoW = size[0];
+                videoH = size[1];
                 photo.setImageBitmap(shown);
                 bar.show();
                 reportNow();
@@ -328,6 +348,7 @@ public class PlayerActivity extends Activity {
 
     private void play(int step, String name) {
         loading++;
+        videoW = videoH = 0;
         photo.setVisibility(View.GONE);
         photo.setImageDrawable(null);
         video.setVisibility(View.VISIBLE);
@@ -405,6 +426,10 @@ public class PlayerActivity extends Activity {
         }
         if (e.getAction() != KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(e);
         switch (code) {
+            case KeyEvent.KEYCODE_INFO:   // the picture's resolution, for a few seconds
+                infoUntil = android.os.SystemClock.uptimeMillis() + 5000;
+                bar.invalidate();
+                return true;
             case KeyEvent.KEYCODE_DPAD_CENTER:
             case KeyEvent.KEYCODE_ENTER:
             case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
@@ -518,9 +543,29 @@ public class PlayerActivity extends Activity {
             fade.start();
         }
 
+        /** "1920 × 1080 · 1080p", or what it is when there's no picture size. */
+        private String resolution() {
+            if (audioOnly) return "Solo audio";
+            if (videoW <= 0 || videoH <= 0) return "Cargando…";
+            int lines = Math.min(videoW, videoH);
+            String grade = lines >= 2160 ? "4K" : lines >= 1440 ? "1440p" : lines >= 1080 ? "1080p" : lines >= 720 ? "720p"
+                    : lines + "p";
+            return videoW + " × " + videoH + " · " + grade;
+        }
+
         @Override
         protected void onDraw(Canvas c) {
             float w = getWidth(), h = getHeight();
+            if (android.os.SystemClock.uptimeMillis() < infoUntil && !failed) {
+                // Top right, on a dark pill so it reads over any picture.
+                String s = resolution();
+                float tw = name.measureText(s), pad = 28 * k, top = 60 * k, bh = 72 * k;
+                r.set(w - 80 * k - tw - 2 * pad, top, w - 80 * k, top + bh);
+                fill.setColor(0xB3000000);
+                c.drawRoundRect(r, bh / 2, bh / 2, fill);
+                name.setAlpha(255);
+                c.drawText(s, r.left + pad, top + bh / 2 + 14 * k, name);
+            }
             if (failed) {
                 Symbols.draw(getContext(), c, "play", w / 2, h / 2 - 90 * k, 60 * k, 0x66FFFFFF);
                 c.drawText("No se puede reproducir este archivo", w / 2, h / 2 + 10 * k, big);
