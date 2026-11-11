@@ -63,6 +63,16 @@ public class PlayerActivity extends Activity {
     /** The DLNA controller's file number (0: not from DLNA). */
     private int session;
     private int loading;   // which photo download is current
+    /**
+     * A live stream from a server that starts from any second asked (DLNA time seek, e.g. TV Caster's transcode): no
+     * bytes to jump to, so a jump opens it again from that second. `offset` is where the open stream starts, `known`
+     * the length the controller said, `pending` the point chosen while ← → are pressed (-1: none).
+     */
+    private boolean timeSeek;
+    private int offset, known, pending = -1;
+    private final Runnable jump = () -> {
+        if (pending >= 0) reopenAt(pending);
+    };
 
     private final BroadcastReceiver commands = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
@@ -76,7 +86,9 @@ public class PlayerActivity extends Activity {
                     if (!image) video.pause();
                     break;
                 case "seek":
-                    if (!image && !failed) video.seekTo(Math.max(0, i.getIntExtra("ms", 0)));
+                    if (image) break;
+                    if (byTime()) reopenAt(Math.max(0, i.getIntExtra("ms", 0)));
+                    else if (!failed) video.seekTo(Math.max(0, i.getIntExtra("ms", 0)));
                     break;
                 case "stop":
                     report("STOPPED", false, false);
@@ -145,6 +157,7 @@ public class PlayerActivity extends Activity {
     @Override
     protected void onStop() {
         super.onStop();
+        main.removeCallbacks(jump);
         video.stopPlayback();   // the decoder and the memory go with the screen (1 GB boards)
         report("STOPPED", false, false);
         session = 0;
@@ -164,8 +177,8 @@ public class PlayerActivity extends Activity {
     /** Tells Dlna what it's doing now (only for a file a controller sent). */
     private void report(String state, boolean open, boolean error) {
         if (session == 0) return;
-        int pos = image || failed ? 0 : Math.max(0, video.getCurrentPosition());
-        int dur = image || failed ? 0 : Math.max(0, video.getDuration());
+        int pos = image || failed ? 0 : position();
+        int dur = image || failed ? 0 : length();
         sendBroadcast(new Intent(Dlna.STATE).setPackage(getPackageName()).putExtra(Dlna.EXTRA_SESSION, session)
                 .putExtra("state", state).putExtra("pos", pos).putExtra("dur", dur).putExtra("open", open)
                 .putExtra("error", error), Dlna.PERMISSION);
@@ -183,6 +196,11 @@ public class PlayerActivity extends Activity {
         files.clear();
         single = null;
         image = false;
+        main.removeCallbacks(jump);
+        timeSeek = session != 0 && intent.getBooleanExtra(Dlna.EXTRA_TIME_SEEK, false);
+        known = session != 0 ? intent.getIntExtra(Dlna.EXTRA_DURATION, 0) : 0;
+        offset = 0;
+        pending = -1;
         if (session != 0 && intent.getData() != null) {
             single = intent.getData();
             String kind = intent.getStringExtra(Dlna.EXTRA_KIND);
@@ -331,10 +349,45 @@ public class PlayerActivity extends Activity {
         bar.show();
     }
 
+    /** Where the film is: the open stream's start plus how far it has played. */
+    private int position() {
+        return offset + Math.max(0, video.getCurrentPosition());
+    }
+
+    /** How long it is: the decoder's length, else the one the controller said. */
+    private int length() {
+        int d = video.getDuration();
+        return d > 0 && !byTime() ? d : known;
+    }
+
+    /** Jumps go by opening the stream again (a live stream with a known length whose decoder can't seek). */
+    private boolean byTime() {
+        return timeSeek && known > 0 && video.getDuration() <= 0;
+    }
+
+    private void reopenAt(int ms) {
+        main.removeCallbacks(jump);
+        pending = -1;
+        offset = Math.max(0, Math.min(ms, known - 5000));
+        failed = false;
+        video.setVideoURI(single.buildUpon().clearQuery().appendQueryParameter("t", String.valueOf(offset)).build());
+        bar.show();
+        report("TRANSITIONING", true, false);
+    }
+
     /** ← → by 10 s; held, the steps grow (30 s, then a minute). */
     private void seek(boolean forward, int repeat) {
-        if (failed || image || !video.canSeekForward() && forward || !video.canSeekBackward() && !forward) return;
         int step = repeat < 5 ? 10_000 : repeat < 20 ? 30_000 : 60_000;
+        if (!image && byTime()) {
+            // Choose the point first (shown on the bar), open it once the keys rest: each opening is a new transcode.
+            int from = pending >= 0 ? pending : position();
+            pending = Math.max(0, Math.min(from + (forward ? step : -step), known - 5000));
+            bar.show();
+            main.removeCallbacks(jump);
+            main.postDelayed(jump, 800);
+            return;
+        }
+        if (failed || image || !video.canSeekForward() && forward || !video.canSeekBackward() && !forward) return;
         int to = video.getCurrentPosition() + (forward ? step : -step);
         int length = video.getDuration();
         if (length > 0) to = Math.min(to, length - 1000);
@@ -513,7 +566,7 @@ public class PlayerActivity extends Activity {
                 small.setTextAlign(Paint.Align.LEFT);
             }
             // The progress line and the time under it.
-            int pos = video.getCurrentPosition(), length = video.getDuration();
+            int pos = pending >= 0 ? pending : position(), length = length();
             float ly = base + 44 * k, lh = 6 * k;
             r.set(x, ly, right, ly + lh);
             fill.setColor(Ui.alpha(0x40FFFFFF, alpha));
