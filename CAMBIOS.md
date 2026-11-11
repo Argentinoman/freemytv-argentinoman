@@ -15,6 +15,8 @@ Todo lo que se agregó o cambió sobre [Free My TV](https://github.com/simbasjun
 | El panel rápido | Ajustes → Fondos |
 | ![Mis favoritas: la grilla de fondos favoritos](screenshots/tv/mis-favoritas.jpg) | ![El protector de pantalla: un paisaje de Wikimedia con tres partidos en vivo, el título, el clima y la hora](screenshots/tv/protector-de-pantalla.jpg) |
 | Mis favoritas | El protector de pantalla |
+| ![Una foto mandada por DLNA desde la computadora, a pantalla completa, con su nombre abajo a la izquierda](screenshots/tv/dlna-foto.jpg) | ![El reproductor con el botón de información apretado: el tamaño de la imagen, 1920 × 1080, arriba a la derecha](screenshots/tv/resolucion.jpg) |
+| Una foto mandada por DLNA | El botón de información: la resolución |
 
 <sub>Capturas sacadas en la tele en noviembre de 2026 (con el brillo del inicio al 40 %). Todas, también las del
 proyector, en el [README](README.md#screenshots).</sub>
@@ -98,9 +100,25 @@ lista de canales de la entrada de antena, así abre en los canales. Detalles en 
 
 ## Panel rápido
 
-- Wi-Fi, Bluetooth, Protector de pantalla, Imagen y sonido, Entradas, Ajustes, Brillo del inicio, Ajustes de inicio y
-  **Cambiar fondo** (OK: la siguiente imagen; mantener OK: la siguiente categoría).
+- Wi-Fi, Bluetooth, Protector de pantalla, Imagen y sonido, Entradas, Ajustes, Brillo del inicio, Ajustes de inicio,
+  **Recibir videos** (prende o apaga el DLNA) y **Cambiar fondo** (OK: la siguiente imagen; mantener OK: la siguiente
+  categoría).
 - El clima arriba; se cierra deslizándose.
+
+## Recibir videos (DLNA)
+
+- La tele aparece con su nombre en BubbleUPnP, VLC, el "Transmitir a dispositivo" de Windows y cualquier app DLNA:
+  videos, música y fotos se abren en el reproductor propio de Free My TV, y el celu sigue controlando (play, pausa,
+  adelantar, volumen) y ve en vivo lo que pasa en la tele.
+- **En la tele:** OK pausa, ← → adelantan y atrasan (de a 10 s; mantenido, de a 30 s y de a 1 minuto), Atrás cierra.
+  En las transmisiones en vivo que el servidor puede arrancar desde cualquier segundo (como las de TV Caster), elegís
+  el punto y al soltar se pide desde ahí.
+- **El botón de información** del control muestra la resolución de lo que se está viendo (por ejemplo, "1920 × 1080 ·
+  1080p") unos segundos arriba a la derecha.
+- Solo atiende la red de tu casa y no sale a internet. Vive en el mismo servicio que los botones del control: casi no
+  usa memoria (el proceso entero, 9 a 17 MB medidos en la TCL) y se apaga solo cuando se apaga la tele.
+- Los links `http` de la red local pasan por la propia tele (127.0.0.1): el resto de la app sigue sin aceptar `http`
+  sin cifrar.
 
 ## Protector de pantalla
 
