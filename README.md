@@ -51,12 +51,14 @@ Open source. Built with Claude Code. One button to undo.
 | **Continuar viendo** (Disney+) | **Destacados** (Prime Video) |
 | ![Home with Spotify focused: the island shows Spotify's Top 3 Argentina with the covers](screenshots/tv/top3-spotify.jpg) | ![The drawer: inputs, shortcuts with Navegador, the weather and three live games](screenshots/tv/cajon.jpg) |
 | **Top 3 Argentina** (Spotify) | **The drawer**, with live games |
-| ![The drawer's weather card on its second page: the 7-day forecast with each day's high and low](screenshots/tv/pronostico-7-dias.jpg) | ![The quick settings panel over the home screen: Wi-Fi, Bluetooth, screensaver, picture and sound, inputs, settings, home brightness, home settings and change background](screenshots/tv/panel-rapido.jpg) |
+| ![The drawer's weather card on its second page: the 7-day forecast with each day's high and low](screenshots/tv/pronostico-7-dias.jpg) | ![The quick settings panel over the home screen: Wi-Fi, Bluetooth, screensaver, picture and sound, inputs, settings, home brightness, home settings, Recibir videos (DLNA) and change background](screenshots/tv/panel-rapido.jpg) |
 | **7-day forecast** | **Quick settings** (the remote's gear button) |
 | ![Settings → Fondos: home background, how often it changes, screensaver, seasonal theme, Mis favoritas and photo order](screenshots/tv/ajustes-fondos.jpg) | ![Mis favoritas: the grid of favourite backgrounds](screenshots/tv/mis-favoritas.jpg) |
 | **Settings → Fondos** | **Mis favoritas** |
-| ![The screensaver: a Wikimedia landscape with three live games at the top right, the title and author at the bottom left, and the weather and time at the bottom right](screenshots/tv/protector-de-pantalla.jpg) | |
-| **The screensaver** | |
+| ![The screensaver: a Wikimedia landscape with three live games at the top right, the title and author at the bottom left, and the weather and time at the bottom right](screenshots/tv/protector-de-pantalla.jpg) | ![A photo sent from a computer over DLNA, full screen, with its name at the bottom left](screenshots/tv/dlna-foto.jpg) |
+| **The screensaver** | **Sent over DLNA** (a photo) |
+| ![The player with the remote's Info key pressed: the picture's size, 1920 × 1080, on a dark pill at the top right](screenshots/tv/resolucion.jpg) | |
+| **Info key**: the picture's resolution | |
 
 <sub>Taken on the TCL itself, November 2026 (the home screen's brightness is turned down to 40%).</sub>
 
@@ -82,6 +84,7 @@ Open source. Built with Claude Code. One button to undo.
 - **Now playing.** What Spotify (or any music app) plays, with previous, play/pause, next, stop, shuffle and repeat.
 - **Light by day, dark by night.** It follows your city's real sunset, the way your phone does.
 - **A screensaver to match.** Full-screen photos from Wikimedia Commons (landscapes, art, abstract art, animals, your favourites) or a big clock, with the weather, the music and the games in the corners. The same pictures can be the home screen's background. The background changes every 6 hours and the screensaver's photo every 30 seconds, both adjustable (1 hour to a week; 15 seconds to 5 minutes), and the lists of pictures are renewed every week. For a few days a year, a **seasonal theme** (Halloween, Christmas, New Year, Carnival, Easter, a birthday) takes over both until it's turned off.
+- **Play on the TV from your phone or computer (DLNA).** The TV shows up by its name in BubbleUPnP, VLC, Windows' "Cast to device" and any other DLNA app: videos, songs and photos open in Free My TV's own player, and the phone keeps control (play, pause, seek, volume). On the TV, ← → jump, also in live streams that the server can start from any second, and the remote's Info key shows the picture's resolution. Local network only; "Recibir videos" in the quick panel turns it off.
 - **The TCL remote's buttons work.** Netflix, YouTube, Prime Video, the browser, TV (straight to the antenna's channels), TCL Home and the gear (a quick settings panel).
 - **Fast.** 60 fps, every frame in 16.6 ms, on the TV's own chip. The home screen uses 96 MB of memory instead of 242 MB (−60%).<br><sub>Measured on a 98″ TCL Google TV running Android 14. On a 2 GB TCL (Android 11): 0.9% janky frames while moving along the shelf, back to Home in 0.3 s.</sub>
 - **Set up on the TV.** Language, your city, temperature, theme, the weather and football cards, the backgrounds, "Continuar viendo", and the apps on the shelf, in Free My TV's own settings.

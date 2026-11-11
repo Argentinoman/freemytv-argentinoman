@@ -547,6 +547,7 @@ public class PlayerActivity extends Activity {
         private String resolution() {
             if (audioOnly) return "Solo audio";
             if (videoW <= 0 || videoH <= 0) return "Cargando…";
+            if (image) return videoW + " × " + videoH;   // a photo: its size, no video grade
             int lines = Math.min(videoW, videoH);
             String grade = lines >= 2160 ? "4K" : lines >= 1440 ? "1440p" : lines >= 1080 ? "1080p" : lines >= 720 ? "720p"
                     : lines + "p";
